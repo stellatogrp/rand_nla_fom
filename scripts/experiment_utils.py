@@ -38,6 +38,14 @@ def normalized_objective_error(values: np.ndarray, optimum: float) -> np.ndarray
     return np.abs(values - optimum) / max(1.0, abs(optimum))
 
 
+def accuracy_history(optimum: float, result: DRSResult) -> np.ndarray:
+    """Combine normalized objective error and equality feasibility."""
+    objective_error = normalized_objective_error(
+        result.objective_values, optimum
+    )
+    return objective_error + result.feasibility_norms
+
+
 def save_figure(fig, output: Path) -> None:
     """Lay out, save, and close a Matplotlib figure."""
     output.parent.mkdir(parents=True, exist_ok=True)

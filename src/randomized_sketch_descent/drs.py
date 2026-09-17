@@ -2,15 +2,21 @@
 
 The code solves ``min f(x)`` subject to ``A x = b`` using the block diagonal
 metric ``M = diag(I/gamma_x, I/gamma_lambda)``.  Equation (58) can be solved
-in either of two equivalent ways:
+in four equivalent ways:
 
 ``coupled_gmres``
     GMRES on the full nonsymmetric primal--dual system.
 ``schur_cg``
     CG on its SPD multiplier Schur complement
     ``(I + gamma_x*gamma_lambda*A*A.T) nu = rhs``.
+``schur_block_kaczmarz``
+    Block Kaczmarz on a cached random partition of the rows of the same
+    Schur-complement system.
+``schur_randomized_kaczmarz``
+    Randomized Kaczmarz on single rows of that system, drawn with
+    probability proportional to their squared norms.
 
-Both solvers warm start from the preceding inner solution and stop at the
+All four solvers warm start from the preceding inner solution and stop at the
 relaxed relative-error test in Theorem 5,
 ``||epsilon||_M <= sigma ||s||_M``.
 """
@@ -21,9 +27,15 @@ from dataclasses import dataclass
 from typing import Callable, NamedTuple
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 
-from ._linear_solvers import Vector, coupled_gmres, schur_cg
+from ._linear_solvers import (
+    BlockKaczmarz,
+    RandomizedKaczmarz,
+    Vector,
+    coupled_gmres,
+    schur_cg,
+)
 
 
 Prox = Callable[[Vector, float], ArrayLike]
@@ -99,6 +111,9 @@ def primal_dual_drs(
     tolerance: float = 1e-8,
     adaptive: bool = False,
     adaptation_interval: int = 20,
+    block_size: int | None = None,
+    random_seed: int = 0,
+    store_iterates: bool = True,
 ) -> DRSResult:
     """Run relaxed, relative-error preconditioned DRS (equations 58--60).
 
@@ -121,13 +136,30 @@ def primal_dual_drs(
         raise ValueError("theta must satisfy 0 < theta < 2")
     if not (0 <= sigma < (2 - theta) / 2):
         raise ValueError("sigma must satisfy 0 <= sigma < (2 - theta) / 2")
-    if linear_solver not in {"schur_cg", "coupled_gmres"}:
-        raise ValueError("linear_solver must be 'schur_cg' or 'coupled_gmres'")
+    solvers = {
+        "schur_cg",
+        "schur_block_kaczmarz",
+        "schur_randomized_kaczmarz",
+        "coupled_gmres",
+    }
+    if linear_solver not in solvers:
+        raise ValueError(f"linear_solver must be one of {sorted(solvers)}")
     if max_iterations < 1 or tolerance < 0:
         raise ValueError("invalid iteration limit or tolerance")
     if adaptation_interval < 2:
         raise ValueError("adaptation_interval must be at least 2")
-    default_inner = m if linear_solver == "schur_cg" else m + n
+    if block_size is None:
+        block_size = max(1, round(0.05 * m))
+    if not 1 <= block_size <= m:
+        raise ValueError(
+            "block_size must lie between 1 and the number of constraints"
+        )
+    default_inner = {
+        "schur_cg": m,
+        "schur_block_kaczmarz": 100 * m,
+        "schur_randomized_kaczmarz": 100 * m,
+        "coupled_gmres": m + n,
+    }[linear_solver]
     inner_limit = (
         default_inner if max_inner_iterations is None else max_inner_iterations
     )
@@ -142,7 +174,22 @@ def primal_dual_drs(
     )
     inner_guess = np.zeros(n + m)
     tiny = np.finfo(float).tiny
-
+    kaczmarz_solvers = {"schur_block_kaczmarz", "schur_randomized_kaczmarz"}
+    schur_matrix = (
+        np.eye(m) + gamma_x * gamma_lambda * matrix @ matrix.T
+        if linear_solver in kaczmarz_solvers
+        else None
+    )
+    if schur_matrix is None:
+        kaczmarz = None
+    elif linear_solver == "schur_block_kaczmarz":
+        kaczmarz = BlockKaczmarz(
+            schur_matrix, block_size, np.random.default_rng(random_seed)
+        )
+    else:
+        kaczmarz = RandomizedKaczmarz(
+            schur_matrix, np.random.default_rng(random_seed)
+        )
     objectives: list[float] = []
     feasibilities: list[float] = []
     steps: list[float] = []
@@ -162,8 +209,9 @@ def primal_dual_drs(
 
     def apply_coupled(u: Vector) -> Vector:
         xi, nu = u[:n], u[n:]
-        return np.concatenate((xi + gamma_x * matrix.T @ nu,
-                               nu - gamma_lambda * matrix @ xi))
+        return np.concatenate(
+            (xi + gamma_x * matrix.T @ nu, nu - gamma_lambda * matrix @ xi)
+        )
 
     def assess(u: Vector, system_rhs: Vector) -> tuple[bool, _StepState]:
         xi, nu = u[:n], u[n:]
@@ -195,7 +243,7 @@ def primal_dual_drs(
         def assess_current(u: Vector) -> tuple[bool, _StepState]:
             return assess(u, system_rhs)
 
-        if linear_solver == "schur_cg":
+        if linear_solver in {"schur_cg", *kaczmarz_solvers}:
             schur_rhs = lam - gamma_lambda * rhs_b + gamma_lambda * matrix @ x
 
             def schur(z: Vector) -> Vector:
@@ -205,14 +253,50 @@ def primal_dual_drs(
                 xi = x - gamma_x * matrix.T @ nu
                 return np.concatenate((xi, nu))
 
-            inner = schur_cg(
-                schur,
-                schur_rhs,
-                inner_guess[n:],
-                assemble,
-                assess_current,
-                inner_limit,
-            )
+            def assess_multiplier(nu: Vector) -> tuple[bool, _StepState]:
+                transposed_product = matrix.T @ nu
+                xi = x - gamma_x * transposed_product
+                candidate = _vector(
+                    prox_f(xi - gamma_x * transposed_product, gamma_x),
+                    n,
+                    "prox_f result",
+                )
+                error = schur(nu) - schur_rhs
+                primal_step = candidate - xi
+                dual_step = nu - lam - error
+                error_norm = float(np.linalg.norm(error) / np.sqrt(gamma_lambda))
+                step_norm = mnorm(primal_step, dual_step)
+                floor = 100 * np.finfo(float).eps * max(
+                    1.0, mnorm(system_rhs[:n], system_rhs[n:])
+                )
+                state = _StepState(
+                    xi,
+                    nu,
+                    candidate,
+                    primal_step,
+                    dual_step,
+                    error_norm,
+                    step_norm,
+                )
+                return error_norm <= max(sigma * step_norm, floor), state
+
+            if linear_solver == "schur_cg":
+                inner = schur_cg(
+                    schur,
+                    schur_rhs,
+                    inner_guess[n:],
+                    assemble,
+                    assess_current,
+                    inner_limit,
+                )
+            else:
+                assert kaczmarz is not None
+                inner = kaczmarz.solve(
+                    schur_rhs,
+                    inner_guess[n:],
+                    assess_multiplier,
+                    inner_limit,
+                )
         else:
             inner = coupled_gmres(
                 apply_coupled,
@@ -244,7 +328,8 @@ def primal_dual_drs(
         residuals.append(state.error_norm)
         ratios.append(state.error_norm / max(state.step_norm, tiny))
         inner_counts.append(inner_count)
-        primals.append(v.copy())
+        if store_iterates:
+            primals.append(v.copy())
         sigma_values.append(sigma)
         theta_values.append(theta)
         progress.append(max(state.step_norm, feasibility))
@@ -274,6 +359,8 @@ def primal_dual_drs(
         step_norms_m=np.asarray(steps), linear_residual_norms_m=np.asarray(residuals),
         relative_error_ratios=np.asarray(ratios),
         inner_iterations=np.asarray(inner_counts, dtype=int),
-        primal_iterates=np.asarray(primals),
+        primal_iterates=(
+            np.asarray(primals) if store_iterates else np.empty((0, n))
+        ),
         sigma_history=np.asarray(sigma_values), theta_history=np.asarray(theta_values),
     )

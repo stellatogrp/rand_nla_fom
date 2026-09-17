@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Literal
 
 import numpy as np
 
-from randomized_sketch_descent import DRSResult, primal_dual_drs, quadratic_prox
+from randomized_sketch_descent import DRSResult, primal_dual_drs
 
 from .experiment_utils import (
     normalized_objective_error,
@@ -16,124 +14,16 @@ from .experiment_utils import (
     save_figure,
     write_rows,
 )
-from .problems import (
-    Prox,
-    Vector,
-    equality_qp_solution,
-    inequality_qp_optimum,
-    nonnegative_linear_prox,
-    slack_quadratic_prox,
-    standard_form_lp_optimum,
+from .sweep_problems import (
+    CONDITIONS,
+    SweepProblem,
+    make_equality_qp,
+    make_inequality_qp,
+    make_lp,
 )
 
 
 GAMMAS = np.logspace(-2, 1, 25)
-Condition = Literal["moderately-conditioned", "ill-conditioned"]
-CONDITIONS: tuple[Condition, ...] = (
-    "moderately-conditioned",
-    "ill-conditioned",
-)
-SINGULAR_LIMITS = {
-    "moderately-conditioned": (1.0, 0.1),
-    "ill-conditioned": (10.0, 0.1),
-}
-
-
-@dataclass(frozen=True)
-class SweepProblem:
-    kind: str
-    condition: Condition
-    dimension: int
-    A: np.ndarray
-    b: np.ndarray
-    prox: Prox
-    objective: Callable[[Vector], float]
-    optimum: float
-    max_iterations: int
-    tolerance: float
-    matrix_condition: float
-
-
-def matrix_with_spectrum(
-    rng: np.random.Generator,
-    m: int,
-    n: int,
-    condition: Condition,
-    rowspace: np.ndarray | None = None,
-) -> np.ndarray:
-    """Return a full-row-rank matrix with controlled singular values."""
-    source = rng.standard_normal((m, n)) if rowspace is None else rowspace
-    _, _, vt = np.linalg.svd(source, full_matrices=False)
-    high, low = SINGULAR_LIMITS[condition]
-    singular_values = np.geomspace(high, low, m)
-    return singular_values[:, None] * vt
-
-
-def make_equality_qp(condition: Condition, seed: int = 41) -> SweepProblem:
-    rng = np.random.default_rng(seed)
-    m, n = 16, 80
-    A = matrix_with_spectrum(rng, m, n, condition)
-    factor = rng.standard_normal((n, n)) / np.sqrt(n)
-    Q = factor.T @ factor + .3 * np.eye(n)
-    c = rng.standard_normal(n) / np.sqrt(n)
-    b = A @ rng.standard_normal(n)
-    solution = equality_qp_solution(Q, c, A, b)
-    objective = lambda x: float(.5 * x @ Q @ x + c @ x)
-    return SweepProblem("equality QP", condition, n, A, b,
-                        quadratic_prox(Q, c), objective,
-                        objective(solution), 8_000, 2e-7, np.linalg.cond(A))
-
-
-def make_lp(condition: Condition, seed: int = 42) -> SweepProblem:
-    rng = np.random.default_rng(seed)
-    m, n = 8, 40
-    # Preserve a row space containing ones, hence the nonnegative feasible set
-    # is bounded, while changing the nonzero singular values of A.
-    source = np.vstack((rng.standard_normal((m - 1, n)), np.ones(n)))
-    A = matrix_with_spectrum(rng, m, n, condition, source)
-    feasible = rng.uniform(.2, 1., n)
-    feasible /= feasible.sum()
-    b = A @ feasible
-    c = rng.standard_normal(n)
-    objective = lambda x: float(c @ x)
-    return SweepProblem(
-        "LP",
-        condition,
-        n,
-        A,
-        b,
-        nonnegative_linear_prox(c),
-        objective,
-        standard_form_lp_optimum(c, A, b),
-        20_000,
-        1e-6,
-        np.linalg.cond(A),
-    )
-
-
-def make_inequality_qp(condition: Condition, seed: int = 43) -> SweepProblem:
-    rng = np.random.default_rng(seed)
-    m, n = 100, 500
-    A = matrix_with_spectrum(rng, m, n, condition)
-    factor = rng.standard_normal((n, n)) / np.sqrt(n)
-    Q = factor.T @ factor + .3 * np.eye(n)
-    feasible = rng.standard_normal(n)
-    b = A @ feasible + rng.uniform(.05, .2, m)
-    B = np.hstack((A, np.eye(m)))
-    objective = lambda y: float(y[:n] @ Q @ y[:n])
-    return SweepProblem(
-        "inequality QP",
-        condition,
-        n,
-        B,
-        b,
-        slack_quadratic_prox(Q),
-        objective,
-        inequality_qp_optimum(Q, A, b),
-        8_000,
-        2e-7,
-        np.linalg.cond(A),
-    )
 
 
 def run_problem(
@@ -147,17 +37,17 @@ def run_problem(
             matrix=problem.condition,
             gamma=float(gamma),
             n=problem.dimension,
-            m=problem.A.shape[0],
+            m=problem.matrix.shape[0],
             matrix_condition=problem.matrix_condition,
         )
         try:
             result = primal_dual_drs(
-                problem.prox, problem.A, problem.b,
+                problem.prox, problem.matrix, problem.rhs,
                 gamma_x=float(gamma), gamma_lambda=float(gamma), sigma=.2,
                 theta=1., linear_solver="schur_cg", objective=problem.objective,
-                tolerance=problem.tolerance,
+                tolerance=problem.solver_tolerance,
                 max_iterations=problem.max_iterations,
-                max_inner_iterations=4 * problem.A.shape[0],
+                max_inner_iterations=4 * problem.matrix.shape[0],
             )
         except RuntimeError as error:
             rows.append(dict(

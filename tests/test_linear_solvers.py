@@ -12,7 +12,12 @@ from tests._fixtures import equality_qp
 class LinearSolverTests(unittest.TestCase):
     def test_each_solver_recovers_the_qp_solution(self):
         matrix, rhs, hessian, linear_term, expected = equality_qp()
-        for solver in ("schur_cg", "coupled_gmres"):
+        for solver in (
+            "schur_cg",
+            "schur_block_kaczmarz",
+            "schur_randomized_kaczmarz",
+            "coupled_gmres",
+        ):
             with self.subTest(solver=solver):
                 result = primal_dual_drs(
                     quadratic_prox(hessian, linear_term),
@@ -23,6 +28,8 @@ class LinearSolverTests(unittest.TestCase):
                     sigma=0.2,
                     theta=1.2,
                     linear_solver=solver,
+                    block_size=1,
+                    store_iterates=solver != "schur_block_kaczmarz",
                     tolerance=1e-9,
                     max_iterations=5_000,
                 )
@@ -33,6 +40,11 @@ class LinearSolverTests(unittest.TestCase):
                 self.assertTrue(
                     np.all(result.relative_error_ratios <= 0.2 + 1e-12)
                 )
+                if solver == "schur_block_kaczmarz":
+                    self.assertEqual(
+                        result.primal_iterates.shape,
+                        (0, expected.size),
+                    )
 
 
 if __name__ == "__main__":
