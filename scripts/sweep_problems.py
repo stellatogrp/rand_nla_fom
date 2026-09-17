@@ -20,14 +20,21 @@ from .problems import (
 )
 
 
-Condition = Literal["moderately-conditioned", "ill-conditioned"]
+Condition = Literal[
+    "moderately-conditioned",
+    "mildly-ill-conditioned",
+    "ill-conditioned",
+]
+# The gamma and sigma sweeps contrast these two; other studies may select any
+# key of SINGULAR_LIMITS.
 CONDITIONS: tuple[Condition, ...] = (
     "moderately-conditioned",
     "ill-conditioned",
 )
 SINGULAR_LIMITS = {
-    "moderately-conditioned": (1.0, 0.1),
-    "ill-conditioned": (10.0, 0.1),
+    "moderately-conditioned": (1.0, 0.1),  # kappa(A) = 10
+    "mildly-ill-conditioned": (2.0, 0.1),  # kappa(A) = 20
+    "ill-conditioned": (10.0, 0.1),  # kappa(A) = 100
 }
 
 
@@ -157,18 +164,42 @@ def make_inequality_qp(condition: Condition, seed: int = 43) -> SweepProblem:
     )
 
 
+def _singular_values(
+    rng: np.random.Generator,
+    constraints: int,
+    condition: Condition,
+    randomize_spectrum: bool,
+) -> Vector:
+    """Return singular values realizing ``condition``.
+
+    The default ladder is a fixed geometric sweep, which makes iteration
+    counts almost independent of the seed: only the singular vectors change.
+    With ``randomize_spectrum`` the extremes are pinned -- so ``kappa(A)`` is
+    unchanged -- and the interior values are redrawn log-uniformly, which
+    turns each seed into a genuinely different problem instance.
+    """
+    high, low = SINGULAR_LIMITS[condition]
+    if not randomize_spectrum or constraints < 3:
+        return np.geomspace(high, low, constraints)
+    interior = np.exp(
+        rng.uniform(np.log(low), np.log(high), constraints - 2)
+    )
+    return np.sort(np.r_[high, interior, low])[::-1]
+
+
 def _large_matrix(
     rng: np.random.Generator,
     constraints: int,
     variables: int,
     condition: Condition,
+    randomize_spectrum: bool = False,
 ) -> np.ndarray:
     """Construct a large controlled-spectrum matrix without a full SVD."""
     basis, _ = np.linalg.qr(
         rng.standard_normal((variables, constraints)), mode="reduced"
     )
-    high, low = SINGULAR_LIMITS[condition]
-    return np.geomspace(high, low, constraints)[:, None] * basis.T
+    values = _singular_values(rng, constraints, condition, randomize_spectrum)
+    return values[:, None] * basis.T
 
 
 def _large_lp_matrix(
@@ -176,6 +207,7 @@ def _large_lp_matrix(
     constraints: int,
     variables: int,
     condition: Condition,
+    randomize_spectrum: bool = False,
 ) -> np.ndarray:
     """Construct orthonormal rows with a well-conditioned leading basis."""
     trailing = rng.standard_normal((constraints, variables - constraints))
@@ -183,8 +215,9 @@ def _large_lp_matrix(
     source = np.hstack((np.eye(constraints), trailing))
     eigenvalues, eigenvectors = np.linalg.eigh(source @ source.T)
     inverse_root = (eigenvectors / np.sqrt(eigenvalues)) @ eigenvectors.T
-    high, low = SINGULAR_LIMITS[condition]
-    singular_values = np.geomspace(high, low, constraints)
+    singular_values = _singular_values(
+        rng, constraints, condition, randomize_spectrum
+    )
     return singular_values[:, None] * (inverse_root @ source)
 
 
@@ -203,10 +236,13 @@ def make_large_equality_qp(
     constraints: int,
     variables: int,
     seed: int = 41,
+    randomize_spectrum: bool = False,
 ) -> SweepProblem:
     """Build a scalable equality QP with an exact KKT solution."""
     rng = np.random.default_rng(seed)
-    matrix = _large_matrix(rng, constraints, variables, condition)
+    matrix = _large_matrix(
+        rng, constraints, variables, condition, randomize_spectrum
+    )
     diagonal = np.geomspace(0.3, 3.0, variables)
     solution = rng.standard_normal(variables) / np.sqrt(variables)
     multiplier = rng.standard_normal(constraints) / np.sqrt(constraints)
@@ -237,10 +273,13 @@ def make_large_lp(
     constraints: int,
     variables: int,
     seed: int = 42,
+    randomize_spectrum: bool = False,
 ) -> SweepProblem:
     """Build a scalable LP with an exact primal-dual certificate."""
     rng = np.random.default_rng(seed)
-    matrix = _large_lp_matrix(rng, constraints, variables, condition)
+    matrix = _large_lp_matrix(
+        rng, constraints, variables, condition, randomize_spectrum
+    )
     solution = np.zeros(variables)
     solution[:constraints] = rng.uniform(0.2, 1.0, constraints)
     solution /= solution.sum()
@@ -274,10 +313,13 @@ def make_large_inequality_qp(
     constraints: int,
     variables: int,
     seed: int = 43,
+    randomize_spectrum: bool = False,
 ) -> SweepProblem:
     """Build a scalable inequality QP with an exact KKT solution."""
     rng = np.random.default_rng(seed)
-    matrix = _large_matrix(rng, constraints, variables, condition)
+    matrix = _large_matrix(
+        rng, constraints, variables, condition, randomize_spectrum
+    )
     diagonal = np.geomspace(0.3, 3.0, variables)
     multiplier = rng.uniform(0.2, 1.0, constraints) / np.sqrt(constraints)
     solution = -(matrix.T @ multiplier) / (2 * diagonal)

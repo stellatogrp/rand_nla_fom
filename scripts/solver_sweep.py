@@ -182,11 +182,20 @@ def run_instance(problem: SweepProblem, seed: int, solver: str) -> dict:
     )
 
 
-def _run_task(task: tuple[str, str, int, tuple[str, ...]]) -> list[dict]:
+def _run_task(task: tuple[str, str, int, tuple[str, ...], bool]) -> list[dict]:
     """Run the requested solvers on a single freshly drawn instance."""
-    kind, condition, seed, solvers = task
-    problem = MAKERS[kind](condition, CONSTRAINTS, VARIABLES, seed=seed)
-    return [run_instance(problem, seed, solver) for solver in solvers]
+    kind, condition, seed, solvers, randomize_spectrum = task
+    problem = MAKERS[kind](
+        condition,
+        CONSTRAINTS,
+        VARIABLES,
+        seed=seed,
+        randomize_spectrum=randomize_spectrum,
+    )
+    rows = [run_instance(problem, seed, solver) for solver in solvers]
+    for row in rows:
+        row["randomize_spectrum"] = randomize_spectrum
+    return rows
 
 
 def _read_rows(path: Path) -> list[dict]:
@@ -201,6 +210,9 @@ def _read_rows(path: Path) -> list[dict]:
             if row.get(name):
                 row[name] = int(float(row[name]))
         row["reached_accuracy"] = str(row["reached_accuracy"]).lower() == "true"
+        row["randomize_spectrum"] = (
+            str(row.get("randomize_spectrum", "")).lower() == "true"
+        )
     return rows
 
 
@@ -293,6 +305,16 @@ def summarize(rows: list[dict]) -> list[dict]:
                         entry[f"{prefix}_{statistic}"] = value
                 summary.append(entry)
     return summary
+
+
+def _spectrum_label(rows: list[dict]) -> str:
+    """Describe how the singular values were drawn across instances."""
+    flags = {bool(row.get("randomize_spectrum")) for row in rows}
+    if flags == {True}:
+        return "randomized interior spectrum"
+    if flags == {False}:
+        return "fixed geometric spectrum"
+    return "mixed spectrum sampling"
 
 
 def _bar_panel(axis, rows: list[dict], kind: str, field: str) -> None:
@@ -393,7 +415,8 @@ def plot_work(rows: list[dict], output: Path) -> None:
     axes[0, 0].legend(fontsize=7, ncol=2)
     fig.suptitle(
         "Inner solver comparison over "
-        f"{INSTANCES} random instances per family; "
+        f"{len(_select(rows, KINDS[0], CONDITIONS[0], SOLVERS[0]))} "
+        f"random instances per family ({_spectrum_label(rows)}); "
         rf"$\sigma={SIGMA:g}$, $\theta={THETA:g}$, "
         rf"$\gamma_x=\gamma_\lambda={GAMMA:g}$; "
         "target: normalized objective error + feasibility "
@@ -459,7 +482,9 @@ def plot_distributions(rows: list[dict], output: Path) -> None:
     axes[0, 0].set_ylabel("outer iterations to target")
     axes[1, 0].set_ylabel("inner iterations to target")
     fig.suptitle(
-        f"Per-instance distributions over {INSTANCES} random instances; "
+        "Per-instance distributions over "
+        f"{len(_select(rows, KINDS[0], CONDITIONS[0], SOLVERS[0]))} "
+        f"random instances ({_spectrum_label(rows)}); "
         rf"$\sigma={SIGMA:g}$, $\theta={THETA:g}$, "
         rf"$\gamma_x=\gamma_\lambda={GAMMA:g}$"
     )
@@ -487,9 +512,18 @@ def print_summary(summary: list[dict]) -> None:
         )
 
 
-def run_study() -> None:
-    """Run or resume the multi-instance inner-solver comparison."""
-    output = Path("figures/solver_sweep")
+def run_study(randomize_spectrum: bool = False) -> None:
+    """Run or resume the multi-instance inner-solver comparison.
+
+    With ``randomize_spectrum`` the instances of a family differ in their
+    interior singular values as well as their singular vectors, at the same
+    ``kappa(A)``; the two samplings are kept in separate output directories.
+    """
+    output = Path(
+        "figures/solver_sweep_randomized_spectrum"
+        if randomize_spectrum
+        else "figures/solver_sweep"
+    )
     results_path = output / "results.csv"
     rows = [
         row
@@ -499,6 +533,7 @@ def run_study() -> None:
         and float(row["sigma"]) == SIGMA
         and float(row["theta"]) == THETA
         and float(row["gamma_x"]) == GAMMA
+        and row["randomize_spectrum"] == randomize_spectrum
     ]
     completed = {_key(row) for row in rows}
     tasks = []
@@ -512,7 +547,9 @@ def run_study() -> None:
                     if (kind, condition, seed, solver) not in completed
                 )
                 if pending:
-                    tasks.append((kind, condition, seed, pending))
+                    tasks.append(
+                        (kind, condition, seed, pending, randomize_spectrum)
+                    )
     print(
         f"{len(rows)} checkpointed results; "
         f"{len(tasks)} instances still to run on {WORKERS} workers",
@@ -549,3 +586,8 @@ def run_study() -> None:
     plot_distributions(rows, output / "solver_distributions.pdf")
     print_summary(summary)
     print(f"wrote {output}")
+
+
+def run_randomized_study() -> None:
+    """Repeat the comparison with the interior spectrum redrawn per instance."""
+    run_study(randomize_spectrum=True)
