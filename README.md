@@ -63,14 +63,23 @@ Run an individual study from the repository root:
 .venv/bin/python -m scripts.run_experiments gamma-sweep
 .venv/bin/python -m scripts.run_experiments sigma-sweep
 .venv/bin/python -m scripts.run_experiments theta-sweep
+.venv/bin/python -m scripts.run_experiments solver-sweep
 .venv/bin/python -m scripts.run_experiments lp-sigma-sweep
 .venv/bin/python -m scripts.run_experiments inequality-gamma-sweep
 ```
 
-Use `all` to run every study except the focused LP sigma and inequality gamma
-sweeps. The `sigma-sweep` and `theta-sweep` studies are the long ones: each
-checkpoints every individual result to its own `results.csv` and skips
+Use `all` to run every study except the focused LP sigma, inequality gamma, and
+solver sweeps. The `sigma-sweep` and `theta-sweep` studies are the long ones:
+each checkpoints every individual result to its own `results.csv` and skips
 completed settings when rerun, so both can be resumed.
+
+The `solver-sweep` study holds `gamma_x = gamma_lambda`, `theta`, and `sigma`
+fixed and varies only the inner solver, over 100 independent problem instances
+of each family at `m=100, n=500`. It checkpoints per
+`(problem, conditioning, instance, solver)` to
+`figures/solver_sweep/results.csv` and runs its instances on a process pool, so
+it is also resumable. The `solver-sweep-randomized` command repeats it with the
+interior singular values redrawn per instance.
 
 Run the regression tests with:
 

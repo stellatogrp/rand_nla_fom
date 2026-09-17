@@ -13,10 +13,17 @@ STUDIES = {
     "gamma-sweep": ("scripts.gamma_sweep", "run_study"),
     "sigma-sweep": ("scripts.sigma_sweep", "run_study"),
     "theta-sweep": ("scripts.theta_sweep", "run_study"),
+    "solver-sweep": ("scripts.solver_sweep", "run_study"),
+    "solver-sweep-randomized": ("scripts.solver_sweep", "run_randomized_study"),
     "lp-sigma-sweep": ("scripts.sigma_sweep", "run_lp_study"),
     "inequality-gamma-sweep": ("scripts.gamma_sweep", "run_inequality_study"),
 }
-FOCUSED_STUDIES = {"lp-sigma-sweep", "inequality-gamma-sweep"}
+FOCUSED_STUDIES = {
+    "lp-sigma-sweep",
+    "inequality-gamma-sweep",
+    "solver-sweep",
+    "solver-sweep-randomized",
+}
 
 
 def run_study(name: str) -> None:

@@ -106,3 +106,28 @@ Frobenius-scaled condition number of the Schur complement rather than
 `kappa(S)`; at these sizes that quantity is roughly `76` at `kappa(A) = 10`
 and `190` at `kappa(A) = 20`, both well inside the budget of `500 m`
 projections per inner solve.
+
+The `solver-sweep` study isolates the inner solver. It fixes
+`gamma_x = gamma_lambda = 1`, `theta = 1`, and `sigma = 0.2`, and for each of
+the three problem families at both condition numbers it draws 100 independent
+instances with `m = 100` constraints and `n = 500` primal variables (the
+inequality QP augments its `100 x 500` matrix to `100 x 600` with slacks).
+Every instance is solved four times, once per inner solver: CG and block
+Kaczmarz and randomized Kaczmarz on the Schur complement, and GMRES on the
+coupled system. Each run gets the same inner budget of `1000 m` iterations and
+the same target, the first iterate whose normalized objective error plus
+feasibility is at most `1e-7`; the recorded outer and cumulative inner
+iteration counts are then aggregated over instances. `solver_comparison.pdf`
+shows means with one-standard-deviation error bars,
+`solver_distributions.pdf` the underlying per-instance distributions,
+`summary.csv` the aggregate table, and `results.csv` every instance. Instances
+run on a process pool with one BLAS thread each, so the recorded times are
+comparable across solvers but measured under load.
+
+By default the instances of one family share a fixed geometric singular-value
+ladder, so they differ only in their singular vectors and their solution draws.
+The `solver-sweep-randomized` command repeats the whole comparison with
+`randomize_spectrum=True`, which pins the extreme singular values, leaving
+`kappa(A)` unchanged, and redraws the interior log-uniformly per instance. Its
+outputs go to `figures/solver_sweep_randomized_spectrum/` and its per-row
+`randomize_spectrum` column keeps the two samplings separable.
