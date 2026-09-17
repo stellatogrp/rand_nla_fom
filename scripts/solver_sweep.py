@@ -354,15 +354,26 @@ def _bar_panel(axis, rows: list[dict], kind: str, field: str) -> None:
             label=SOLVER_LABELS[solver],
             error_kw=dict(elinewidth=1.0, capsize=2.5, ecolor="#3d3d3a"),
         )
-        for position, mean, note in zip(positions, means, notes):
+        for position, mean, spread, note in zip(
+            positions, means, errors, notes
+        ):
             if np.isnan(mean):
                 failures.append((position, SOLVER_COLORS[solver]))
             else:
                 drawn_means.append(mean)
                 if note:
-                    axis.text(
-                        position, mean, f"{note} ", rotation=90,
-                        fontsize=6, ha="center", va="bottom",
+                    # Say how many instances the bar averages when some of
+                    # them never reached the target.
+                    axis.annotate(
+                        note,
+                        (position, mean + spread),
+                        textcoords="offset points",
+                        xytext=(0, 4),
+                        fontsize=5.5,
+                        ha="center",
+                        va="bottom",
+                        color=SOLVER_COLORS[solver],
+                        fontweight="bold",
                     )
     axis.set_xticks(centers)
     axis.set_xticklabels([CONDITION_LABELS[name] for name in CONDITIONS])

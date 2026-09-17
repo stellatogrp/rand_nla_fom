@@ -89,3 +89,11 @@ shows means with one-standard-deviation error bars,
 `summary.csv` the aggregate table, and `results.csv` every instance. Instances
 run on a process pool with one BLAS thread each, so the recorded times are
 comparable across solvers but measured under load.
+
+By default the instances of one family share a fixed geometric singular-value
+ladder, so they differ only in their singular vectors and their solution draws.
+The `solver-sweep-randomized` command repeats the whole comparison with
+`randomize_spectrum=True`, which pins the extreme singular values, leaving
+`kappa(A)` unchanged, and redraws the interior log-uniformly per instance. Its
+outputs go to `figures/solver_sweep_randomized_spectrum/` and its per-row
+`randomize_spectrum` column keeps the two samplings separable.
