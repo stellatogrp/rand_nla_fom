@@ -11,7 +11,6 @@ src/       Installable solver package
 scripts/   Reproducible experiment entry points and helpers
 tests/     Numerical regression tests for the active solver
 figures/   Generated plots and CSV results (git-ignored)
-Archive/   Superseded outputs retained for research provenance
 ```
 
 See [`scripts/README.md`](scripts/README.md) for the method summary, study
@@ -26,6 +25,20 @@ from randomized_sketch_descent import (
     quadratic_prox,
 )
 ```
+
+Equation (58) is solved inexactly by one of three warm-started inner solvers,
+selected with `linear_solver`:
+
+- `schur_cg` (default), conjugate gradients on the positive-definite Schur
+  complement `I + gamma_x*gamma_lambda*A*A.T`;
+- `schur_block_kaczmarz`, block Kaczmarz on the rows of the same system, using
+  a cached random row partition controlled by `block_size` and `random_seed`;
+- `schur_randomized_kaczmarz`, randomized Kaczmarz on single rows of that
+  system, drawn with probability proportional to their squared norms;
+- `coupled_gmres`, unrestarted GMRES on the full primal--dual system.
+
+Each is stopped by the relative-error test `||epsilon||_M <= sigma ||s||_M`
+checked after every inner iteration.
 
 ## Environment
 
@@ -48,11 +61,18 @@ Run an individual study from the repository root:
 .venv/bin/python -m scripts.run_experiments lp
 .venv/bin/python -m scripts.run_experiments inequality-qp
 .venv/bin/python -m scripts.run_experiments gamma-sweep
+.venv/bin/python -m scripts.run_experiments sigma-sweep
+.venv/bin/python -m scripts.run_experiments theta-sweep
+.venv/bin/python -m scripts.run_experiments lp-sigma-sweep
 .venv/bin/python -m scripts.run_experiments inequality-gamma-sweep
 ```
 
-Use `all` to run every study except the focused inequality gamma sweep. Run
-the regression tests with:
+Use `all` to run every study except the focused LP sigma and inequality gamma
+sweeps. The `sigma-sweep` and `theta-sweep` studies are the long ones: each
+checkpoints every individual result to its own `results.csv` and skips
+completed settings when rerun, so both can be resumed.
+
+Run the regression tests with:
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -v

@@ -11,8 +11,12 @@ STUDIES = {
     "lp": ("scripts.lp_tuning", "run_study"),
     "inequality-qp": ("scripts.inequality_qp_tuning", "run_study"),
     "gamma-sweep": ("scripts.gamma_sweep", "run_study"),
+    "sigma-sweep": ("scripts.sigma_sweep", "run_study"),
+    "theta-sweep": ("scripts.theta_sweep", "run_study"),
+    "lp-sigma-sweep": ("scripts.sigma_sweep", "run_lp_study"),
     "inequality-gamma-sweep": ("scripts.gamma_sweep", "run_inequality_study"),
 }
+FOCUSED_STUDIES = {"lp-sigma-sweep", "inequality-gamma-sweep"}
 
 
 def run_study(name: str) -> None:
@@ -32,7 +36,7 @@ def main() -> None:
     selected = parser.parse_args().study
     if selected == "all":
         for name in STUDIES:
-            if name != "inequality-gamma-sweep":
+            if name not in FOCUSED_STUDIES:
                 run_study(name)
     else:
         run_study(selected)

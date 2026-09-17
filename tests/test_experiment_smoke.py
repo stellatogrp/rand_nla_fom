@@ -7,6 +7,7 @@ import numpy as np
 from randomized_sketch_descent import primal_dual_drs
 from scripts.problems import inequality_qp_optimum, slack_quadratic_prox
 from scripts.standard import make_lp, solve
+from scripts.theta_sweep import POLICIES, THETAS, sigma_for
 
 
 class ExperimentSmokeTests(unittest.TestCase):
@@ -43,6 +44,17 @@ class ExperimentSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(slack.min(), -1e-12)
         self.assertLess(np.linalg.norm(matrix @ primal + slack - rhs), 2e-8)
         self.assertLess(abs(float(primal @ hessian @ primal) - optimum), 5e-6)
+
+
+    def test_theta_sweep_tolerances_stay_admissible(self):
+        # Theorem 5 couples the two parameters, so every (theta, sigma) the
+        # sweep generates must satisfy sigma < (2 - theta) / 2.
+        for theta in THETAS:
+            for policy in POLICIES:
+                sigma = sigma_for(policy, float(theta))
+                with self.subTest(theta=theta, policy=policy):
+                    self.assertGreaterEqual(sigma, 0.0)
+                    self.assertLess(sigma, (2 - float(theta)) / 2)
 
 
 if __name__ == "__main__":

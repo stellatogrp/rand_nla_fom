@@ -30,6 +30,15 @@ class PrimalDualDRSTests(unittest.TestCase):
                     **{name: value},
                 )
 
+        for block_size in (0, 3):
+            with self.subTest(block_size=block_size), self.assertRaises(ValueError):
+                primal_dual_drs(
+                    lambda vector, _: vector,
+                    identity,
+                    zero,
+                    block_size=block_size,
+                )
+
     def test_adaptive_parameters_remain_admissible(self):
         matrix, rhs, hessian, linear_term, _ = equality_qp()
         result = primal_dual_drs(
