@@ -1,0 +1,88 @@
+% Shared macros and environments for every document in tex/.
+% Seeded from the group's standard template; project-specific additions are
+% collected at the end.
+
+% Commands
+\newcommand{\eg}{{\it e.g.}}
+\newcommand{\ie}{{\it i.e.}}
+
+% Sets
+\newcommand{\ones}{\mathbf 1}
+\newcommand{\reals}{{\mathbf R}}
+\newcommand{\integers}{{\mathbf  Z}}
+\newcommand{\symm}{{\mathbf S}}  % symmetric matrices
+\newcommand{\NPhard}{\mbox{$\mathcal{NP}$-hard}}
+\newcommand{\prob}{{\mathbf P}}
+\newcommand{\distrib}{{\mathcal P}}
+\newcommand{\identity}{I}
+\newcommand{\nullspace}{{\mathcal N}}
+\newcommand{\range}{{\mathcal R}}
+\newcommand{\Rank}{\mathop{\bf rank}}
+\newcommand{\Tr}{\mathop{\bf Tr}}
+\newcommand{\diag}{\mathop{\bf diag}}
+\newcommand{\lambdamax}{{\lambda_{\rm max}}}
+\newcommand{\lambdamin}{\lambda_{\rm min}}
+\newcommand{\Expect}{\mathop{\bf E{}}}
+\newcommand{\Prob}{\mathop{\bf prob}}
+\newcommand{\Co}{{\mathop {\bf Co}}} % convex hull
+\newcommand{\dist}{\mathop{\bf dist{}}}
+\newcommand{\argmin}{\mathop{\rm argmin}}
+\newcommand{\argmax}{\mathop{\rm argmax}}
+\newcommand{\epi}{\mathop{\bf epi}} % epigraph
+\newcommand{\Vol}{\mathop{\bf vol}}
+\newcommand{\dom}{\mathop{\bf dom}} % domain
+\newcommand{\intr}{\mathop{\bf int}}
+
+\newcommand{\sign}{\mathop{\bf sign}}
+\newcommand{\round}{\mathop{\bf round}}
+
+% Sections (for citation)
+\newcommand{\Sec}{Section\;}
+
+% Create theorems and other environments
+\newtheorem{theorem}{Theorem}[section]  % Restart counter every section
+\newtheorem{lemma}{Lemma}[section]  % Restart counter every section
+\newtheorem{corollary}{Corollary}[theorem]  % Restart counter every theorem
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{assumption}{Assumption}[section]
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{problem}{Problem}[section]
+
+\theoremstyle{remark}
+\newtheorem{example}{Example}[section]
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem{remark}{Remark}[section]
+
+% Acronyms.  Defined only when the preamble loaded the glossaries package, so
+% that this file can be \input from a document that does not use acronyms.
+\makeatletter
+\@ifundefined{newacronym}{}{%
+  \newacronym{LP}{LP}{linear program}
+  \newacronym{QP}{QP}{quadratic program}
+  \newacronym{MIQP}{MIQP}{mixed-integer quadratic program}
+  \newacronym{MIP}{MIP}{mixed-integer program}
+  \newacronym{MILP}{MILP}{mixed-integer linear program}
+  \newacronym{MINLP}{MINLP}{mixed-integer nonlinear program}
+  \newacronym{sBB}{sBB}{spatial branch and bound}
+  \newacronym{PWA}{PWA}{piecewise affine}
+  \newacronym{SVM}{SVM}{support vector machines}
+  \newacronym{ReLU}{ReLU}{rectified linear unit}
+  \newacronym{CPU}{CPU}{central processing unit}
+  \newacronym{GPU}{GPU}{graphics processing unit}
+  \newacronym{MPC}{MPC}{model predictive control}
+  \newacronym{ADMM}{ADMM}{alternating direction method of multipliers}
+  \newacronym{ADP}{ADP}{approximate dynamic programming}
+  \newacronym{FPGA}{FPGA}{field-programmable gate array}
+  \newacronym{DRS}{DRS}{Douglas--Rachford splitting}
+  \newacronym{RandNLA}{RandNLA}{randomized numerical linear algebra}
+  \newacronym{CG}{CG}{conjugate gradients}
+  \newacronym{GMRES}{GMRES}{generalized minimal residual method}
+}
+\makeatother
+
+% Project-specific definitions
+\newcommand{\prox}{\mathrm{prox}}
+\newcommand{\Fix}{\mathrm{Fix}}
+\newcommand{\R}{\mathbb{R}}

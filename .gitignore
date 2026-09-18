@@ -5,8 +5,24 @@ matlab/compute_huber.m
 .venv/
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
 
-# Generated figures
-figures/
+# Generated CSVs and figures: always rebuilt from code/experiments and
+# code/plots, never edited by hand.
+results/
+
+# LaTeX build products
+tex/*.aux
+tex/*.bbl
+tex/*.blg
+tex/*.fdb_latexmk
+tex/*.fls
+tex/*.log
+tex/*.out
+tex/*.synctex.gz
+tex/*.toc
+tex/Draft.pdf
+
 .DS_Store

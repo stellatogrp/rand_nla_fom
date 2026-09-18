@@ -1,0 +1,530 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx} % Required for inserting images
+
+\usepackage{amssymb, amsfonts, amsmath, amsthm}
+\usepackage[margin=1in, footskip=1cm, headheight = 1.5cm]{geometry}
+\usepackage[sort]{natbib}
+\usepackage{algorithm2e}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=cyan,
+    pdftitle={Rand LA FOM},
+    pdfpagemode=FullScreen,
+    }
+\bibliographystyle{unsrtnat}
+% cleveref is loaded before definitions.tex so that it picks up the names of
+% the theorem environments defined there.
+\usepackage[nameinlink]{cleveref}
+
+% Math macros and theorem environments shared by everything in tex/.
+\input{definitions.tex}
+
+% lowercase names
+\crefname{equation}{}{}
+\crefname{assumption}{assumption}{assumptions}
+
+%\title{Distributed Optimization Notes}
+\title{Integrated Analysis of an Algorithm for Linearly Constrained Convex Optimization}
+\author{Pranav Reddy}
+\date{\small \today \vspace{-5mm}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    hello world
+\end{abstract}
+
+\section{Introduction}
+Consider the problem
+\begin{align}
+    \min_{x\in\R^n} &\quad f(x)  \label{eq:linearly-constrained-problem}\\
+    \text{s.t.} &\quad Ax = b \notag
+\end{align}
+where $A \in \R^{m\times n}$ and $b\in\R^m$, and we assume $f$ is convex, closed, and proper, but not necessarily differentiable.
+A popular class of methods for solving this are operator-splitting methods, which in a general sense split \Cref{eq:linearly-constrained-problem} into smaller subproblems, and then successively solve the subproblems to reach a solution.
+For an excellent introduction and overview on the theory of monotone operators and their applications, see \cite{Ryu_Yin_OptimizationMonotoneOperators}.
+The hope is that by splitting, a previously difficult problem may be decomposed into a sequence of simple operations that are easier to implement.
+This broad idea finds many applications in convex programming, with notable success stories like ISTA, FISTA, and PDLP (and its variants) (\cite{liu2014asynchronousparallelrandomizedkaczmarz,FISTA-original-paper, ISTA-original-paper,applegate2022practicallargescalelinearprogramming-pdlp-paper}).
+
+However, splitting alone does not always guarantee simplicity.
+Proximal subproblems (such as projections onto convex sets) often have no closed-form solution, requiring iterative subroutines to solve subproblems.
+Since this may be difficult and largely unnecessary in the early stages of an algorithm, the optimization community has had a sustained interest in inexact algorithms for over 40 years (\cite{EcksteinBertsekasDouglasRachfordSplitting,svaiter2018weaklyconvergentfullyinexact,alves2025generalframeworkinexactsplitting,liang2015convergenceratesinexactnonexpansive,schmidt2011convergenceratesinexactproximalgradient,BarrePEPInexactMethods,CortildInexactKMIterations,rockafellar-ppm-paper}).
+
+\section{Setting and Notation}
+Superscripts with parentheses, e.g. $x^{(k)}$, denotes the \textit{outer} iterations, where the proximal operation is performed.
+Subscripts with parentheses, e.g. $x^{(k)}_{(l)}$, denotes the \textit{inner} iterations, where the iterative method (or other solution method) is performed and refers to the $l$th iterate of an iterative method intialized at $x^{(k)}_{(0)} := x^{(k)}$.
+
+We use $\partial f(x)$ to denote the set of subgradients of $f$ at $x$.
+By abuse of notation, we will occasionally perform arithmetic on it, where the arithmetic should be understood to be on each element of the set.
+We also use $\prox_{f}(x)$ to denote the output of the proximal operator on $f$, evaluated at $x$.
+That is,
+\begin{align}
+    \prox_{f}(x) = \argmin_{y} \left\{f(y) + \frac{1}{2}\|x-y\|^2\right\}.
+\end{align}
+The norm when written without subscript is the standard Euclidean norm: $\|x\|^2 = \|x\|_2^2 = x^\top x$.
+For norms derived from a positive definite matrix $M$, we write $\|x\|_M^2 = x^\top M x$.
+We will not use any norms not derived from a quadratic form.
+
+We will use $A^\dagger$ to represent the Moore-Penrose pseudoinverse of a matrix $A$.
+We assume $\mathrm{rank}(A) = r$ and that $\sigma_1 \geq \dots \geq \sigma_r(A) > 0$ are the singular values of $A$.
+Similarly, $\sigma_{\max}(A)$ (respectively, $\sigma_{\min}(A)$) denotes the largest (respectively, smallest) singular value of $A$.
+The notation $\sigma_{\min}^+(A)$ refers to the largest nonzero singular value of $A$.
+
+
+\section{Algorithm}
+This algorithm is a variant of the algorithm described in \cite{EcksteinRelativeError2018}.
+To motivate this, let us first write down the KKT conditions of \Cref{eq:linearly-constrained-problem}.
+A point $x\in\R^n$ is optimal for $\Cref{eq:linearly-constrained-problem}$ if and only if there exists $\lambda\in\R^m$ such that
+\begin{subequations}\label{eq:kkt-conditions}
+\begin{align}
+        A^\top \lambda  &\in \partial f (x) \\ 
+        b &= Ax
+\end{align}
+\end{subequations}
+
+We can formulate this (modulo the sign of $\lambda$) as a monotone inclusion problem:
+\begin{align}
+    0 \in \underbrace{\begin{bmatrix}
+        \partial f (x) \\ 0
+    \end{bmatrix}}_{\mathcal{F}(x,\lambda)} + \underbrace{\begin{bmatrix}
+        A^\top \lambda \\ b - Ax
+    \end{bmatrix}}_{\mathcal{G}(x,\lambda)} \label{eq:monotone-inclusion-kkt}
+\end{align}
+From \cite{BauschkeConvexAnalysisResolventsOfMonotoneOperators}, $\mathcal{G}$ is maximal monotone since it is an affine map where the linear portion is skew-symmetric.
+
+Using a preconditioner in the style of \cite{alves2025generalframeworkinexactsplitting}, we find the resolvents to be
+\begin{align}
+    (I+M^{-1}\mathcal{F})^{-1}(x,\lambda) = (\prox_{\gamma_x f}(x), \lambda) \label{eq:f-resolvent}
+\end{align}
+where $M = \begin{bmatrix}
+    \gamma_x^{-1} I & 0 \\ 0 & \gamma_\lambda^{-1} I
+\end{bmatrix}$.
+For $\mathcal{G}$, we see that 
+\begin{align}
+    (I + M^{-1}\mathcal{G})(x,\lambda) = \begin{bmatrix} x + \gamma_x A^\top\lambda \\ \lambda + \gamma_\lambda(b-Ax)
+    \end{bmatrix} = \underbrace{\begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix}}_{H}\begin{bmatrix}
+        x \\ \lambda
+    \end{bmatrix} + \begin{bmatrix}
+        0 \\ \gamma_\lambda b
+    \end{bmatrix}. \label{eq:g-forward-step}
+\end{align}
+Thus, the resolvent is therefore
+\begin{align}
+    (I + M^{-1}\mathcal{G})^{-1}(x,\lambda) =\begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix}^{-1}\begin{bmatrix}
+        x \\ \lambda - \gamma_\lambda b
+    \end{bmatrix} \label{eq:g-resolvent}
+\end{align}
+Taking the Schur complement of the matrix $H$ in \Cref{eq:g-forward-step} shows that the matrix is invertible whenever $\gamma_x\gamma_\lambda > 0$.
+The advantage of having a separate $\gamma_x$ and $\gamma_\lambda$ is that it allows the user to separate the proximal stepsize in \Cref{eq:f-resolvent} from the scaling of the linear system, which potentially allows for more fine-grained control of the spectrum in a particular problem.
+
+Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied here yields the following computations, where we maintain the variables $z^{(k)} := (x^{(k)}, \lambda^{(k)})$.
+\begin{enumerate}
+    \item Solve for $(\xi^{(k+1)},\nu^{(k+1)})$:
+    \begin{subequations}\label{eq:linear-system-step}
+    \begin{align}
+        \begin{bmatrix}
+            x^{(k)} \\ \lambda^{(k)} - \gamma_\lambda b 
+        \end{bmatrix} = \begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix}\begin{bmatrix}
+            \xi^{(k+1)} \\ \nu^{(k+1)}
+        \end{bmatrix}.
+    \end{align}
+    \end{subequations}
+    \item Compute $2(\xi^{(k+1)},\nu^{(k+1)}) - (x^{(k)}, \lambda^{(k)}) = (\xi^{(k+1)} - \gamma_x A^\top\nu^{(k+1)}, \nu^{(k+1)} - \gamma_\lambda(b-A\xi^{(k+1)}))$ and form
+    \begin{subequations}
+    \begin{align}
+        v^{(k+1)} &= \prox_{\gamma_x f}(\xi^{(k+1)} - \gamma_x A^\top\nu^{(k+1)}), \\
+        w^{(k+1)} &= \nu^{(k+1)} - \gamma_\lambda(b-A\xi^{(k+1)}).
+    \end{align}
+    \end{subequations}
+    \item Update
+    \begin{subequations}
+    \begin{align}
+        x^{(k+1)} &= x^{(k)} + v^{(k+1)} - \xi^{(k+1)}, \\
+        \lambda^{(k+1)} &= \lambda^{(k)} + w^{(k+1)} - \nu^{(k+1)} = \lambda^{(k)} - \gamma_\lambda(b-A\xi^{(k+1)}).
+    \end{align}
+    \end{subequations}
+\end{enumerate}
+
+% TODO: add interpretation and intuition for variable updates + meaning
+
+\begin{theorem}\label{thm:lyapunov-inequality}
+    Let $(x^\star,\lambda^\star)$ be a KKT point: $\partial f(x^\star) + A^\top\lambda = 0$ and $Ax^\star = b$.
+    Define $z^\star = (x^\star + \gamma_x A^\top\lambda^\star, \lambda^\star)$ and
+    \begin{align}
+        q^{(k+1)} &= \begin{bmatrix} v^{(k+1)} + \gamma_x A^\top\nu^{(k+1)} - x^{(k)} \\ \nu^{(k+1)} - \lambda^{(k)} \end{bmatrix} = \hat{z}^{(k+1)} - z^{(k)} \\
+        \varepsilon^{(k+1)} &= \begin{bmatrix} \xi^{(k+1)} + \gamma_xA^\top\nu^{(k+1)} - x^{(k)} \\ \nu^{(k+1)} - \lambda^{(k)} + \gamma_\lambda (b-A\xi^{(k+1)}) \end{bmatrix}
+    \end{align}
+    Then, 
+    \begin{align}
+        \|z^{(k+1)} - z^\star\|_M^2 \leq \|z^{(k)} - z^\star\|_M^2 - \| q^{(k+1)}\|_M + \|\varepsilon^{(k+1)}\|_M^2 \label{eq:one-step-inequality-no-relaxation}.
+    \end{align}
+    Note that $\varepsilon^{(k)}$ represents the error in the linear system at iteration $k$.
+    \begin{proof}
+        Define
+        \begin{align}
+            s^{(k+1)} &= \begin{bmatrix}
+                v^{(k+1)} - \xi^{(k+1)} \\ \gamma_\lambda(A\xi^{(k+1)}-b)
+            \end{bmatrix} \\
+            \hat{z}^{(k+1)} &= \begin{bmatrix} v^{(k+1)} + \gamma_xA^\top\nu^{(k+1)} \\ \nu^{(k+1)} \end{bmatrix}
+        \end{align}
+        Note that $s^{(k+1)} + \varepsilon^{(k+1)} = q^{(k+1)} = \hat{z}^{(k+1)} - z^{(k)}$.
+        Thus,
+        \begin{align}
+            \|z^{(k+1)} - z^\star\|_M^2 &= \|z^{(k)} + s^{(k+1)} - z^\star\|_M^2 \\
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\langle z^{(k)} - z^\star, s^{(k+1)}\rangle_M + \|s^{(k+1)}\|_M^2 \\
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - 2\langle q^{(k+1)}, s^{(k+1)}\rangle_M + \|s^{(k+1)}\|_M^2 \\
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - \| q^{(k+1)}\|_M + \|\varepsilon^{(k+1)}\|_M^2.
+        \end{align}
+        Then,
+        \begin{align}
+            \langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M &= \gamma_x^{-1}\langle v^{(k+1)} + \gamma_x A^\top\nu^{(k+1)} - (x^\star + A^\top\lambda^\star), v^{(k+1)} - \xi^{(k+1)}\rangle \\
+            &\quad\quad - \gamma_\lambda^{-1}\langle\nu^{(k+1)} - \lambda^\star, \gamma_\lambda(A\xi^{(k+1)}-b)\rangle \notag \\
+            &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} - A\xi^{(k+1)}\rangle \\
+            &\quad\quad - \langle\nu^{(k+1)} - \lambda^\star, A\xi^{(k+1)}-b \rangle \notag \\
+            &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} -b \rangle \\
+            &= \langle v^{(k+1)} - x^\star, -A^\top\nu^{(k+1)} - \partial f(v^{(k+1)})\rangle + \langle A^\top (\nu^{(k+1)} - \lambda^\star), v^{(k+1)} -x^\star \rangle\\
+            &= \langle v^{(k+1)} - x^\star, -A^\top\lambda^\star - \partial f(v^{(k+1)})\rangle \\
+            &= -\langle v^{(k+1)} - x^\star, \partial f(v^{(k+1)}) - \partial f(x^\star)\rangle \label{eq:montonicity-of-update}\\
+            &\leq 0.
+        \end{align}
+    \end{proof}
+\end{theorem}
+
+\begin{corollary}\label{cor:over-under-relaxation}
+    With over- (resp. under-) relaxation, $z^{(k+1)} = z^{(k)} + \theta s^{(k+1)}$, we get
+    \begin{align}
+            \|z^{(k+1)} - z^\star\|_M^2 &= \|z^{(k)} + \theta s^{(k+1)} - z^\star\|_M^2 \\
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\theta\langle z^{(k)} - z^\star, s^{(k+1)}\rangle_M + \theta^2\|s^{(k+1)}\|_M^2 \\
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\theta\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - 2\theta\langle q^{(k+1)}, s^{(k+1)}\rangle_M + \theta^2\|s^{(k+1)}\|_M^2 \\
+            &\leq \|z^{(k)} - z^\star\|_M^2 + \theta(\| \varepsilon^{(k+1)}\|_M^2 - \|q^{(k+1)}\|_M^2) + (\theta^2-\theta)\|s^{(k+1)}\|^2_M \\
+            &= \|z^{(k)} - z^\star\|_M^2 -\theta(2-\theta)\|s^{(k+1)}\|^2_M + 2\theta \langle\varepsilon^{(k+1)},s^{(k+1)}\rangle_M \label{eq:inexactness-one-step-inequality}
+    \end{align}
+\end{corollary}
+
+% TODO: explain intuition for this result + connection to inexactness
+
+\begin{theorem}\label{thm:relative-error-criterion}
+    Using the same notation as \Cref{thm:lyapunov-inequality}, when using over-relaxation (or under-relaxation), if $\theta\in(0,2)$ we can enforce $\|\varepsilon^{(k+1)}\|_M \leq \sigma\|s^{(k+1)}\|_M$ for $\sigma \in (0,\frac{2-\theta}{2})$.
+    Applying the Cauchy-Schwarz inequality to \Cref{eq:inexactness-one-step-inequality} and using the telescoping identity yields
+    \begin{align}
+        \|s^{(k+1)}\|^2_M\leq \sum_{t=0}^{k}\|s^{(k+1)}\|^2_M \leq \frac{\|z^{(0)} - z^\star\|_M^2 - \|z^{(k)} - z^\star\|_M^2}{(\theta(2-\theta)-\theta\sigma)} \label{eq:convergence-of-fixed-point-residual}
+    \end{align}
+
+    The relation $s^{(k+1)} + \varepsilon^{(k+1)} = q^{(k+1)}$ relates this formulation and that of \Cref{eq:one-step-inequality-no-relaxation}.
+\end{theorem}
+
+
+\begin{theorem}\label{thm:linear-convergence}
+    Using the same notation as \Cref{thm:lyapunov-inequality}, if $f$ is $\mu$-strongly convex and $L$-smooth, we have linear convergence:
+    \begin{align}
+            \|z^{(k+1)} - z^\star\|_M^2 &\leq \left(1 - C_{\theta,\sigma,\mu,L,A,M}^{-1}\right)\|z^{(k)} - z^\star\|_M^2.
+    \end{align}
+    \begin{proof}
+        Using \Cref{eq:montonicity-of-update} and \Cref{cor:over-under-relaxation}, we can get
+        \begin{align}
+            \|z^{(k+1)} - z^\star\|_M^2 &\leq \|z^{(k)} - z^\star\|_M^2 -\theta(2-\theta-2\sigma)\|s^{(k+1)}\|^2_M \label{eq:lyapunov-decrease-estimate}\\
+            &\quad\quad -2\theta\langle v^{(k+1)} - x^\star, \partial f(v^{(k+1)}) - \partial f(x^\star)\rangle \notag
+        \end{align}
+        Since $f$ is $\mu$-strongly convex and $L$-smooth, we have 
+        \begin{align}
+            \langle v^{(k+1)} - x^\star, \nabla f(v^{(k+1)}) - \nabla f(x^\star)\rangle &\geq \frac{\mu L}{\mu + L} \|v^{(k+1)} - x^\star\|^2 \label{eq:l-smooth-mu-strongly-convex-inequality}\\
+            &\quad\quad+ \frac{1}{\mu+L}\|\nabla f(v^{(k+1)}) - \nabla f(x^\star)\|^2. \notag
+        \end{align}
+        Now, note that
+        \begin{align}
+            z^{(k)} - z^\star = \begin{bmatrix} v^{(k+1)} -x^\star + \gamma_x A^\top(\nu^{(k)} - \lambda^{\star}) \\ \nu^{(k)} - \lambda^{\star} \end{bmatrix} - q^{(k)}
+        \end{align}
+        Note that 
+        \begin{align}
+            A^\top(\nu^{(k)}-\lambda^\star) = A^\top \nu^{(k)} - A^\top\lambda^\star &= A^\top \nu^{(k)} + \nabla f(v^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star) \\
+            &= \gamma_x^{-1}(v^{(k)}-\xi^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star).
+        \end{align}
+        Also, from above, we can see that if $A$ is full rank, we have 
+        \begin{align}
+            \|\gamma_x^{-1}(v^{(k)}-\xi^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star)\| \geq \sigma^+_{\min}(A)\|\nu^{(k)}-\lambda^\star\|.
+        \end{align}
+        Thus, we see that 
+        \begin{align}
+            \|z^{(k)} - z^\star\|_M &\leq \gamma_x^{-1/2}\|v^{(k)}-z^\star\|^2 + \sqrt{\gamma_x + (\gamma_\lambda \sigma^2_{\min}(A))^{-1}}\|\nabla f(v^{(k)} - \nabla f(x^\star)\| \label{eq:lyapunov-bound}\\
+            &\quad\quad+ \left(1 + \sigma + \sqrt{1 + (\gamma_x\gamma_\lambda \sigma^+_{\min}(A)^2)^{-1}}\right)\|s^{(k)}\|_M \notag
+        \end{align}
+        Now define the constants
+        \begin{align}
+            K_{\mu,L,A,M} &= \frac{\mu + L}{2\mu L \gamma_x} + \frac{\mu + L}{2}\left(\gamma_x + (\gamma_\lambda \sigma^+_{\min}(A)^2)^{-1}\right) \\
+            D_{A,\sigma,M} &= 1 + \sigma + \sqrt{1 + (\gamma_x\gamma_\lambda \sigma^+_{\min}(A)^2)^{-1}} \\
+            C_{\theta,\sigma,\mu,L,A,M} &= \frac{K_{\mu,L,A,M}}{\theta} + \frac{D_{A,\sigma,M}^2}{\theta(2-\theta-2\sigma)}
+        \end{align}
+        Then, from \Cref{eq:lyapunov-bound}, we find
+        \begin{align}
+            \|z^{(k)} - z^\star\|_M &\leq C_{\theta,\sigma,\mu,L,A,M}\Bigg(\theta(2-\theta-2\sigma)\|s^{(k+1)}\|^2_M + \frac{\mu L}{\mu + L} \|v^{(k+1)} - x^\star\|^2 \\
+            &\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad + \frac{1}{\mu+L}\|\nabla f(v^{(k+1)}) - \nabla f(x^\star)\|^2\Bigg)
+        \end{align}
+        Combining this with \Cref{eq:lyapunov-decrease-estimate} and \Cref{eq:l-smooth-mu-strongly-convex-inequality} yields
+        \begin{align}
+            \|z^{(k+1)} - z^\star\|_M^2 &\leq \left(1 - C_{\theta,\sigma,\mu,L,A,M}^{-1}\right)\|z^{(k)} - z^\star\|_M^2.
+        \end{align}
+        In the case where $A$ is not full rank, the proof holds, but we must replace $\|z^{(k)} - z^\star\|_M$ with $\mathrm{dist}(z^{(k)},\mathcal{Z}^\star)$, since $\lambda^\star$ is not unique.
+    \end{proof}
+\end{theorem}
+
+\begin{remark}
+    The optimal value of $\gamma$ is the solution to 
+    \begin{align}
+        \frac{\mu+L}{2}\left(1-\frac{\left(\frac{1}{\mu L}+\frac{1}{\sigma^+_{\min}(A)^2}\right)}{\gamma^2}\right) = \frac{1+\sigma+\sqrt{1 + \frac{1}{\sigma^+_{\min}(A)^2\gamma^2}}}{(1-\sigma)\sigma^+_{\min}(A)^2\gamma^3\sqrt{1 + \frac{1}{\sigma^+_{\min}(A)^2\gamma^2}}}
+    \end{align}
+    A simple heuristic is $\gamma = \sqrt{\frac{1}{\mu L}+\frac{1}{\sigma^+_{\min}(A)^2}}$, and the above equation can be solved via bisection if desired.
+\end{remark}
+
+\section{The Linear System}
+The method on its own would be otherwise unremarkable, were it not for the fact that the direct KKT formulation allows an integrated anaylsis of the effect of the stepsize on the linear system, as well as a direct measurement of total inner work required over a fixed nubmer of outer iterations, for a given accuracy.
+
+\begin{theorem}
+    Let $\varepsilon^{(k)}_{(l)}$ be the linear system residual from the $k$-th outer iteration and the $l$-th inner iteration.
+    Assume that we have a guarantee of the form $\mathbb{E}[\|\varepsilon^{(k)}_{(l)}\|^2_M] \leq a^l\mathcal{E}_{k,0}^2$, where $a < 1$.
+    Define the stopping time
+    \[N_k = \inf\{\ell \geq 0 : \|\varepsilon^{(k)}_{(l)}\|_M^2 \leq \sigma^2\|s^{(k)}_{(l)}\|^2_M\}\]
+    the first inner iteration where the system accepts the inner solve iterate.
+    Then,
+    \begin{align}\label{eq:stopping-time-probability-bound}
+        P(N_k > l) \leq \beta_k a^l
+    \end{align}
+    where $\beta_k = \left(\frac{(1 + \sigma)\mathcal{E}_{k,0}}{\sigma \bar{R}_k}\right)^2$ and $\bar{R}_k = \|s^{(k,\star)}\|^2_M$ is the error-free iterate.
+    As a consequence,
+    \begin{align}\label{eq:stopping-time-expectation-bound}
+        \mathbb{E}[N_k] \leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{\beta_k a^{\left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil}}{1-a} \leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{1}{1-a} 
+    \end{align}
+    \begin{proof}
+        From \cite{EcksteinRelativeError2018}, we know that the algorithm above constructs a point $(\hat{z}^{(k)}_{(l)},s^{(k)}_{(l)})\in \mathcal{S}$, where $S$ is the maximal monotone DRS splitting operator.
+        Let $(\hat{z}^{(k,\star)}_{(l)},s^{(k,\star)}_{(l)})\in \mathcal{S}$ denote the exact output of the iteration.
+        Then, by monotonicity of $\mathcal{S}$, the definition of $z^{(k)}$, and the reverse triangle inequality
+        \begin{align}
+            \|\varepsilon^{(k)}_{(l)}\|^2_M &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} + s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \label{eq:true-update-drift-inequality}\\
+            &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)}\|^2_M + \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M + 2 \langle \hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} , s^{(k)}_{(l)} - s^{(k,\star)}\rangle_M \\
+            &\geq \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \\
+            &\geq |\|s^{(k)}_{(l)}\|_M - \|s^{(k,\star)}\|_M|^2.
+        \end{align}
+        Using this, we can see that 
+        \begin{align}
+            \{N_K > l\} = \{ \|\varepsilon^{(k)}_{(l)}\|^2_M > \sigma\|s^{(k)}_{(l)}\|_M^2\} \subseteq \left\{ \|\varepsilon^{(k)}_{(l)}\|^2_M > \frac{\sigma}{1+\sigma}\|s^{(k,\star)}\|_M^2\right\}.
+        \end{align}
+        Thus, using Markov's inequality,
+        \begin{align}
+            P(N_k > l) &\leq P\left(\|\varepsilon^{(k)}_{(l)}\|^2_M > \frac{\sigma}{1+\sigma}\|s^{(k,\star)}\|_M^2\right) \\
+            &\leq \frac{\mathbb{E}[\|\varepsilon^{(k)}_{(l)}\|^2_M]}{\frac{\sigma}{1+\sigma}\|s^{(k,\star)}\|_M^2} \\
+            &\leq \frac{(1+\sigma)a^l\mathcal{E}_{k,0}^2}{\sigma\|s^{(k,\star)}\|_M^2} \\
+            &= \beta_k a ^l.
+        \end{align}
+        This proves \Cref{eq:stopping-time-probability-bound}.
+        The expectation in \Cref{eq:stopping-time-expectation-bound} follows from noting that since $N_k$ is nonnegative, 
+        \begin{align}
+            \mathbb{E}[N_k] = \sum_{l=0}^\infty P(N_k>l) &\leq \sum_{l=0}^\infty \min\{1,\beta_k a^l\} \\
+            &\leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{\beta_k a^{\left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil}}{1-a} \\
+            &\leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{1}{1-a} 
+        \end{align}
+    \end{proof}
+\end{theorem}
+
+\begin{theorem}
+Assuming we warm-start the solver at the previous solution, we find that $\mathcal{E}_{k,0}^2 \leq (1-\sigma)^2(\sigma+\|H^{-1}\|_M)^2\bar{R}_{k-1}^2$
+\begin{proof}
+    
+    Recall the linear system from \Cref{eq:linear-system-step}
+    \begin{align}
+        \begin{bmatrix}
+            x^{(k)} \\ \lambda^{(k)} - \gamma_\lambda b 
+        \end{bmatrix} = \underbrace{\begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix}}_{H}\begin{bmatrix}
+            \xi^{(k+1)} \\ \nu^{(k+1)}
+        \end{bmatrix}.
+    \end{align}
+    Let $u^\star_{k+1}$ denote the solution of this system and $u_{t,k+1}$ denote the $t$-th iterate of the inner solver's solution to this problem.
+    Then, $u_{0,k+1} - u^\star_{k+1} = u_{0,k+1} - u^\star_{k} + u^\star_{k} - u^\star_{k+1}$.
+    Assuming that we warm start with the previously computed solution, we can bound the error as the previous error plus a drift term.
+    Thus, using \Cref{thm:relative-error-criterion,eq:true-update-drift-inequality},
+    \begin{align}
+        \mathcal{E}_{k+1,0}=\|u_{0,k+1} - u^\star_{k+1}\|_M &= \|u_{0,k+1} - u^\star_{k} + u^\star_{k} - u^\star_{k+1}\|_M \\
+        &\leq \|\varepsilon^{(k)}\|_M + \|H^{-1} s^{(k)}\|_M \\
+        &\leq \|\varepsilon^{(k)}\|_M + \|H^{-1}\|_M \|s^{(k)}\|_M \\
+        &\leq (\sigma+\|H^{-1}\|_M)\|s^{(k)}\|_M \\
+        &\leq (1-\sigma)(\sigma+\|H^{-1}\|_M)\|s^{(k,\star)}\|_M.
+    \end{align}
+\end{proof}
+\end{theorem}
+
+\begin{theorem}
+    For the total work over all iterations, we see that 
+    
+    \begin{align}
+        \mathbb{E}\left[\sum_{k=1}^n N_k\right] &\leq n \cdot \left(\frac{2-a}{1-a} + \log(1/a)\left(\frac{(1+\sigma)^2(1-\sigma)^2(\sigma+\|H^{-1}\|_M)^2}{\sigma^2} + \log\frac{\bar{R}_{0}^2}{\bar{R}_n^2} + \log\left(1 + \frac{\theta \sigma}{1-\sigma}\right)\right)\right)\label{eq:total-inner-work-estimate}
+    \end{align}
+    \begin{proof}
+        
+    \begin{align}
+        \mathbb{E}\left[\sum_{k=1}^n N_k\right] &\leq \sum_{k=1}^n \left(\left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{1}{1-a} \right) \\
+        &\leq n \cdot \frac{2-a}{1-a}  + \sum_{k=1}^n -\frac{\log_+\left(\frac{(1 + \sigma)\mathcal{E}_{k,0}}{\sigma \bar{R}_k}\right)^2}{\log a} \\
+        &\leq n \cdot \frac{2-a}{1-a}  + \sum_{k=1}^n -\frac{\log_+\frac{(1+\sigma)^2(1-\sigma)^2(\sigma+\|H^{-1}\|_M)^2\bar{R}_{k-1}^2}{\sigma^2 \bar{R}_k^2}}{\log a}.
+    \end{align}
+    For the relatively inexact algorithm, we note that 
+    \begin{align}
+        \bar{R}_{k+1} \leq \bar{R}_k + \theta_k\|\varepsilon_k\|_M \leq \left(1 + \frac{\theta \sigma}{1-\sigma}\right)\bar{R}_k
+    \end{align}
+    Also, note that for all real numbers $x,y$
+    \begin{align}
+        x - y = \max\left\{0,x-y\right\} - \max\left\{0,y-x\right\}
+    \end{align}
+    and therefore (combining all constants into $\mathcal{C}$),
+    \begin{align}
+        \sum_{k=1}^n \log_+\frac{\mathcal{C}\bar{R}_{k-1}^2}{\bar{R}_k^2} &= \sum_{k=1}^n \log\frac{\mathcal{C}\bar{R}_{k-1}^2}{\bar{R}_k^2} \\
+        &\quad + \sum_{k=1}^n \log_+\frac{\mathcal{C}\bar{R}_{k}^2}{\bar{R}_{k-1}^2} \\ 
+        &= n\cdot\frac{\mathcal{C}}{\sigma^2} + \log\frac{\bar{R}_{0}^2}{\bar{R}_n^2} \\
+        &\quad + \sum_{k=1}^n \log_+\frac{\mathcal{C}\bar{R}_{k}^2}{\bar{R}_{k-1}^2} \\
+        &\leq n\cdot\frac{\mathcal{C}}{\sigma^2} + \log\frac{\bar{R}_{0}^2}{\bar{R}_n^2} \\
+        &\quad + \sum_{k=1}^n \log\left(1 + \frac{\theta \sigma}{1-\sigma}\right) \\
+        &\leq n\cdot\frac{\mathcal{C}}{\sigma^2} + \log\frac{\bar{R}_{0}^2}{\bar{R}_n^2} \\
+        &\quad + n\cdot\log\left(1 + \frac{\theta \sigma}{1-\sigma}\right).
+    \end{align}
+    Combining all the results yields \Cref{eq:total-inner-work-estimate}.
+    \end{proof}
+\end{theorem}
+
+\begin{remark}
+    Under the assumption that $\sup_k \frac{\|s^{(k,\star)}\|_M}{\|s^{(k+1,\star)}\|_M} \leq D < \infty$ (where $D$ is some constant), then we also get a per-iteration bound
+    \[\mathbb{E}[N_k] \leq \frac{(\mathcal{C}C^2}{\sigma^2(1-a)}.\]
+    If $\gamma_x=\gamma_y$, then $\|H^{-1}\|_M = \gamma$, so the inner complexity is $O(\gamma^2(1-a)^{-1})$.
+    If the standard randomized Kaczmarz from \cite{strohmer2007randomizedkaczmarzalgorithmexponential} is used as well, then $a = 1 - \frac{\sigma_{\max}^2(H)}{\|H\|_F^2} = 1 - \frac{1 + \gamma^2\sigma_{\max}^2(A)}{n + m + 2\gamma^2\|A\|_F^2}$, so the complexity becomes $O(\gamma^2(n + m + 2\gamma^2\|A\|_F^2)(1 + \gamma^2\sigma_{\max}^2(A))^{-1} = O(\gamma^2(n+m))$.
+\end{remark}
+
+\subsection{Linear System Analysis}\label{sec:linear-system-analysis}
+Recall the system \Cref{eq:linear-system-step}
+    \begin{align}
+        \begin{bmatrix}
+            x^{(k)} \\ \lambda^{(k)} - \gamma_\lambda b 
+        \end{bmatrix} = \begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix}\begin{bmatrix}
+            \xi^{(k+1)} \\ \nu^{(k+1)}
+        \end{bmatrix}.
+    \end{align}
+
+\subsubsection{Solving System As-Is}
+As-is, the system is highly sparse, with the inherited sparsity from the identity blocks and $A$.
+\begin{lemma}
+    
+The $(n+m)\times(n+m)$ matrix $H = \begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+\end{bmatrix}$ has $2r$ singular values given by
+\begin{align}
+    \frac{\sqrt{4 + (\gamma_x+\gamma_\lambda)^2\sigma_i(A)^2} \pm |\gamma_x-\gamma_\lambda|\sigma_i(A)}{2}.
+\end{align}
+with multiplicity 2, and $n + m - 2r$ singular values equal to 1.
+\begin{proof}
+    Let $A = U\Sigma V^\top $ be the singular value decomposition of $A$.
+    Then,
+    \begin{align}
+        \begin{bmatrix}
+            I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+        \end{bmatrix} &= \begin{bmatrix}
+                I & \gamma_x V\Sigma^\top U^\top \\ -\gamma_\lambda U\Sigma V^\top & I
+        \end{bmatrix} \\
+        &= \begin{bmatrix}
+                V & 0 \\ 0 & U
+        \end{bmatrix}\begin{bmatrix}
+                I & \gamma_x \Sigma^\top \\ -\gamma_\lambda \Sigma & I
+        \end{bmatrix}\begin{bmatrix}
+                V^\top & 0 \\ 0 & U^\top
+        \end{bmatrix},
+    \end{align}
+    so it suffices to analyze the middle matrix.
+    Note that after permutation, we obtain
+    \begin{align}
+        \begin{bmatrix}
+                I & \gamma_x \Sigma^\top \\ -\gamma_\lambda \Sigma & I
+        \end{bmatrix} = P \begin{bmatrix}
+                B_1 & & & \\ & \ddots & & \\ & &  B_r & \\ & & & I 
+        \end{bmatrix} P^\top.
+    \end{align}
+    where $P$ is a permutation matrix, $r$ is the number of nonzero singular values of $A$, and $B_i$ is of the form
+    \begin{align}
+        B_i = \begin{bmatrix}
+            1 & \gamma_x \sigma_i \\
+            -\gamma_\lambda \sigma_i & 1
+        \end{bmatrix}.
+    \end{align}
+    For brevity, we suppress the singular value notation to $\sigma_i = \sigma_i(A)$.
+      Each block has norm $\|B_i\|_F^2 = 2 + \sigma_i^2(\gamma_\lambda^2 + \gamma_x^2)$ and determinant $|\det B_i| = 1 + \gamma_x\gamma_\lambda \sigma_i$.
+      Let $s_1,s_2$ denote the singular values of $B_i$.
+      We find that
+      \begin{align}
+          s_1^2 + s_2^2 &= \|B_i\|_F^2 = 2 + \sigma_i^2(\gamma_\lambda^2 + \gamma_x^2) \\
+          s_1s_2 &= |\det B_i| = 1 + \gamma_x\gamma_\lambda \sigma_i^2
+      \end{align}
+      Note that 
+      \begin{align}
+          (s_1+s_2)^2 &= s_1^2 + s_2^2 + 2s_1s_2 = 4 + (\gamma_x+\gamma_\lambda)^2\sigma_i^2 \\
+          (s_1-s_2)^2 &= s_1^2 + s_2^2 - 2s_1s_2 = (\gamma_x-\gamma_\lambda)^2\sigma_i^2
+      \end{align}
+      Thus, assuming $s_1 \geq s_2$, 
+      \begin{align}
+          s_1+s_2 &=  \sqrt{4 + (\gamma_x+\gamma_\lambda)^2\sigma_i^2} \\
+          s_1-s_2 &= \sqrt{(\gamma_x-\gamma_\lambda)^2\sigma_i^2}
+      \end{align}
+      Solving the linear system for $s_1$ and $s_2$ yields the desired result.
+\end{proof}
+\end{lemma}
+\begin{remark}
+    A similar proof shows that $M^{1/2} H M^{-1/2}$ has $2r$ singular values $\sqrt{1 + \gamma_x\gamma_\lambda\sigma_i(A)^2}$, with multiplicity 2, and $n+m-2r$ singular values equal to 1.
+\end{remark}
+\begin{remark}
+Elementary calculus yields a tight lower bound on the smallest nontrivial singular value: $\sigma_{\min}(H) = \frac{2\sqrt{\gamma_x\gamma_\lambda}}{\gamma_x+\gamma_\lambda}$ when $\sigma_{\min}(A) = \sqrt{\frac{(\gamma_x-\gamma_\lambda)^2}{\gamma_x\gamma_\lambda(\gamma_x+\gamma_\lambda)^2}}$, which can be arbitrarily smaller than 1.
+\end{remark}
+
+\subsubsection{Solving The Positive Definite System}
+Taking the Schur complement, we can rewrite the matrix in \Cref{eq:linear-system-step} as
+\begin{align}
+    \begin{bmatrix}
+        I & \gamma_x A^\top \\ -\gamma_\lambda A & I
+    \end{bmatrix} = \begin{bmatrix}
+        I & 0 \\
+        -\gamma_\lambda A & I
+    \end{bmatrix}\begin{bmatrix}
+        I & 0 \\
+        0 & I + \gamma_x\gamma_\lambda AA^\top
+    \end{bmatrix}\begin{bmatrix}
+        I & \gamma_x A^\top \\ 0 & I
+    \end{bmatrix}\
+\end{align}
+where we find the Schur complement appearing.
+This yields the positive definite system to first solve for $\nu$:
+\begin{align}
+    \lambda-\gamma_\lambda (b - Ax) &= (I + \gamma_x\gamma_\lambda A A^\top)\nu \label{eq:psd-system}
+\end{align}
+and then set $\xi = x - \gamma_xA^\top\nu$, respectively.
+The eigenvalues of the matrices in \Cref{eq:psd-system} are $1 + \gamma_x\gamma_\lambda\sigma_k(A)^2$, where $\sigma_k(A)$ is the $k$th singular value of $A$.
+This yields the condition number of $\kappa = \frac{1 + \gamma_x\gamma_\lambda\sigma_{\max}(A)^2}{1 + \gamma_x\gamma_\lambda\sigma_{\min}(A)^2}$ for \Cref{eq:psd-system}, since $A\in\R^{m\times n}$ has $m < n$.
+
+For this method, since there is no error in the $\xi$ component, we can focus on reducing the error in the $\nu$ component in the $M$-norm.
+Since $M$ is a block-scaled identity matrix, the error is a rescaled Euclidean norm.
+That is, 
+\begin{align}
+    \|\varepsilon_{pd}\|_M^2 = \gamma_\lambda^{-1}\|\lambda-\gamma_\lambda (b - Ax) - (I + \gamma_x\gamma_\lambda A A^\top)\nu\|^2
+\end{align}
+
+
+\section{Numerical Results}
+
+\bibliography{bibliography}
+
+
+\end{document}

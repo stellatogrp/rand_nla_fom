@@ -1,0 +1,53 @@
+[project]
+name = "rand-nla-fom"
+version = "0.1.0"
+description = "Randomized inexact linear solves inside a primal-dual Douglas-Rachford method"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+experiments = [
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+]
+
+[dependency-groups]
+dev = [
+    "rand-nla-fom[experiments]",
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# The package lives flat in src/ rather than in a src/rand_nla_fom/ subtree;
+# this mapping is what keeps the import name `rand_nla_fom`.
+packages = ["rand_nla_fom"]
+package-dir = {"rand_nla_fom" = "src"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `experiments` and `plots` are repository scripts, not installed packages;
+# the repository root has to be importable for the tests that exercise them.
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["../results"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# The inner-solve closures are built and consumed within a single outer
+# iteration, so B023 late binding cannot bite them.
+"src/drs.py" = ["B023"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rand_nla_fom", "experiments", "plots"]
