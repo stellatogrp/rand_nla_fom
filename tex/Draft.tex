@@ -36,7 +36,9 @@
 \maketitle
 
 \begin{abstract}
-    hello world
+    We propose a method to solve a linearly-constrained optimization problem with convex object. We make no assumptions on the smoothness or growth rate of the objective function, and we provide an integrated analysis of the convergence of the algorithm in terms of the required iterations for a choice of linear solver.
+    Furthermore, we do not require that the linear step be solved exactly, as well as the option for a variable choice of norm defined by a positive semidefinite matrix.
+    We demonstrate the efficacy of our method on a variety of numerical examples as well.
 \end{abstract}
 
 \section{Introduction}
@@ -54,6 +56,12 @@ This broad idea finds many applications in convex programming, with notable succ
 However, splitting alone does not always guarantee simplicity.
 Proximal subproblems (such as projections onto convex sets) often have no closed-form solution, requiring iterative subroutines to solve subproblems.
 Since this may be difficult and largely unnecessary in the early stages of an algorithm, the optimization community has had a sustained interest in inexact algorithms for over 40 years (\cite{EcksteinBertsekasDouglasRachfordSplitting,svaiter2018weaklyconvergentfullyinexact,alves2025generalframeworkinexactsplitting,liang2015convergenceratesinexactnonexpansive,schmidt2011convergenceratesinexactproximalgradient,BarrePEPInexactMethods,CortildInexactKMIterations,rockafellar-ppm-paper}).
+
+We focus on a particular type of problem, yet one that is broad enough to include linear and quadratic programming, as well as other popular convex problems such as LASSO.
+Our proposed method incorporates an inexact linear solve with an exact proximal step, and does not make any assumptions on the smoothness or sharpness of $f$.
+We show that under these very mild hypotheses, the squared fixed-point residual of the algorithm decays at an asymptotic $o(1/k)$ rate, with a linear convergence rate in the case of strong convexity and smoothness.
+Furthermore, we provide an integrated analysis of the requisite inner solve iterations, which bridges the gap between the outer convergence rate of the algorithm, where the linear solve and proximal steps are treated as black-boxes, and the analysis of a particular linear system, where we can use standard ideas from numerical linear algebra.
+
 
 \section{Setting and Notation}
 Superscripts with parentheses, e.g. $x^{(k)}$, denotes the \textit{outer} iterations, where the proximal operation is performed.
@@ -167,9 +175,9 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
     \end{align}
     Then, 
     \begin{align}
-        \|z^{(k+1)} - z^\star\|_M^2 \leq \|z^{(k)} - z^\star\|_M^2 - \| q^{(k+1)}\|_M + \|\varepsilon^{(k+1)}\|_M^2 \label{eq:one-step-inequality-no-relaxation}.
+        \|z^{(k+1)} - z^\star\|_M^2 \leq \|z^{(k)} - z^\star\|_M^2 - \| q^{(k+1)}\|_M^2 + \|\varepsilon^{(k+1)}\|_M^2 \label{eq:one-step-inequality-no-relaxation}.
     \end{align}
-    Note that $\varepsilon^{(k)}$ represents the error in the linear system at iteration $k$.
+    Note that $\varepsilon^{(k)}$ represents the residual of the linear system at iteration $k$.
     \begin{proof}
         Define
         \begin{align}
@@ -335,7 +343,7 @@ The method on its own would be otherwise unremarkable, were it not for the fact 
     \end{proof}
 \end{theorem}
 
-\begin{theorem}
+\begin{lemma}
 Assuming we warm-start the solver at the previous solution, we find that $\mathcal{E}_{k,0}^2 \leq (1-\sigma)^2(\sigma+\|H^{-1}\|_M)^2\bar{R}_{k-1}^2$
 \begin{proof}
     
@@ -361,7 +369,7 @@ Assuming we warm-start the solver at the previous solution, we find that $\mathc
         &\leq (1-\sigma)(\sigma+\|H^{-1}\|_M)\|s^{(k,\star)}\|_M.
     \end{align}
 \end{proof}
-\end{theorem}
+\end{lemma}
 
 \begin{theorem}
     For the total work over all iterations, we see that 
@@ -400,8 +408,8 @@ Assuming we warm-start the solver at the previous solution, we find that $\mathc
 \end{theorem}
 
 \begin{remark}
-    Under the assumption that $\sup_k \frac{\|s^{(k,\star)}\|_M}{\|s^{(k+1,\star)}\|_M} \leq D < \infty$ (where $D$ is some constant), then we also get a per-iteration bound
-    \[\mathbb{E}[N_k] \leq \frac{(\mathcal{C}C^2}{\sigma^2(1-a)}.\]
+    Under the assumption that $\sup_k \frac{\|s^{(k,\star)}\|_M}{\|s^{(k+1,\star)}\|_M} \leq D < \infty$ (where $D$ is some constant), then (combining all constants into $\mathcal{D}$) we also get a per-iteration bound
+    \[\mathbb{E}[N_k] \leq \frac{\mathcal{D}}{\sigma^2(1-a)}.\]
     If $\gamma_x=\gamma_y$, then $\|H^{-1}\|_M = \gamma$, so the inner complexity is $O(\gamma^2(1-a)^{-1})$.
     If the standard randomized Kaczmarz from \cite{strohmer2007randomizedkaczmarzalgorithmexponential} is used as well, then $a = 1 - \frac{\sigma_{\max}^2(H)}{\|H\|_F^2} = 1 - \frac{1 + \gamma^2\sigma_{\max}^2(A)}{n + m + 2\gamma^2\|A\|_F^2}$, so the complexity becomes $O(\gamma^2(n + m + 2\gamma^2\|A\|_F^2)(1 + \gamma^2\sigma_{\max}^2(A))^{-1} = O(\gamma^2(n+m))$.
 \end{remark}
@@ -523,6 +531,17 @@ That is,
 
 
 \section{Numerical Results}
+\subsection{Linear Programs}
+\subsection{Quadratic Programs}
+\subsubsection{Equality Constraints}
+\subsubsection{Inequality Constraints}
+\subsection{LASSO}
+
+\section{Discussion}
+\section{Conclusion}
+
+\appendix
+\section{Adaptive Hyperparameter Selection}
 
 \bibliography{bibliography}
 
