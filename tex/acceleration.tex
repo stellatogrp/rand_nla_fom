@@ -1,0 +1,444 @@
+% Accelerated (anchored) version of the inexact primal-dual Douglas--Rachford
+% method of Draft.tex, with proofs.
+%
+% This file compiles on its own (same preamble as Draft.tex).  The material
+% between \begin{document} and \end{document} is written so that it can be
+% pasted into Draft.tex as a section after the linear-system analysis.
+%
+% TODO (bibliography): the following entries are cited below but are not yet in
+% bibliography.bib.  Verify each one before adding it.
+%   halpern1967        B. Halpern, Fixed points of nonexpanding maps,
+%                      Bull. Amer. Math. Soc. 73 (1967) 957--961.
+%   lieder2021halpern  F. Lieder, On the convergence rate of the Halpern-iteration,
+%                      Optim. Lett. 15 (2021) 405--418.
+%   kim2021accelerated D. Kim, Accelerated proximal point method for maximally
+%                      monotone operators, Math. Program. 190 (2021) 57--87.
+%   park2022exact      J. Park and E. K. Ryu, Exact optimal accelerated complexity
+%                      for fixed-point iterations, ICML 2022.
+%   diakonikolas2020halpern  J. Diakonikolas, Halpern iteration for near-optimal
+%                      and parameter-free monotone inclusion and strong solutions
+%                      to variational inequalities, COLT 2020.
+%   sabach2017first    S. Sabach and S. Shtern, A first order method for solving
+%                      convex bilevel optimization problems, SIAM J. Optim. 27
+%                      (2017) 640--660.
+%   lu2024restarted    H. Lu and J. Yang, Restarted Halpern PDHG for linear
+%                      programming, arXiv 2024.
+%   robinson1981polyhedral  S. M. Robinson, Some continuity properties of
+%                      polyhedral multifunctions, Math. Program. Study 14 (1981).
+
+\documentclass[11pt]{article}
+
+\usepackage{graphicx}
+\usepackage{amssymb, amsfonts, amsmath, amsthm}
+\usepackage[margin=1in, footskip=1cm, headheight = 1.5cm]{geometry}
+\usepackage[sort]{natbib}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=cyan,
+    pdftitle={Anchored acceleration of the inexact primal-dual DRS method},
+    }
+\bibliographystyle{unsrtnat}
+\usepackage[nameinlink]{cleveref}
+
+\input{definitions.tex}
+
+\crefname{equation}{}{}
+\crefname{assumption}{assumption}{assumptions}
+
+\usepackage{xcolor}
+\newcommand{\mynote}[1]{\textcolor{blue}{[#1]}}
+
+\title{An Anchored Acceleration of the Inexact Primal-Dual Douglas--Rachford Method}
+\author{Pranav Reddy}
+\date{\small \today \vspace{-5mm}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    We accelerate the inexact primal-dual Douglas--Rachford method of the main draft by anchoring it to its starting point in the style of the Halpern iteration.
+    The anchored method uses the same inexact linear solve, the same exact proximal step, and the same relative-error acceptance test.
+    With exact linear solves, the fixed-point residual satisfies $\|s^{(k+1)}\|_M \le 2\|z^{(0)} - z^\star\|_M/(\theta k + 2)$, which is the best possible rate for this class of methods.
+    With inexact solves whose relative tolerances are square summable, the residual still decays as $O(1/k)$, compared to $O(1/\sqrt{k})$ for the base method.
+    Restarting the anchor whenever the residual has decreased by a fixed factor gives linear convergence under an error-bound condition, with a number of outer iterations proportional to the error-bound constant rather than to its square.
+\end{abstract}
+
+\section{Overview}\label{sec:acc-overview}
+The main draft studies the relaxed iteration $z^{(k+1)} = z^{(k)} + \theta s^{(k+1)}$, where $s^{(k+1)}$ is the (inexactly computed) Douglas--Rachford step at $z^{(k)}$.
+With exact linear solves this is the Krasnosel'ski\u{\i}--Mann iteration of a firmly nonexpansive map, and the telescoping bound in the draft gives $\min_{t \le k}\|s^{(t+1)}\|_M = O(1/\sqrt{k})$.
+For nonexpansive maps, the Halpern iteration \citep{halpern1967} improves this rate to $O(1/k)$ \citep{sabach2017first, lieder2021halpern, diakonikolas2020halpern}, and the rate $O(1/k)$ is optimal among all methods that only evaluate the map \citep{park2022exact}.
+The version for resolvents of maximally monotone operators is the accelerated proximal point method of \citet{kim2021accelerated}.
+
+We apply the same idea to the inexact method.
+The only change is the outer update, which becomes
+\begin{align}
+    z^{(k+1)} = \frac{1}{k+2}\, z^{(0)} + \frac{k+1}{k+2}\left(z^{(k)} + \theta s^{(k+1)}\right), \label{eq:anchored-update}
+\end{align}
+so that every iterate is pulled back toward the starting point with a weight that decays like $1/k$.
+The inner solve, the proximal step, and the acceptance test $\|\varepsilon^{(k+1)}\|_M \le \sigma_k \|s^{(k+1)}\|_M$ are unchanged, except that the tolerance $\sigma_k$ may now depend on $k$.
+\Cref{sec:acc-oracle} isolates the two properties of the inexact step that the analysis uses.
+\Cref{sec:acc-anchored} proves the $O(1/k)$ rate.
+\Cref{sec:acc-restart} adds restarts and proves linear convergence under an error bound.
+
+\section{The inexact step as a monotone oracle}\label{sec:acc-oracle}
+Throughout, $\langle \cdot, \cdot \rangle_M$ and $\|\cdot\|_M$ denote the inner product and norm induced by $M = \diag(\gamma_x^{-1} I, \gamma_\lambda^{-1} I)$, and $z = (x, \lambda) \in \R^{n+m}$.
+Fix $z = (x,\lambda)$ and let $(\xi, \nu)$ be any approximate solution of the linear system
+\begin{align}
+    \begin{bmatrix} I & \gamma_x A^T \\ -\gamma_\lambda A & I \end{bmatrix}
+    \begin{bmatrix} \xi \\ \nu \end{bmatrix}
+    = \begin{bmatrix} x \\ \lambda - \gamma_\lambda b \end{bmatrix} \label{eq:acc-linear-system}
+\end{align}
+at $z$, which is the system solved at every outer iteration of the draft.
+As in the draft, define
+\begin{align}
+    v &= \prox_{\gamma_x f}(\xi - \gamma_x A^T \nu), \qquad
+    \hat{z} = \begin{bmatrix} v + \gamma_x A^T \nu \\ \nu \end{bmatrix}, \qquad
+    s = \begin{bmatrix} v - \xi \\ \gamma_\lambda (A\xi - b) \end{bmatrix}, \label{eq:acc-step-definitions}
+\end{align}
+and let $\varepsilon = \hat{z} - z - s$ be the residual of the linear system.
+We call $(\hat z, s)$ an \emph{admissible pair} if it arises from some $(\xi, \nu) \in \R^n \times \R^m$ through \Cref{eq:acc-step-definitions}, and we write $\mathcal{G}$ for the set of admissible pairs.
+Note that $\mathcal{G}$ does not depend on $z$: the point $z$ only enters through the residual $\varepsilon$.
+Let $\mathcal{Z}^\star = \{ (x^\star + \gamma_x A^T\lambda^\star, \lambda^\star) \mid (x^\star,\lambda^\star) \text{ satisfies } -A^T\lambda^\star \in \partial f(x^\star),\ Ax^\star = b \}$ denote the set of fixed points.
+Finally, let $s^\star(z)$ denote the step \Cref{eq:acc-step-definitions} obtained from the exact solution of the linear system at $z$; this is the step of the exact Douglas--Rachford method, and $s^\star(z) = 0$ if and only if $z \in \mathcal{Z}^\star$.
+
+\begin{lemma}\label{lem:acc-monotone}
+    The following statements hold.
+    \begin{enumerate}
+        \item For any two admissible pairs $(\hat z_1, s_1)$ and $(\hat z_2, s_2)$,
+        \begin{align}
+            \langle \hat z_1 - \hat z_2, s_1 - s_2\rangle_M \le 0. \label{eq:acc-two-point}
+        \end{align}
+        \item For every $z^\star \in \mathcal{Z}^\star$, the pair $(z^\star, 0)$ is admissible.
+        \item Let $(\hat z, s)$ be admissible with residual $\varepsilon$ at $z$, and let $(\hat z^\star, s^\star(z))$ be the exact pair at $z$.
+        Then $\|s - s^\star(z)\|_M \le \|\varepsilon\|_M$.
+        In particular, if $\|\varepsilon\|_M \le \sigma\|s\|_M$ with $\sigma < 1$, then
+        \begin{align}
+            (1-\sigma)\|s\|_M \le \|s^\star(z)\|_M \le (1+\sigma)\|s\|_M. \label{eq:acc-exact-vs-inexact}
+        \end{align}
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    For an admissible pair generated by $(\xi_i, \nu_i)$, the optimality condition of the proximal step reads
+    \begin{align}
+        u_i := \gamma_x^{-1}(\xi_i - v_i) - A^T\nu_i \in \partial f(v_i). \label{eq:acc-prox-optimality}
+    \end{align}
+    Expanding the $M$-inner product and cancelling the terms in $A\xi_i$,
+    \begin{align}
+        \langle \hat z_1 - \hat z_2, s_1 - s_2\rangle_M
+        &= \gamma_x^{-1}\langle v_1 - v_2 + \gamma_x A^T(\nu_1 - \nu_2),\, (v_1 - \xi_1) - (v_2 - \xi_2)\rangle
+           + \langle \nu_1 - \nu_2,\, A(\xi_1 - \xi_2)\rangle \\
+        &= \gamma_x^{-1}\langle v_1 - v_2,\, (v_1 - \xi_1) - (v_2 - \xi_2)\rangle
+           + \langle \nu_1 - \nu_2,\, A(v_1 - v_2)\rangle \\
+        &= \left\langle v_1 - v_2,\, \gamma_x^{-1}\big((v_1 - \xi_1) - (v_2 - \xi_2)\big) + A^T(\nu_1 - \nu_2)\right\rangle \\
+        &= -\langle v_1 - v_2,\, u_1 - u_2\rangle \le 0,
+    \end{align}
+    where the last inequality is monotonicity of $\partial f$.
+    This proves the first statement.
+
+    For the second statement take $\xi = x^\star$ and $\nu = \lambda^\star$.
+    Since $-A^T\lambda^\star \in \partial f(x^\star)$, the proximal step returns $v = \prox_{\gamma_x f}(x^\star - \gamma_x A^T\lambda^\star) = x^\star$.
+    Hence $\hat z = (x^\star + \gamma_x A^T\lambda^\star, \lambda^\star) = z^\star$ and $s = (0, \gamma_\lambda(Ax^\star - b)) = 0$.
+
+    For the third statement, $\hat z = z + s + \varepsilon$ and $\hat z^\star = z + s^\star(z)$ give $\varepsilon = (\hat z - \hat z^\star) - (s - s^\star(z))$.
+    Expanding the square and using \Cref{eq:acc-two-point},
+    \begin{align}
+        \|\varepsilon\|_M^2 = \|\hat z - \hat z^\star\|_M^2 - 2\langle \hat z - \hat z^\star, s - s^\star(z)\rangle_M + \|s - s^\star(z)\|_M^2 \ge \|s - s^\star(z)\|_M^2.
+    \end{align}
+    The two-sided bound \Cref{eq:acc-exact-vs-inexact} follows from the triangle inequality.
+\end{proof}
+
+The first statement says that $\mathcal{G}$ is the graph of a monotone operator (up to the sign of $s$); it is the operator whose resolvent is the exact Douglas--Rachford map, as in \citet{EcksteinRelativeError2018}.
+With $z^\star \in \mathcal{Z}^\star$ and $\hat z = z + s + \varepsilon$, inequality \Cref{eq:acc-two-point} gives
+\begin{align}
+    \langle s, z - z^\star\rangle_M \le -\|s\|_M^2 - \langle \varepsilon, s\rangle_M \le -(1-\sigma)\|s\|_M^2 \label{eq:acc-star-inequality}
+\end{align}
+whenever $\|\varepsilon\|_M \le \sigma\|s\|_M$.
+This is the only place where the acceptance test enters the exact analysis of the draft; the anchored analysis below also uses \Cref{eq:acc-two-point} between two consecutive iterations.
+
+\section{The anchored method}\label{sec:acc-anchored}
+
+\subsection{Algorithm}
+Let $\theta \in (0,2]$, let $(\sigma_k)_{k \ge 0}$ be tolerances in $[0,1)$, and let $z^{(0)} = (x^{(0)}, \lambda^{(0)})$.
+For $k = 0, 1, 2, \ldots$:
+\begin{enumerate}
+    \item Solve the linear system \Cref{eq:acc-linear-system} at $z^{(k)}$ inexactly, obtaining $(\xi^{(k+1)}, \nu^{(k+1)})$, and form $v^{(k+1)}$, $\hat z^{(k+1)}$, $s^{(k+1)}$, and $\varepsilon^{(k+1)}$ as in \Cref{eq:acc-step-definitions}.
+    Continue the inner solver until $\|\varepsilon^{(k+1)}\|_M \le \sigma_k\|s^{(k+1)}\|_M$.
+    \item Update
+    \begin{subequations}\label{eq:acc-anchored-xy}
+    \begin{align}
+        x^{(k+1)} &= \frac{1}{k+2}\, x^{(0)} + \frac{k+1}{k+2}\left(x^{(k)} + \theta\,(v^{(k+1)} - \xi^{(k+1)})\right), \\
+        \lambda^{(k+1)} &= \frac{1}{k+2}\, \lambda^{(0)} + \frac{k+1}{k+2}\left(\lambda^{(k)} - \theta\gamma_\lambda\,(b - A\xi^{(k+1)})\right).
+    \end{align}
+    \end{subequations}
+\end{enumerate}
+In the notation $z^{(k)} = (x^{(k)}, \lambda^{(k)})$ this is exactly \Cref{eq:anchored-update}.
+The per-iteration cost is that of the base method plus two vector additions.
+With exact solves ($\sigma_k \equiv 0$) and $\theta = 1$ the method is the Halpern iteration of the exact Douglas--Rachford map; with $\theta = 2$ it is the Halpern iteration of its reflection, which is the accelerated proximal point method of \citet{kim2021accelerated}.
+
+\subsection{A potential function}
+Write $D = \|z^{(0)} - z^\star\|_M$ for a fixed $z^\star \in \mathcal{Z}^\star$; since $z^\star$ is arbitrary, all bounds below hold with $D = \dist_M(z^{(0)}, \mathcal{Z}^\star)$.
+Define
+\begin{align}
+    V_k = -(k+1)\left\langle s^{(k+1)}, z^{(k)} - z^{(0)}\right\rangle_M + \frac{\theta}{2}\, k(k+1)\, \|s^{(k+1)}\|_M^2. \label{eq:acc-potential}
+\end{align}
+The following one-step inequality is the core of the analysis.
+
+\begin{lemma}\label{lem:acc-one-step}
+    Let $\Lambda_k = (k+1)(k+2)$, $d_k = s^{(k+1)} - s^{(k+2)}$, and $e_k = \varepsilon^{(k+1)} - \varepsilon^{(k+2)}$.
+    For every $k \ge 0$,
+    \begin{align}
+        V_{k+1} \le V_k - \frac{2-\theta}{2}\,\Lambda_k\,\|d_k\|_M^2 - \Lambda_k\,\langle e_k, d_k\rangle_M. \label{eq:acc-one-step}
+    \end{align}
+\end{lemma}
+\begin{proof}
+    Write $r_k = z^{(k)} - z^{(0)}$, $\beta_k = 1/(k+2)$, $a = \|s^{(k+1)}\|_M^2$, $b = \|s^{(k+2)}\|_M^2$, and $p = \langle s^{(k+1)}, s^{(k+2)}\rangle_M$.
+    The update \Cref{eq:anchored-update} gives the two identities
+    \begin{align}
+        (k+2)\, r_{k+1} &= (k+1)\left(r_k + \theta s^{(k+1)}\right), \label{eq:acc-anchor-identity}\\
+        z^{(k)} - z^{(k+1)} &= \beta_k r_k - (1-\beta_k)\,\theta s^{(k+1)}. \label{eq:acc-difference-identity}
+    \end{align}
+    Since $\hat z^{(k+1)} = z^{(k)} + s^{(k+1)} + \varepsilon^{(k+1)}$ and $\hat z^{(k+2)} = z^{(k+1)} + s^{(k+2)} + \varepsilon^{(k+2)}$, \Cref{eq:acc-difference-identity} gives
+    \begin{align}
+        \hat z^{(k+1)} - \hat z^{(k+2)} = \beta_k r_k - (1-\beta_k)\theta s^{(k+1)} + d_k + e_k.
+    \end{align}
+    Apply \Cref{eq:acc-two-point} to the pairs $(\hat z^{(k+1)}, s^{(k+1)})$ and $(\hat z^{(k+2)}, s^{(k+2)})$ and multiply by $\Lambda_k > 0$.
+    Using $\beta_k\Lambda_k = k+1$ and $(1-\beta_k)\Lambda_k = (k+1)^2$,
+    \begin{align}
+        (k+1)\langle r_k, s^{(k+1)}\rangle_M - (k+1)\langle r_k, s^{(k+2)}\rangle_M - \theta(k+1)^2(a - p) \qquad & \notag \\
+        {} + \Lambda_k\|d_k\|_M^2 + \Lambda_k\langle e_k, d_k\rangle_M &\le 0. \label{eq:acc-scaled-monotone}
+    \end{align}
+    By \Cref{eq:acc-anchor-identity},
+    \begin{align}
+        V_{k+1} = -(k+1)\langle r_k, s^{(k+2)}\rangle_M - \theta(k+1)\,p + \frac{\theta}{2}\Lambda_k\, b.
+    \end{align}
+    Bounding the first term with \Cref{eq:acc-scaled-monotone} and using $\frac{\theta}{2}k(k+1) = \theta(k+1)^2 - \frac{\theta}{2}\Lambda_k$,
+    \begin{align}
+        V_{k+1}
+        &\le -(k+1)\langle r_k, s^{(k+1)}\rangle_M + \theta(k+1)^2 a - \theta(k+1)^2 p - \theta(k+1)p + \frac{\theta}{2}\Lambda_k b \notag \\
+        &\qquad - \Lambda_k\|d_k\|_M^2 - \Lambda_k\langle e_k, d_k\rangle_M \\
+        &= V_k + \frac{\theta}{2}\Lambda_k\,(a - 2p + b) - \Lambda_k\|d_k\|_M^2 - \Lambda_k\langle e_k, d_k\rangle_M,
+    \end{align}
+    where we used $\theta(k+1)^2 + \theta(k+1) = \theta\Lambda_k$.
+    Since $a - 2p + b = \|d_k\|_M^2$, this is \Cref{eq:acc-one-step}.
+\end{proof}
+
+The lower bound on $V_k$ comes from \Cref{eq:acc-star-inequality}.
+Writing $z^{(k)} - z^{(0)} = (z^{(k)} - z^\star) + (z^\star - z^{(0)})$ and using Cauchy--Schwarz on the second term,
+\begin{align}
+    V_k \ge W_k\, \|s^{(k+1)}\|_M^2 - (k+1)\, D\, \|s^{(k+1)}\|_M,
+    \qquad W_k := (k+1)(1 - \sigma_k) + \frac{\theta}{2}k(k+1). \label{eq:acc-potential-lower}
+\end{align}
+
+\subsection{Exact linear solves}
+\begin{theorem}\label{thm:acc-exact}
+    Let $\theta \in (0,2]$ and $\sigma_k \equiv 0$.
+    Then for every $k \ge 0$,
+    \begin{align}
+        \|s^{(k+1)}\|_M \le \frac{2D}{\theta k + 2}.
+    \end{align}
+\end{theorem}
+\begin{proof}
+    With $e_k = 0$ and $\theta \le 2$, \Cref{eq:acc-one-step} gives $V_{k+1} \le V_k$, hence $V_k \le V_0 = 0$ because $z^{(0)} - z^{(0)} = 0$.
+    Combining with \Cref{eq:acc-potential-lower} and dividing by $(k+1)\|s^{(k+1)}\|_M$,
+    \begin{align}
+        \left(1 + \frac{\theta k}{2}\right)\|s^{(k+1)}\|_M \le D.
+    \end{align}
+\end{proof}
+
+For $\theta = 1$ the bound reads $\|s^{(k+1)}\|_M \le 2D/(k+2)$, which is the bound of \citet{lieder2021halpern} for the Halpern iteration of a nonexpansive map, and for $\theta = 2$ it reads $D/(k+1)$, the bound of \citet{kim2021accelerated} for the accelerated proximal point method.
+Both are known to be tight \citep{park2022exact}, so \Cref{thm:acc-exact} cannot be improved by a different proof.
+\mynote{TODO: I also solved the worst-case (performance estimation) problem for this iteration numerically for $\theta \in \{1, 2\}$ and $k \le 8$; the computed worst cases match $2D/(\theta k + 2)$ to four digits.  The script lives only in scratch space; add it under \texttt{code/experiments/} if we keep this remark.}
+
+\subsection{Inexact linear solves}
+\Cref{lem:acc-one-step} shows exactly how the inexactness enters: the error term $\Lambda_k\langle e_k, d_k\rangle_M$ is of the same order $k^2\|s\|_M^2$ as the potential itself, while the slack $\frac{2-\theta}{2}\Lambda_k\|d_k\|_M^2$ only controls the \emph{difference} of consecutive steps.
+A constant tolerance therefore cannot be absorbed by this argument (see \Cref{rem:acc-fixed-sigma}), but a square-summable tolerance sequence can.
+
+\begin{theorem}\label{thm:acc-inexact}
+    Let $\theta \in (0,2)$ and define
+    \begin{align}
+        \kappa_\theta = \max\{4,\, 2/\theta\}, \qquad
+        c_\theta = \frac{2\kappa_\theta}{2-\theta}, \qquad
+        m_\theta = \max\{1,\, 1/\theta\}.
+    \end{align}
+    Suppose the tolerances satisfy $c_\theta\sigma_k^2 \le 1/2$ for all $k$ and $\sum_{k\ge 0}\sigma_k^2 \le \bar\Sigma$.
+    Then for every $k \ge 0$,
+    \begin{align}
+        \|s^{(k+1)}\|_M \le \frac{2D}{\theta k + 1} + \sqrt{2 m_\theta}\; e^{3 c_\theta\bar\Sigma/2}\, \frac{D}{\sqrt{(k+1)(\theta k + 1)}}. \label{eq:acc-inexact-rate}
+    \end{align}
+\end{theorem}
+\begin{proof}
+    Write $a_k = \|s^{(k+1)}\|_M^2$.
+    The condition $c_\theta\sigma_k^2 \le 1/2$ implies $\sigma_k \le 1/2$, since $c_\theta \ge 8/(2-\theta) \ge 4$.
+    Hence $W_k \ge (k+1)(\theta k + 1)/2$ in \Cref{eq:acc-potential-lower}.
+
+    \emph{Step 1: error term.}
+    By Young's inequality, $-\langle e_k, d_k\rangle_M \le \frac{2-\theta}{2}\|d_k\|_M^2 + \frac{1}{2(2-\theta)}\|e_k\|_M^2$, so \Cref{eq:acc-one-step} gives $V_{k+1} \le V_k + \Lambda_k\|e_k\|_M^2/(2(2-\theta))$.
+    The acceptance test gives $\|e_k\|_M \le \sigma_k\sqrt{a_k} + \sigma_{k+1}\sqrt{a_{k+1}}$, and therefore
+    \begin{align}
+        V_{k+1} \le V_k + \frac{\Lambda_k}{2-\theta}\left(\sigma_k^2 a_k + \sigma_{k+1}^2 a_{k+1}\right). \label{eq:acc-step1}
+    \end{align}
+
+    \emph{Step 2: a nonnegative companion of $V_k$.}
+    Define $P_k = -(k+1)\langle s^{(k+1)}, z^{(k)} - z^\star\rangle_M + \frac{\theta}{2}k(k+1)a_k$.
+    By \Cref{eq:acc-star-inequality}, $P_k \ge W_k a_k \ge 0$, and $V_k = P_k - (k+1)\langle s^{(k+1)}, z^\star - z^{(0)}\rangle_M$.
+    Since $(k+1)^2/W_k \le 2(k+1)/(\theta k+1) \le 2m_\theta$, Young's inequality gives
+    \begin{align}
+        (k+1) D \sqrt{a_k} \le \frac{W_k a_k}{2} + \frac{(k+1)^2 D^2}{2 W_k} \le \frac{P_k}{2} + m_\theta D^2,
+    \end{align}
+    so $|V_k - P_k| \le P_k/2 + m_\theta D^2$.
+    Let $\tilde V_k = V_k + m_\theta D^2$; then $0 \le P_k/2 \le \tilde V_k$.
+    Next, $\Lambda_k/W_k \le 2(k+2)/(\theta k + 1) \le \kappa_\theta$, because $k \mapsto 2(k+2)/(\theta k+1)$ is monotone with values $4$ at $k=0$ and $2/\theta$ at infinity, and $\Lambda_k/W_{k+1} \le 2(k+1)/(\theta(k+1)+1) \le 2/\theta \le \kappa_\theta$.
+    Together with $a_k \le P_k/W_k \le 2\tilde V_k/W_k$ this turns \Cref{eq:acc-step1} into
+    \begin{align}
+        \tilde V_{k+1} \le \tilde V_k + c_\theta\left(\sigma_k^2 \tilde V_k + \sigma_{k+1}^2 \tilde V_{k+1}\right). \label{eq:acc-step2}
+    \end{align}
+
+    \emph{Step 3: the potential stays bounded.}
+    Rearranging \Cref{eq:acc-step2} and using $1 + t \le e^t$ and $(1-t)^{-1} \le e^{2t}$ for $t \in [0, 1/2]$,
+    \begin{align}
+        \tilde V_{k+1} \le \frac{1 + c_\theta\sigma_k^2}{1 - c_\theta\sigma_{k+1}^2}\, \tilde V_k \le e^{c_\theta\sigma_k^2 + 2c_\theta\sigma_{k+1}^2}\, \tilde V_k .
+    \end{align}
+    Multiplying out and using $\tilde V_0 = m_\theta D^2$ (because $V_0 = 0$),
+    \begin{align}
+        \tilde V_k \le e^{3 c_\theta \bar\Sigma}\, m_\theta D^2 =: E \qquad \text{for all } k \ge 0. \label{eq:acc-step3}
+    \end{align}
+
+    \emph{Step 4: conclusion.}
+    By \Cref{eq:acc-potential-lower} and \Cref{eq:acc-step3}, $W_k a_k - (k+1)D\sqrt{a_k} \le V_k \le E$.
+    Solving this quadratic inequality in $\sqrt{a_k}$ and using $\sqrt{u + w} \le \sqrt u + \sqrt w$,
+    \begin{align}
+        \sqrt{a_k} \le \frac{(k+1)D + \sqrt{(k+1)^2D^2 + 4W_kE}}{2W_k} \le \frac{(k+1)D}{W_k} + \sqrt{\frac{E}{W_k}}.
+    \end{align}
+    Inserting $W_k \ge (k+1)(\theta k+1)/2$ gives \Cref{eq:acc-inexact-rate}.
+\end{proof}
+
+\begin{corollary}\label{cor:acc-kkt}
+    Under the assumptions of \Cref{thm:acc-inexact}, let $C_k$ denote the right-hand side of \Cref{eq:acc-inexact-rate}.
+    The primal-dual pair $(v^{(k+1)}, \nu^{(k+1)})$ satisfies
+    \begin{align}
+        \dist\!\left(0,\ \partial f(v^{(k+1)}) + A^T\nu^{(k+1)}\right) \le \gamma_x^{-1/2}\, C_k,
+        \qquad
+        \|A v^{(k+1)} - b\| \le \left(\|A\|\gamma_x^{1/2} + \gamma_\lambda^{-1/2}\right) C_k .
+    \end{align}
+    In particular both KKT residuals decay as $O(1/k)$.
+\end{corollary}
+\begin{proof}
+    By \Cref{eq:acc-prox-optimality}, $-\gamma_x^{-1}(v^{(k+1)} - \xi^{(k+1)}) \in \partial f(v^{(k+1)}) + A^T\nu^{(k+1)}$.
+    Since $\|s\|_M^2 = \gamma_x^{-1}\|v - \xi\|^2 + \gamma_\lambda^{-1}\|\gamma_\lambda(A\xi - b)\|^2$, we have $\|v - \xi\| \le \gamma_x^{1/2}\|s\|_M$ and $\|A\xi - b\| \le \gamma_\lambda^{-1/2}\|s\|_M$.
+    The primal bound follows from $\|Av - b\| \le \|A\|\|v - \xi\| + \|A\xi - b\|$.
+\end{proof}
+
+\begin{remark}[Choice of tolerances and inner work]\label{rem:acc-inner-work}
+    A convenient schedule is $\sigma_k = \bar\sigma\,(k+1)^{-(1/2+\delta)}$ with $\delta > 0$ and $c_\theta\bar\sigma^2 \le 1/2$, for which $\bar\Sigma = \bar\sigma^2\sum_{k\ge 1}k^{-(1+2\delta)} < \infty$.
+    The stopping-time bound of the draft applies verbatim with $\sigma$ replaced by $\sigma_k$, and $\beta_k$ scales as $\sigma_k^{-2}$.
+    Hence the expected number of inner iterations at outer iteration $k$ grows only like $(1+2\delta)\log(k+1)/\log(1/a)$ plus a constant, while the outer residual decays like $1/k$.
+    To reach $\|s\|_M \le \epsilon$ the base method needs on the order of $\epsilon^{-2}$ outer iterations with $O(1)$ inner iterations each, whereas the anchored method needs on the order of $\epsilon^{-1}$ outer iterations with $O(\log(1/\epsilon))$ inner iterations each.
+    \mynote{TODO: the warm-start lemma of the draft bounds $\mathcal{E}_{k+1,0}$ in terms of $\|s^{(k)}\|_M$ using the update $z^{(k+1)} - z^{(k)} = \theta s^{(k+1)}$.  For the anchored update the drift is $z^{(k+1)} - z^{(k)} = \frac{k+1}{k+2}\theta s^{(k+1)} - \frac{1}{k+2}(z^{(k)} - z^{(0)})$, so that lemma needs to be redone before the total-work theorem can be transferred.}
+\end{remark}
+
+\begin{remark}[Constant tolerance]\label{rem:acc-fixed-sigma}
+    For a constant tolerance $\sigma_k \equiv \sigma > 0$, \Cref{eq:acc-step1} only gives $V_k \le O(\sigma^2 D^2 k)$ when $\|s^{(k+1)}\|_M = O(D/k)$, which through \Cref{eq:acc-potential-lower} yields no more than the $O(1/\sqrt{k})$ rate of the base method.
+    This is not an artifact of a careless estimate: for every anchor sequence of the form $1 - \beta_k = \tau_k/\tau_{k+1}$ and every potential of the form $\tau_k\langle s^{(k+1)}, z^{(k)} - z^{(0)}\rangle_M + A_k\|s^{(k+1)}\|_M^2$, the coefficients that make the exact potential nonincreasing are determined at leading order, so there is no room of order $k^2\|s\|_M^2$ to absorb an error of that order.
+    Whether the anchored method with constant $\sigma$ still converges at rate $O(1/k)$ is open.
+    \mynote{TODO: numerical worst-case (performance estimation) computations for $\theta=1$, over all firmly nonexpansive maps and all residuals with $\|\varepsilon\|_M \le \sigma\|s\|_M$, gave the following values of $k\|s^{(k)}\|_M/D$ (nonconvex Burer--Monteiro solve, so lower bounds on the true worst case; the $\sigma = 0$ column matches $2k/(k+1)$ exactly).  Reproduce with a proper SDP solver before quoting.}
+    \begin{center}
+    \begin{tabular}{lccccc}
+        \toprule
+        $k$ & 1 & 2 & 4 & 8 & 12 \\
+        \midrule
+        $\sigma = 0$   & 1.00 & 1.33 & 1.60 & 1.78 & 1.85 \\
+        $\sigma = 0.1$ & 1.11 & 1.44 & 1.69 & 1.87 & 1.94 \\
+        $\sigma = 0.3$ & 1.43 & 1.82 & 2.21 & 2.52 & 2.67 \\
+        \bottomrule
+    \end{tabular}
+    \end{center}
+    The growth with $k$ for $\sigma = 0.3$ is slow but has not clearly saturated by $k = 12$.
+\end{remark}
+
+\section{Restarts and linear convergence}\label{sec:acc-restart}
+The anchored method converges at rate $O(1/k)$ in the worst case, but it also converges no faster than that on easy problems.
+Indeed, by \Cref{eq:acc-anchor-identity}, $(k+1)(z^{(k)} - z^{(0)}) = \theta\sum_{j=1}^{k} j\, s^{(j)}$, so if the iterates converge to some $z^{(\infty)}$ then $\sum_{j \le k} j\, s^{(j)} \approx (k+1)(z^{(\infty)} - z^{(0)})/\theta$, which forces $\|s^{(k)}\|_M$ to be of order $\|z^{(\infty)} - z^{(0)}\|_M/(\theta k)$.
+The base method, in contrast, converges linearly on linear and quadratic programs.
+The standard remedy is to restart the anchor whenever the residual has dropped by a fixed factor, as is done for the primal-dual hybrid gradient method in \citet{lu2024restarted}.
+We now show that, under an error-bound condition, the restarted method converges linearly, and we compare the resulting iteration count with that of the base method.
+
+\begin{assumption}[Error bound]\label{ass:acc-error-bound}
+    There is $\eta > 0$ such that $\dist_M(z, \mathcal{Z}^\star) \le \eta\,\|s^\star(z)\|_M$ for all $z \in \R^{n+m}$.
+\end{assumption}
+For linear programs, and more generally when $f$ is piecewise linear-quadratic, the exact Douglas--Rachford map is piecewise affine, and \Cref{ass:acc-error-bound} holds by the theory of polyhedral multifunctions \citep{robinson1981polyhedral}.
+\mynote{TODO: verify this citation and the exact statement; a local version of the assumption on a level set containing the iterates suffices for the theorem below, with the obvious changes.}
+
+\subsection{Algorithm}
+Fix $\rho \in (0,1)$, $\theta \in (0,2)$, and a nonincreasing tolerance sequence $(\sigma_j)_{j\ge 0}$ satisfying the hypotheses of \Cref{thm:acc-inexact}.
+The method runs the anchored iteration in epochs.
+An epoch starts from an anchor $\bar z$ with a step $\bar s$ that was computed at $\bar z$ with tolerance at most $\sigma_0$, and sets $z^{(0)} = \bar z$, $s^{(1)} = \bar s$, and $j = 0$.
+It then repeats:
+\begin{enumerate}
+    \item Form $z^{(j+1)}$ from $z^{(j)}$ and $s^{(j+1)}$ by \Cref{eq:anchored-update} with $k = j$, and increase $j$ by one.
+    \item Compute the inexact step $s^{(j+1)}$ at $z^{(j)}$ with tolerance $\sigma_j$.
+    \item If $\|s^{(j+1)}\|_M \le \rho\,\|s^{(1)}\|_M$, start a new epoch with anchor $\bar z = z^{(j)}$ and step $\bar s = s^{(j+1)}$.
+\end{enumerate}
+The first epoch is initialized with $\bar z$ equal to the starting point and $\bar s$ the step computed there with tolerance $\sigma_0$.
+Each linear solve is used exactly once, so the cost per outer iteration is the same as for the anchored method.
+Because $(\sigma_j)$ is nonincreasing, the step that opens a new epoch was computed with tolerance at most $\sigma_0$, and the tolerances used within any epoch are bounded by $\sigma_0$ and have square sum at most $\bar\Sigma$.
+
+\subsection{Linear convergence}
+\begin{theorem}\label{thm:acc-restart}
+    Let \Cref{ass:acc-error-bound} hold and let the hypotheses of \Cref{thm:acc-inexact} hold with a nonincreasing tolerance sequence.
+    Define
+    \begin{align}
+        C_\theta = \frac{2 + \sqrt{2m_\theta}\, e^{3c_\theta\bar\Sigma/2}}{\min\{1, \theta\}},
+        \qquad
+        J = \max\left\{2,\ \left\lceil \frac{C_\theta\, \eta\, (1 + \sigma_0)}{\rho}\right\rceil\right\}.
+    \end{align}
+    Then every epoch performs at most $J$ linear solves, the anchor steps satisfy $\|\bar s_{e+1}\|_M \le \rho\|\bar s_e\|_M$ for consecutive epochs $e$ and $e+1$, and the step produced by the $k$-th linear solve overall satisfies
+    \begin{align}
+        \|s^{(k)}\|_M \le C_\theta\,\eta\,(1 + \sigma_0)\; \rho^{\lfloor (k-1)/J \rfloor}\; \|\bar s_0\|_M, \qquad k \ge 1, \label{eq:acc-linear-rate}
+    \end{align}
+    where $\bar s_0$ is the step at the starting point.
+\end{theorem}
+\begin{proof}
+    Consider an epoch with anchor $\bar z$ and opening step $\bar s = s^{(1)}$, and let $\bar D = \dist_M(\bar z, \mathcal{Z}^\star)$.
+    Within the epoch the iterates follow the anchored method started at $\bar z$ with tolerances bounded by $\sigma_0$ and square-summable to at most $\bar\Sigma$, so \Cref{thm:acc-inexact} applies.
+    Since $\theta j + 1 \ge \min\{1,\theta\}(j+1)$, its conclusion can be weakened to
+    \begin{align}
+        \|s^{(j+1)}\|_M \le \frac{C_\theta\,\bar D}{j+1} \qquad \text{for all } j \ge 0. \label{eq:acc-epoch-bound}
+    \end{align}
+    By \Cref{ass:acc-error-bound} and \Cref{eq:acc-exact-vs-inexact}, $\bar D \le \eta\|s^\star(\bar z)\|_M \le \eta(1+\sigma_0)\|s^{(1)}\|_M$.
+    Therefore $\|s^{(j+1)}\|_M \le \rho\|s^{(1)}\|_M$ as soon as $j + 1 \ge C_\theta\eta(1+\sigma_0)/\rho$, so the restart test succeeds at some $j \le J - 1$, and the epoch performs at most $J$ linear solves (the solve that opens the epoch is charged to the previous one).
+    The relation $\|\bar s_{e+1}\|_M \le \rho\|\bar s_e\|_M$ is the restart test itself.
+
+    For \Cref{eq:acc-linear-rate}, note that the first epoch uses one solve for $\bar s_0$ and at most $J$ more, and every later epoch uses at most $J$.
+    Hence the $k$-th solve belongs to an epoch $e \ge \lfloor (k-1)/J\rfloor$, whose anchor step satisfies $\|\bar s_e\|_M \le \rho^{e}\|\bar s_0\|_M$.
+    Within that epoch, \Cref{eq:acc-epoch-bound} with $j \ge 0$ and the bound on $\bar D$ give $\|s^{(k)}\|_M \le C_\theta\bar D \le C_\theta\eta(1+\sigma_0)\|\bar s_e\|_M$.
+\end{proof}
+
+\begin{remark}[Comparison with the base method]
+    Under \Cref{ass:acc-error-bound} the base method also converges linearly, but with a worse dependence on $\eta$.
+    With exact solves, the draft's one-step inequality reads $\|z^{(k+1)} - z^\star\|_M^2 \le \|z^{(k)} - z^\star\|_M^2 - \theta(2-\theta)\|s^\star(z^{(k)})\|_M^2$ for every $z^\star \in \mathcal{Z}^\star$; choosing $z^\star$ as the projection of $z^{(k)}$ and applying the error bound gives
+    \begin{align}
+        \dist_M(z^{(k+1)}, \mathcal{Z}^\star)^2 \le \left(1 - \frac{\theta(2-\theta)}{\eta^2}\right)\dist_M(z^{(k)}, \mathcal{Z}^\star)^2 ,
+    \end{align}
+    so reaching accuracy $\epsilon$ takes on the order of $\eta^2\log(1/\epsilon)$ outer iterations.
+    By \Cref{thm:acc-restart} the restarted anchored method takes on the order of $J\log(1/\epsilon)/\log(1/\rho) = O(\eta\log(1/\epsilon))$ outer iterations, which is the same improvement from $\eta^2$ to $\eta$ obtained by restarted Halpern methods for linear programming \citep{lu2024restarted}.
+\end{remark}
+
+\begin{remark}[Numerical sanity check]
+    \mynote{TODO: turn into an experiment under \texttt{code/experiments/} with results saved as CSV.}
+    On a random standard-form LP with $m = 60$ and $n = 200$, conjugate gradients on the Schur complement, $\theta = 1.5$, and constant $\sigma = 0.2$, the residual $\|s^{(k)}\|_M$ after $1000$ outer iterations was about $2.5\cdot 10^{-3}$ for the base method, $7\cdot 10^{-2}$ for the anchored method without restarts, and $8\cdot 10^{-6}$ for the restarted method with $\rho = 1/2$, which also used fewer inner iterations in total.
+    This illustrates both halves of \Cref{sec:acc-restart}: without restarts the anchor is a liability on a problem where the base method converges linearly, and with restarts it is an asset.
+\end{remark}
+
+\section{Summary}
+The anchored update \Cref{eq:anchored-update} accelerates the inexact primal-dual Douglas--Rachford method from $O(1/\sqrt{k})$ to $O(1/k)$ in the fixed-point residual and in both KKT residuals (\Cref{thm:acc-inexact,cor:acc-kkt}), at the price of a tolerance sequence with $\sum_k\sigma_k^2 < \infty$, which costs $O(\log k)$ inner iterations per outer iteration.
+With exact solves the bound $2D/(\theta k+2)$ of \Cref{thm:acc-exact} is tight.
+Restarting the anchor when the residual halves gives linear convergence under an error bound, with an iteration count linear rather than quadratic in the error-bound constant (\Cref{thm:acc-restart}).
+Two questions remain open: whether a constant tolerance also gives $O(1/k)$ (\Cref{rem:acc-fixed-sigma}), and the transfer of the total inner-work bound of the draft to the anchored update (\Cref{rem:acc-inner-work}).
+
+\bibliography{bibliography}
+
+\end{document}
