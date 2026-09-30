@@ -207,17 +207,19 @@ and let
 \end{equation}
 which is the residual of \Cref{eq:linear-system-step} at $(\xi, \nu)$.
 When the system is solved exactly, $\varepsilon = 0$, the point $\xi - \gamma_x A^\top\nu = 2\xi - x$ is the reflection of $x$ through the resolvent of $\mathcal{G}$, $\hat z$ is the Douglas--Rachford image of $z$, and $s = \hat z - z$ is the Douglas--Rachford step.
-When the system is solved inexactly, the quantities in \Cref{eq:true-step-definitions} are \emph{defined} by the formulas, which use $\xi - \gamma_x A^\top \nu$ and $\gamma_\lambda(A\xi - b)$ in place of $2\xi - x$ and $\lambda - 2\nu$; the two agree only for the exact solution, and it is the formulas that the analysis below refers to.
+When the system is solved inexactly, the quantities in \Cref{eq:true-step-definitions} are \emph{defined} by the formulas, which use $\xi - \gamma_x A^\top \nu$ and $\gamma_\lambda(A\xi - b)$ in place of $2\xi - x$ and $\lambda - 2\nu$.
+The two quantities agree only for the exact solution, and are the formulas which the following analysis refers to.
 
 \begin{definition}\label{def:admissible-pairs}
 We call $(\hat z, s)$ an \emph{admissible pair} if it arises from some $(\xi, \nu)$ through \Cref{eq:true-step-definitions}, and we write $\mathcal{A}$ for the set of admissible pairs.
-The set $\mathcal{A}$ does not depend on $z$; the point $z$ enters only through the residual $\varepsilon$.
+The set $\mathcal{A}$ does not depend on $z$: the point $z$ enters only through the residual $\varepsilon$.
 Let
 \begin{equation*}
     \mathcal{Z}^\star = \{ (x^\star + \gamma_x A^\top\lambda^\star, \lambda^\star) \mid (x^\star,\lambda^\star) \text{ satisfies } \Cref{eq:kkt-conditions} \}
 \end{equation*}
 denote the set of fixed points, which is nonempty by \Cref{ass:standing}.
-Finally, let $s^\star(z)$ denote the step \Cref{eq:true-step-definitions} obtained from the exact solution of \Cref{eq:linear-system-step} at $z$; this is the step of the exact Douglas--Rachford method, and $s^\star(z) = 0$ if and only if $z \in \mathcal{Z}^\star$.    
+Finally, let $s^\star(z)$ denote the step \Cref{eq:true-step-definitions} obtained from the exact solution of \Cref{eq:linear-system-step} at $z$.
+This is the step of the exact Douglas--Rachford method, and $s^\star(z) = 0$ if and only if $z \in \mathcal{Z}^\star$.
 \end{definition}
 
 \subsection{Convergence}
@@ -303,7 +305,8 @@ The analysis rests on one lemma, which says that admissible pairs inherit the mo
         &= \|z - z^\star\|_M^2 + 2\theta\langle z - z^\star, s\rangle_M + \theta^2\|s\|_M^2 \\
         &= \|z - z^\star\|_M^2 + 2\theta\langle \hat z - z^\star, s\rangle_M - 2\theta\|s\|_M^2 - 2\theta\langle \varepsilon, s\rangle_M + \theta^2\|s\|_M^2,
     \end{align}
-    and \Cref{eq:montonicity-of-update} turns the second term into $-2\theta\langle v - x^\star, u - u^\star\rangle$, which proves \Cref{eq:one-step-identity}; that term is nonpositive by the monotonicity of $\partial f$, which proves \Cref{eq:inexactness-one-step-inequality}.
+    and \Cref{eq:montonicity-of-update} turns the second term into $-2\theta\langle v - x^\star, u - u^\star\rangle$, which proves \Cref{eq:one-step-identity}.
+    That term is nonpositive by the monotonicity of $\partial f$, which proves \Cref{eq:inexactness-one-step-inequality}.
     For $\theta = 1$, $-\|s\|_M^2 - 2\langle\varepsilon, s\rangle_M = \|\varepsilon\|_M^2 - \|s + \varepsilon\|_M^2$.
 \end{proof}
 
@@ -320,7 +323,8 @@ The analysis rests on one lemma, which says that admissible pairs inherit the mo
     Substituting this into \Cref{eq:one-step-identity} yields the desired result.
 \end{proof}
 The corollary explains the role of the tolerance.
-Over-relaxation ($\theta > 1$) enlarges the step, and the exact method may use any $\theta \in (0, 2)$; inexactness consumes part of the same margin, so the admissible tolerance shrinks linearly in $\theta$, to zero at $\theta = 2$.
+Over-relaxation ($\theta > 1$) enlarges the step, and the exact method may use any $\theta \in (0, 2)$.
+Here, inexactness consumes part of the same margin, so the admissible tolerance shrinks linearly in $\theta$, all the way to zero as $\theta$ approaches 2.
 Conversely, at $\theta = 1$ the linear system may be solved to any relative accuracy $\sigma < 1/2$ without losing the decrease of $\|z^{(k)} - z^\star\|_M$.
 
 \begin{theorem}[Summability of the fixed-point residual]\label{thm:relative-error-criterion}
@@ -336,7 +340,9 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
     \end{equation}
 \end{theorem}
 \begin{proof}
-    Summing \Cref{eq:lyapunov-decrease-estimate} over the iterations $0, \ldots, k$ gives \Cref{eq:convergence-of-fixed-point-residual}, and each term of the sum is nonnegative, so the series $\sum_t \|s^{(t)}\|_M^2$ converges; hence $\|s^{(k)}\|_M \to 0$ and $\|\varepsilon^{(k)}\|_M \leq \sigma\|s^{(k)}\|_M \to 0$.
+    Summing \Cref{eq:lyapunov-decrease-estimate} over the iterations $0, \ldots, k$ gives \Cref{eq:convergence-of-fixed-point-residual}, and each term of the sum is nonnegative, so the series $\sum_t \|s^{(t)}\|_M^2$ converges.
+    Thus, $\|s^{(k)}\|_M \to 0$ and $\|\varepsilon^{(k)}\|_M \leq \sigma\|s^{(k)}\|_M \to 0$.
+    Note that this implies that the relative error criterion requires a high accuracy inner solve for a high accuracy solution.
     Moreover, \Cref{cor:over-under-relaxation} shows that $\|z^{(k)} - z^\star\|_M$ is nonincreasing.
     For \Cref{eq:small-o-rate}, let $a_t = \|s^{(t)}\|_M^2$.
     Then
@@ -348,7 +354,7 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
 \begin{remark}
     The quantity $\|s^{(k+1)}\|_M$ is the fixed-point residual of the inexact iteration, and by \Cref{eq:acc-exact-vs-inexact} it is within a factor $1 \pm \sigma$ of the exact residual $\|s^\star(z^{(k)})\|_M$.
     \Cref{thm:relative-error-criterion} therefore controls the exact residual as well.
-    Convergence of $z^{(k)}$ itself to a point of $\mathcal{Z}^\star$ follows from the standard Fej\'er-monotonicity argument once the residual vanishes; we omit it and turn to rates.
+    Convergence of $z^{(k)}$ itself to a point of $\mathcal{Z}^\star$ follows from the standard Fej\'er monotonicity argument.
 \end{remark}
 
 \begin{theorem}[Linear convergence]\label{thm:linear-convergence}
@@ -437,7 +443,7 @@ Throughout this subsection, $\varepsilon^{(k)}_{(l)}$ and $s^{(k)}_{(l)}$ denote
     \bar{R}_k = \|s^\star(z^{(k)})\|_M, \qquad \mathcal{E}_{k,0} = \|\varepsilon^{(k)}_{(0)}\|_M,
 \end{equation*}
 are the norm of the exact step and the residual of the warm start at outer iteration $k$.
-We assume $\bar R_k > 0$, that is, the method has not reached a fixed point; otherwise the warm start passes the test at once.
+We assume $\bar R_k > 0$, that is, the method has not reached a fixed point, as otherwise the warm start passes the test at once.
 
 \begin{theorem}[Stopping time of the inner solve]\label{thm:stopping-time}
     Suppose the inner solver contracts the residual geometrically in expectation,
@@ -499,7 +505,7 @@ It is clear that the ratio $\mathcal{E}_{k,0}/\bar R_k$ is controlled by the cho
 \end{lemma}
 \begin{proof}
     The right-hand side of \Cref{eq:linear-system-step} at $z$ is $z - (0, \gamma_\lambda b)$, so it changes by $z^{(k)} - z^{(k-1)} = \theta s^{(k)}$ between consecutive outer iterations, while the warm start is the same point $(\xi^{(k)}, \nu^{(k)})$.
-    Its residual at the new system is therefore $\varepsilon^{(k)} - \theta s^{(k)}$, and the first inequality of \Cref{eq:warm-start-residual} is the triangle inequality; the second is the relative-error test and the third is \Cref{eq:acc-exact-vs-inexact}, which gives $\|s^{(k)}\|_M \leq \bar R_{k-1}/(1 - \sigma)$.
+    Its residual at the new system is therefore $\varepsilon^{(k)} - \theta s^{(k)}$, and the first inequality of \Cref{eq:warm-start-residual} is the triangle inequality; the second is the relative-error test, and the third is \Cref{eq:acc-exact-vs-inexact}, which gives $\|s^{(k)}\|_M \leq \bar R_{k-1}/(1 - \sigma)$.
     For \Cref{eq:exact-step-growth}, \Cref{lem:monotonicity}, item 4, gives $\|s^\star(z^{(k)}) - s^\star(z^{(k-1)})\|_M \leq \|z^{(k)} - z^{(k-1)}\|_M = \theta\|s^{(k)}\|_M$, and the triangle inequality and \Cref{eq:acc-exact-vs-inexact} finish the proof.
 \end{proof}
 
@@ -641,8 +647,9 @@ We then bounded the inner work: the expected number of inner iterations at each 
 The experiments confirm the three points the analysis makes: on the quadratic families the outer iteration is insensitive to how, and how accurately, the linear system is solved; the inner work per outer iteration settles to a constant that depends on the solver, the tolerance, and the conditioning of the Schur complement but not on the iteration count; and the shared step size trades outer iterations against inner work, with the total inner work minimized at an interior value.
 
 Several directions remain.
-The per-iteration bound of \Cref{rem:per-iteration} depends on the ratio of consecutive exact step norms, which we have not bounded from below; the parameters $\gamma_x$, $\gamma_\lambda$, $\sigma$, and $\theta$ were chosen by sweeps or by a simple adaptive rule, and a principled selection is open.
-It is also open whether a more flexible inner solver, or an amortization strategy that checks the relative-error test only every few inner iterations, can reduce the time spent in the inner solves.
+The per-iteration bound of \Cref{rem:per-iteration} depends on the ratio of consecutive exact step norms, which we have not bounded from below.
+The parameters $\gamma_x$, $\gamma_\lambda$, $\sigma$, and $\theta$ were chosen by sweeps or by a simple adaptive rule, and a principled selection is open.
+It is also open whether a more flexible inner solver, or a lazy strategy that does not check the relative-error test every inner iteration can reduce the time spent in the inner solves.
 Finally, the observation that the inexactness barely affects the outer iteration on quadratic programs, while it does on linear programs, deserves an explanation.
 
 \bibliography{bibliography}
