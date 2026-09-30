@@ -17,6 +17,7 @@ from experiments._paths import HISTORIES, SUMMARY, study_dir
 
 from ._data import MissingResults, load, missing, select
 from ._style import SOLVER_LABELS
+from .lasso import HYBRID_ORDER
 
 TABLES = "tables"
 TARGET_ACCURACY = 1e-7
@@ -166,6 +167,10 @@ def lasso_work_table(results_dir: Path | None, stage: str) -> str:
     variants: dict[str, None] = {}
     for row in results:
         variants.setdefault(row["variant"], None)
+    if stage == "hybrid":
+        # Same display order as the figures.
+        ordered = [name for name in HYBRID_ORDER if name in variants]
+        variants = dict.fromkeys(ordered + [v for v in variants if v not in ordered])
     body = []
     for variant in variants:
         first = True
@@ -208,7 +213,12 @@ def lasso_hybrid_instance_table(results_dir: Path | None) -> str:
         raise MissingResults("lasso results carry no hybrid stage")
     body = []
     seen: dict[str, None] = {}
+    first_rows = {}
     for row in results:
+        first_rows.setdefault(row["variant"], row)
+    ordered = [name for name in HYBRID_ORDER if name in first_rows]
+    ordered += [name for name in first_rows if name not in ordered]
+    for row in (first_rows[name] for name in ordered):
         if row["variant"] in seen:
             continue
         seen[row["variant"]] = None

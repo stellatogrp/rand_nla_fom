@@ -29,3 +29,6 @@ tex/Draft.pdf
 
 # Standalone build of the numerical-experiments draft
 tex/numerical_experiments_draft.pdf
+
+# Claude Code session files and worktrees
+.claude/

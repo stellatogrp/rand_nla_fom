@@ -51,7 +51,7 @@ This section reports experiments with the method of \Cref{eq:linear-system-step}
 It also treats the LASSO, in a split form that fits \Cref{eq:linearly-constrained-problem}.
 The questions we ask are the ones the analysis raises.
 How does the metric $M$, through $\gamma_x$ and $\gamma_\lambda$, trade outer iterations against inner work?
-How much inner work does the relative-error test of \Cref{thm:relative-error-criterion} actually demand at a given $\sigma$, and does the expected work per outer iteration stay bounded as \Cref{eq:stopping-time-expectation-bound} predicts?
+How much inner work does the relative-error test of \Cref{alg:main} actually demand at a given $\sigma$, and does the expected work per outer iteration stay bounded as \Cref{eq:stopping-time-expectation-bound} predicts?
 How do conjugate gradients, GMRES, block Kaczmarz, and randomized Kaczmarz compare as inner solvers under the same test?
 \Cref{sec:experiments-setup} fixes the implementation, the accuracy measure, and the problem generators.
 \Cref{sec:experiments-lp,sec:experiments-qp,sec:experiments-lasso} then treat the three families in turn, and \Cref{sec:experiments-sweeps} compares the inner tolerance, the relaxation, and the inner solver across all of them.
@@ -60,7 +60,7 @@ How do conjugate gradients, GMRES, block Kaczmarz, and randomized Kaczmarz compa
 
 \paragraph{Implementation.}
 The method is implemented in NumPy.
-Each outer iteration solves \Cref{eq:linear-system-step} by one of four warm-started iterative methods and stops the inner method at the first iterate that passes the relative-error test $\|\varepsilon^{(k+1)}\|_M \leq \sigma \|s^{(k+1)}\|_M$ of \Cref{thm:relative-error-criterion}.
+Each outer iteration solves \Cref{eq:linear-system-step} by one of four warm-started iterative methods and stops the inner method at the first iterate that passes the relative-error test $\|\varepsilon^{(k+1)}\|_M \leq \sigma \|s^{(k+1)}\|_M$ of \Cref{alg:main}.
 The test is evaluated after every inner iteration, so the recorded inner iteration count $N_k$ is exactly the stopping time analyzed in \Cref{eq:stopping-time-probability-bound}; a count of zero means that the warm start already passed.
 The four inner methods are
 \begin{itemize}
@@ -169,7 +169,7 @@ On the proxy the best scales are $(x_\mathrm{s}, p_\mathrm{s}) = (0.25, 10)$, th
 \end{figure}
 The transferred metric reaches accuracy $10^{-4}$ in $2669$ outer iterations with $\sigma = 0.15$, $\theta = 1.3$, against $20525$ for the baseline, a factor of $7.7$ in outer iterations; measured in inner CG steps the factor is $1.9$ ($10653$ against $20634$), because the large $\gamma_\lambda$ makes each linear system harder, in line with \Cref{sec:linear-system-analysis}.
 None of the settings gets much below $10^{-5}$ in $30000$ outer iterations, which is the sublinear regime that \Cref{thm:relative-error-criterion} allows for a problem with no strong convexity; the tuned settings are $3$ to $4$ times more accurate at the end of the budget.
-\mynote{TODO: the LP proxy runs also do not reach the tolerance in $4000$ iterations, so the ranking is by final merit; decide whether to tune at a fixed accuracy instead.}
+% \mynote{TODO: the LP proxy runs also do not reach the tolerance in $4000$ iterations, so the ranking is by final merit; decide whether to tune at a fixed accuracy instead.}
 
 \subsection{Quadratic Programs}\label{sec:experiments-qp}
 
@@ -335,7 +335,7 @@ The row methods are also the slowest in wall-clock time in this implementation, 
     \label{fig:lasso-inner}
 \end{figure}
 For every solver the running mean settles within the first few tens of outer iterations and then stays flat or drifts down, while the individual counts of the two Kaczmarz methods scatter by a factor of about two around it.
-The largest counts occur in the first iterations, where the solution of \Cref{eq:linear-system-step} moves most between consecutive outer iterations and the warm start is furthest from it, which is the drift term $\|H^{-1}\|_M\|s^{(k)}\|_M$ in the lemma preceding \Cref{eq:total-inner-work-estimate}.
+The largest counts occur in the first iterations, where the right-hand side of \Cref{eq:linear-system-step} moves most between consecutive outer iterations and the warm start is furthest from the new solution, which is the drift term $\theta\|s^{(k)}\|_M$ of \Cref{lem:warm-start-drift}.
 Once the outer iteration is in its linear regime the expected inner work is a constant that depends on the solver and the instance but not on $k$, and the total inner work is that constant times the number of outer iterations, which is the content of \Cref{eq:total-inner-work-estimate}.
 
 \subsubsection{Larger Instances and Hybrid Penalties}\label{sec:experiments-lasso-hybrid}
@@ -369,7 +369,7 @@ Its time to target grows from $5.0$ to $210$ seconds while Schur CG goes from $0
 Measured in passes over the rows, then, all four solvers need a size-independent amount of work per outer iteration.
 
 \paragraph{Hybrid penalties.}
-\Cref{tab:lasso-hybrid-instances} lists four penalties on the independent design with $m = 200$ and $p = 800$: the LASSO, the LASSO with the residual term $c_2\|Dx - y\|_1$ added, the LASSO with the norm $c_4\|x\|_2$ added, and all four terms together, with $c_1 = 1/2$, $c_2 = 0.05$, $c_3 = \tau$, and $c_4 = \tau/2$ whenever a term is present.
+\Cref{tab:lasso-hybrid-instances} lists four penalties on the independent design with $m = 200$ and $p = 800$: the LASSO, the LASSO with the norm $c_4\|x\|_2$ added, the LASSO with the residual term $c_2\|Dx - y\|_1$ added, and all four terms together, with $c_1 = 1/2$, $c_2 = 0.05$, $c_3 = \tau$, and $c_4 = \tau/2$ whenever a term is present.
 \begin{table}[htbp]
     \centering
     \caption{The four penalties \Cref{eq:hybrid} on the independent design with $m = 200$, $p = 800$: coefficients, optimal value $F^\star$, number of nonzero entries of the minimizer, and number of residuals $(Dx^\star - y)_i$ equal to zero, both counted at the level $10^{-6}$ described in the text.}
@@ -377,7 +377,7 @@ Measured in passes over the rows, then, all four solvers need a size-independent
     \input{../results/tables/lasso_hybrid_instances.tex}
 \end{table}
 The $\|\cdot\|_1$ data term does what it is meant to: at its minimizer $15$ of the $200$ residuals are exactly zero, and $17$ when all four terms are present, whereas the two penalties without it fit no observation exactly.
-\Cref{tab:lasso-hybrid} and \Cref{fig:lasso-hybrid} compare the four inner solvers on the four penalties at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$.
+\Cref{tab:lasso-hybrid} and \Cref{fig:lasso-hybrid,fig:lasso-hybrid-nonsmooth} compare the four inner solvers on the four penalties at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$.
 \begin{table}[htbp]
     \centering
     \caption{The four penalties of \Cref{tab:lasso-hybrid-instances} at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: outer and cumulative inner iterations to accuracy $10^{-7}$, the mean and largest inner count $N_k$, and wall-clock time, for the four inner solvers.}
@@ -386,15 +386,21 @@ The $\|\cdot\|_1$ data term does what it is meant to: at its minimizer $15$ of t
 \end{table}
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{../results/lasso/hybrid_convergence.pdf}
-    \caption{The four penalties of \Cref{tab:lasso-hybrid-instances} ($m = 200$, $p = 800$) at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: accuracy against outer iteration (left) and against cumulative inner iterations (right, logarithmic) for the four inner solvers.
-    From top to bottom: the LASSO, with the $\|\cdot\|_1$ residual term, with the $\|\cdot\|_2$ norm, and with all four terms.}
+    \includegraphics[width=\textwidth]{../results/lasso/hybrid_convergence_1.pdf}
+    \caption{The two penalties of \Cref{tab:lasso-hybrid-instances} with a smooth residual term, the LASSO (top) and the LASSO with the $\|\cdot\|_2$ norm added (bottom), at $m = 200$, $p = 800$, $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: accuracy against outer iteration (left) and against cumulative inner iterations (right, logarithmic) for the four inner solvers.}
     \label{fig:lasso-hybrid}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lasso/hybrid_convergence_2.pdf}
+    \caption{The two penalties of \Cref{tab:lasso-hybrid-instances} with the $\|\cdot\|_1$ residual term, alone (top) and together with the $\|\cdot\|_2$ norm (bottom), at the same setting as \Cref{fig:lasso-hybrid}.
+    Note the different scale of the horizontal axes: the outer iteration count is forty to fifty times that of \Cref{fig:lasso-hybrid}.}
+    \label{fig:lasso-hybrid-nonsmooth}
 \end{figure}
 The penalties split into two groups.
 Adding $c_4\|x\|_2$ changes nothing that the method notices: $131$ outer iterations against $130$, the same inner counts per outer iteration, and convergence curves that lie on top of the LASSO's.
 Adding $c_2\|Dx - y\|_1$ changes the outer iteration entirely: $5225$ outer iterations with the residual term and $6242$ with all four, forty to fifty times the LASSO.
-The curves in the second and fourth rows of \Cref{fig:lasso-hybrid} show why: the accuracy drops to $10^{-3}$ in a few hundred iterations and then converges at a much slower linear rate, with a kink where the rate changes (near outer iteration $3800$ for all four terms), which is the behaviour of Douglas--Rachford on a problem with a polyhedral part, as on the LPs of \Cref{sec:experiments-lp}, until the set of exactly fitted observations has been identified.
+The curves in \Cref{fig:lasso-hybrid-nonsmooth} show why: the accuracy drops to $10^{-3}$ in a few hundred iterations and then converges at a much slower linear rate, with a kink where the rate changes (near outer iteration $3800$ for all four terms), which is the behaviour of Douglas--Rachford on a problem with a polyhedral part, as on the LPs of \Cref{sec:experiments-lp}, until the set of exactly fitted observations has been identified.
 The outer trajectories of the four solvers again coincide on every penalty.
 
 What does not change with the penalty is the inner work per outer iteration.
@@ -408,7 +414,7 @@ The inner solver is a row-action method in the first two, because that is where 
 
 \paragraph{Relaxation.}
 \Cref{fig:theta-sweep} sweeps $\theta$ from $0.1$ to $1.9$ in steps of $0.1$ on instances with $m = 50$ and $n = 200$ ($n = 250$ in slack form), $\kappa(A) = 10$ and $\kappa(A) = 20$, with randomized Kaczmarz on \Cref{eq:psd-system}.
-Since \Cref{thm:relative-error-criterion} admits $\sigma < (2 - \theta)/2$, one tolerance cannot be held fixed across the whole range unless it is small, and the sweep runs two policies: a \emph{fixed} $\sigma = 0.04$, admissible for every $\theta$ tested, and a \emph{frontier} $\sigma = \min\{0.45, 0.9(2 - \theta)/2\}$, the loosest tolerance each $\theta$ admits with a margin of $10\%$.
+Since \Cref{cor:over-under-relaxation} admits $\sigma < (2 - \theta)/2$, one tolerance cannot be held fixed across the whole range unless it is small, and the sweep runs two policies: a \emph{fixed} $\sigma = 0.04$, admissible for every $\theta$ tested, and a \emph{frontier} $\sigma = \min\{0.45, 0.9(2 - \theta)/2\}$, the loosest tolerance each $\theta$ admits with a margin of $10\%$.
 Each setting is repeated over three trials that redraw the instance (singular vectors and, with the extremes pinned, the interior singular values) and the Kaczmarz row stream; the figure shows the median with whiskers over the range, and a run counts only if it reached the target within $6000$ outer iterations.
 \begin{figure}[htbp]
     \centering

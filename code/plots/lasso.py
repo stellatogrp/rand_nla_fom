@@ -26,17 +26,28 @@ SOLVERS = (
 YLABEL = "relative objective error + feasibility"
 # Stages that keep convergence traces, with the figure each one draws.
 TRACE_FIGURES = {
-    "solver": "solver_convergence.pdf",
-    "size": "size_convergence.pdf",
-    "hybrid": "hybrid_convergence.pdf",
+    "solver": "solver_convergence",
+    "size": "size_convergence",
+    "hybrid": "hybrid_convergence",
 }
+# A trace figure with more rows than this is split into several files,
+# numbered from one, so that each fits on a page.
+ROWS_PER_FIGURE = 2
+# Display order of the hybrid penalties: the two with a smooth residual term
+# first, then the two with the l1 residual term.
+HYBRID_ORDER = ("LASSO", "+ l2 norm", "+ l1 residual", "all four terms")
 
 
-def _variants(rows: list[dict]) -> list[str]:
-    """Return the variants of ``rows`` in first-seen order."""
+def _variants(rows: list[dict], stage: str | None = None) -> list[str]:
+    """Return the variants of ``rows``, in display order for the hybrid stage
+    and in first-seen order otherwise."""
     seen: dict[str, None] = {}
     for row in rows:
         seen.setdefault(row["variant"], None)
+    if stage == "hybrid":
+        return [name for name in HYBRID_ORDER if name in seen] + [
+            name for name in seen if name not in HYBRID_ORDER
+        ]
     return list(seen)
 
 
@@ -54,13 +65,38 @@ def _variant_title(rows: list[dict], stage: str, variant: str) -> str:
 
 def plot_traces(
     results: list[dict], histories: list[dict], stage: str, output: Path
-) -> Path:
+) -> list[Path]:
     """Accuracy against outer and cumulative inner iterations, per solver.
 
     One row per variant of the stage: the design for ``solver``, the instance
-    size for ``size``, and the penalty for ``hybrid``.
+    size for ``size``, and the penalty for ``hybrid``.  More than
+    ``ROWS_PER_FIGURE`` variants are split over several files, ``output`` with
+    ``_1``, ``_2``, ... appended to its stem.
     """
-    variants = _variants(select(results, stage=stage))
+    variants = _variants(select(results, stage=stage), stage)
+    chunks = [
+        variants[start : start + ROWS_PER_FIGURE]
+        for start in range(0, len(variants), ROWS_PER_FIGURE)
+    ]
+    written = []
+    for index, chunk in enumerate(chunks, start=1):
+        path = (
+            output
+            if len(chunks) == 1
+            else output.with_name(f"{output.stem}_{index}{output.suffix}")
+        )
+        written.append(_plot_trace_rows(results, histories, stage, chunk, path))
+    return written
+
+
+def _plot_trace_rows(
+    results: list[dict],
+    histories: list[dict],
+    stage: str,
+    variants: list[str],
+    output: Path,
+) -> Path:
+    """Draw one trace figure with the given variants as its rows."""
     fig, axes = plt.subplots(
         len(variants), 2, figsize=(9, 3.6 * len(variants)), squeeze=False
     )
@@ -103,7 +139,7 @@ def plot_inner_per_outer(
     constant that does not grow with the iteration count; a flat running mean
     is the observable consequence.
     """
-    variants = _variants(select(results, stage="solver"))
+    variants = _variants(select(results, stage="solver"), "solver")
     fig, axes = plt.subplots(
         1, len(variants), figsize=(4.6 * len(variants), 3.8), squeeze=False
     )
@@ -179,8 +215,10 @@ def make(results_dir: Path | None = None) -> list[Path]:
     if traced:
         histories = load_histories(STUDY, results_dir)
         for stage in traced:
-            written.append(
-                plot_traces(results, histories, stage, output / TRACE_FIGURES[stage])
+            written.extend(
+                plot_traces(
+                    results, histories, stage, output / f"{TRACE_FIGURES[stage]}.pdf"
+                )
             )
         if "solver" in traced:
             written.append(
