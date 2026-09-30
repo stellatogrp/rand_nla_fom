@@ -249,27 +249,6 @@ the acceptance tests in [drs.py](code/src/drs.py), and the conclusion.
   inexactness as an empirical finding. The current decrease and linear-rate
   constants depend on $\sigma$ and do not prove that insensitivity.
 
-## 9. Generalization after the core fixes
-
-**Priority: optional extension, not a prerequisite for this revision.**
-
-- [ ] If pursuing the setting of Remark 2.8 in
-  [Alves, Lorenz, and Naldi](https://arxiv.org/html/2407.05893v2), write the
-  correspondence between variables, residuals, metrics, and relative-error
-  tests explicitly. Their tolerance parameter should not be identified with
-  this paper's $\sigma$ without checking the different tests.
-- [ ] Separate the abstract outer geometry from the extra assumptions needed
-  for inner work: a conditional contraction estimate, a warm-start drift
-  estimate for the implemented initialization, and an explicit work unit.
-  General maximal monotonicity alone does not provide these assumptions.
-- [ ] For a degenerate metric, check the reduced-space formulation and all
-  norm comparisons. Do not reuse positive-definite metric arguments across
-  a nontrivial kernel without justification.
-- [ ] Make the broader contribution a total-work theorem with stated,
-  checkable inner-solver assumptions. Keep the current RNLA linear system as
-  a concrete application and verify a second application before claiming
-  coverage of general operator splitting.
-
 Suggested order: repair items 1--5, correct the spectral statement, complete
 the outer-proof details, and then revise the abstract and experimental
 interpretation to match the results actually established.
