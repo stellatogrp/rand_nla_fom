@@ -16,15 +16,15 @@ PANELS = (
         "proxy",
         "preconditioner",
         "proxy_preconditioners.pdf",
-        "LP proxy: data-scaled preconditioner sweep",
+        "proxy LP: metric",
     ),
     (
         "proxy",
         "sigma_theta",
         "proxy_sigma_theta.pdf",
-        "LP proxy: tolerance and relaxation sweep",
+        r"proxy LP: $(\sigma, \theta)$",
     ),
-    ("large", "transfer", "large_lp_convergence.pdf", "Large LP: tuned transfer"),
+    ("large", "transfer", "large_lp_convergence.pdf", "large LP"),
 )
 
 

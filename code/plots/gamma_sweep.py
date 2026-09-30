@@ -16,7 +16,7 @@ from ._data import (
     missing,
     select,
 )
-from ._style import condition_label, plt, save_figure
+from ._style import CONDITION_LABELS, condition_label, plt, save_figure
 
 STUDY = "gamma_sweep"
 INEQUALITY_RESULTS = "inequality_qp_results.csv"
@@ -60,7 +60,8 @@ def plot_iteration_counts(rows: list[dict], output: Path) -> Path:
             ):
                 axis = axes[axis_index, column_index]
                 values = column(selected, field)
-                (line,) = axis.loglog(gamma, values, "o-", label=condition)
+                label = CONDITION_LABELS.get(condition, condition)
+                (line,) = axis.loglog(gamma, values, "o-", label=label)
                 _mark_failures(axis, line, gamma, values, failed)
         axes[0, column_index].set_title(kind)
         axes[1, column_index].set_xlabel(XLABEL)
@@ -70,7 +71,6 @@ def plot_iteration_counts(rows: list[dict], output: Path) -> Path:
             axis.legend(fontsize=8)
     axes[0, 0].set_ylabel("outer iterations")
     axes[1, 0].set_ylabel("total inner CG iterations")
-    fig.suptitle(r"Section 5 with $\gamma_x=\gamma_\lambda=\gamma$")
     return save_figure(fig, output)
 
 
@@ -133,7 +133,6 @@ def plot_inequality(
             axis.grid(True, which="both", alpha=0.3)
             axis.legend(title=title, fontsize=8)
 
-    fig.suptitle(r"Inequality QP ($n=500$, $m=100$): iteration counts vs. $\gamma$")
     return save_figure(fig, output)
 
 

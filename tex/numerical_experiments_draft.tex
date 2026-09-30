@@ -1,0 +1,482 @@
+% Numerical experiments: draft of the section for Draft.tex.
+%
+% This file works two ways.
+%   * \input{numerical_experiments_draft} from Draft.tex, in place of the
+%     \section{Numerical Results} stub: the preamble below is skipped.
+%   * latexmk -pdf numerical_experiments_draft.tex, to compile it on its own;
+%     cross-references into Draft.tex then print as ??.
+%
+% Every number comes from results/: the tables are \input from
+% results/tables/ and the figures from results/<study>/.  Regenerate them with
+%   cd code && uv run python -m experiments.run_experiments all
+%   uv run python -m experiments.run_experiments solver-sweep
+%   uv run python -m plots.make_plots
+% Nothing in results/ is edited by hand.
+
+\makeatletter
+\ifx\@nodocument\relax
+  % Included from a document that is already running.
+  \makeatother
+  \providecommand{\toprule}{\hline}
+  \providecommand{\midrule}{\hline}
+  \providecommand{\bottomrule}{\hline}
+  \providecommand{\cmidrule}[2][]{}
+  \providecommand{\mynote}[1]{{\color{blue}[#1]}}
+  \newcommand{\numericalexperimentsclose}{}
+\else
+  \makeatother
+  \documentclass[11pt]{article}
+  \usepackage{graphicx}
+  \usepackage{amssymb, amsfonts, amsmath, amsthm}
+  \usepackage[margin=1in, footskip=1cm, headheight = 1.5cm]{geometry}
+  \usepackage[sort]{natbib}
+  \usepackage{booktabs}
+  \usepackage{hyperref}
+  \hypersetup{colorlinks=true, linkcolor=blue, citecolor=cyan}
+  \bibliographystyle{unsrtnat}
+  \usepackage[nameinlink]{cleveref}
+  \input{definitions.tex}
+  \crefname{equation}{}{}
+  \newcommand{\mynote}[1]{{\color{blue}[#1]}}
+  \newcommand{\numericalexperimentsclose}{\bibliography{bibliography}\end{document}}
+  \title{Numerical Results (draft section)}
+  \author{Pranav Reddy}
+  \date{\today}
+  \begin{document}
+  \maketitle
+\fi
+
+\section{Numerical Results}\label{sec:numerical-results}
+This section reports experiments with the method of \Cref{eq:linear-system-step} on three families of problems: quadratic programs with equality constraints, linear programs in standard form, and quadratic programs with inequality constraints in slack form.
+It also treats the LASSO, in a split form that fits \Cref{eq:linearly-constrained-problem}.
+The questions we ask are the ones the analysis raises.
+How does the metric $M$, through $\gamma_x$ and $\gamma_\lambda$, trade outer iterations against inner work?
+How much inner work does the relative-error test of \Cref{thm:relative-error-criterion} actually demand at a given $\sigma$, and does the expected work per outer iteration stay bounded as \Cref{eq:stopping-time-expectation-bound} predicts?
+How do conjugate gradients, GMRES, block Kaczmarz, and randomized Kaczmarz compare as inner solvers under the same test?
+\Cref{sec:experiments-setup} fixes the implementation, the accuracy measure, and the problem generators.
+\Cref{sec:experiments-lp,sec:experiments-qp,sec:experiments-lasso} then treat the three families in turn, and \Cref{sec:experiments-sweeps} compares the inner tolerance, the relaxation, and the inner solver across all of them.
+
+\subsection{Setup}\label{sec:experiments-setup}
+
+\paragraph{Implementation.}
+The method is implemented in NumPy.
+Each outer iteration solves \Cref{eq:linear-system-step} by one of four warm-started iterative methods and stops the inner method at the first iterate that passes the relative-error test $\|\varepsilon^{(k+1)}\|_M \leq \sigma \|s^{(k+1)}\|_M$ of \Cref{thm:relative-error-criterion}.
+The test is evaluated after every inner iteration, so the recorded inner iteration count $N_k$ is exactly the stopping time analyzed in \Cref{eq:stopping-time-probability-bound}; a count of zero means that the warm start already passed.
+The four inner methods are
+\begin{itemize}
+    \item \emph{Schur CG}: conjugate gradients on the positive definite system \Cref{eq:psd-system} for $\nu$, followed by $\xi = x - \gamma_x A^\top \nu$;
+    \item \emph{block Kaczmarz}: cyclic block projections on \Cref{eq:psd-system}, over a random partition of its rows into blocks holding $5\%$ of the rows each, drawn once per run;
+    \item \emph{randomized Kaczmarz}: single-row projections on \Cref{eq:psd-system}, with rows drawn with probability proportional to their squared norms as in \cite{strohmer2007randomizedkaczmarzalgorithmexponential};
+    \item \emph{coupled GMRES}: unrestarted GMRES on the nonsymmetric system \Cref{eq:linear-system-step} itself.
+\end{itemize}
+One inner iteration therefore means one CG step, one GMRES step, one block projection, or one row projection, and the counts of different solvers are not directly comparable in cost; wall-clock times are reported where they matter.
+All experiments run single-threaded on one MacBook Pro.
+
+\paragraph{Accuracy.}
+Let $v^{(k)}$ denote the proximal output at outer iteration $k$, which is the iterate we report, and let $f^\star$ be a reference optimal value computed independently of the method.
+The accuracy of $v^{(k)}$ is measured by
+\begin{equation}\label{eq:accuracy-measure}
+    \frac{|f(v^{(k)}) - f^\star|}{\max\{1, |f^\star|\}} + \|A v^{(k)} - b\|,
+\end{equation}
+and \emph{work to target} means the outer iterations, and the cumulative inner iterations, up to the first $k$ at which \Cref{eq:accuracy-measure} is at most $10^{-7}$.
+For the inequality-constrained problems the feasibility term is replaced by $\|\max\{Ax - b, 0\}\|$ on the original variables.
+Every reference value is computed independently of the method, by modelling the problem in CVXPY \cite{diamond2016cvxpy,agrawal2018rewriting} and solving it with the interior-point solver Clarabel \cite{goulart2024clarabel} at gap and feasibility tolerances of $10^{-12}$, relaxed to $10^{-10}$ and then $10^{-8}$ on the few instances where Clarabel reports the tighter tolerances as unattainable (the second-order cone of the hybrid penalties in \Cref{sec:experiments-lasso-hybrid}); even the loosest is ten times below the target accuracy, and the values obtained at the different tolerances agree to $10^{-9}$.
+Where an instance is generated from a planted KKT point, the CVXPY value agrees with the objective at the planted point to $10^{-12}$ relative accuracy or better.
+The method itself stops when $\theta\|s^{(k+1)}\|_M$ and $\|A v^{(k+1)} - b\|$ both fall below a tolerance, set to $10^{-9}$ in the sweeps so that the target is always crossed before the run ends, and to the values quoted in the tuning studies.
+
+\paragraph{Problem generators.}
+Two mechanisms produce the constraint matrices.
+The small instances in the tuning studies use dense Gaussian matrices scaled by $1/\sqrt{n}$.
+The sweeps instead prescribe the spectrum: $A = U \Sigma V^\top$ with Haar-random orthogonal $U$, a random orthonormal basis $V$ of the row space, and a geometric ladder of singular values from $\sigma_{\max}$ down to $\sigma_{\min} = 0.1$, with $\sigma_{\max} = 1$ for $\kappa(A) = 10$, $\sigma_{\max} = 2$ for $\kappa(A) = 20$, and $\sigma_{\max} = 10$ for $\kappa(A) = 100$.
+The random $U$ matters for the row-action solvers: without it $AA^\top = \Sigma^2$ is diagonal, the Schur complement decouples, and one cyclic sweep of block Kaczmarz solves \Cref{eq:psd-system} exactly, whereas a Krylov method does not notice the difference.
+Since \Cref{sec:linear-system-analysis} shows that the spectrum of \Cref{eq:psd-system} is $1 + \gamma_x\gamma_\lambda \sigma_i(A)^2$, this puts the conditioning of the inner problem under direct control.
+The objectives are
+\begin{itemize}
+    \item \emph{equality QP}: $f(x) = \frac{1}{2} x^\top Q x + c^\top x$ with $Q$ positive definite, so $\prox_{\gamma f}$ is one linear solve, precomputed by an eigendecomposition;
+    \item \emph{LP}: $f(x) = c^\top x + \delta_{\R^n_+}(x)$, so $\prox_{\gamma f}(x) = \max\{x - \gamma c, 0\}$;
+    \item \emph{inequality QP}: the problem $\min\{x^\top Q x \mid Ax \leq b\}$ written over $(x, s)$ with $Ax + s = b$ and $f(x, s) = x^\top Q x + \delta_{\R^m_+}(s)$, whose proximal map is a linear solve in $x$ and a projection in $s$.
+\end{itemize}
+The large instances of the sweeps are generated from a planted KKT point, so that the optimal value is known exactly: a solution and a multiplier are drawn first and the data $c$ and $b$ are set to make them optimal.
+All random draws are seeded and every study is a script under \texttt{code/experiments/} that writes its results as CSV files; the figures and tables below are generated from those files by \texttt{code/plots/}.
+
+\subsection{Linear Programs}\label{sec:experiments-lp}
+
+\paragraph{A small instance.}
+We first solve a standard-form LP with $n = 32$ variables and $m = 9$ constraints whose last constraint is $\ones^\top x = 1$, so that the feasible set is bounded, with $b = A x_0$ for a random point $x_0$ of the simplex and Gaussian cost $c$.
+\Cref{fig:standard-lp-parameters} varies one parameter at a time around the setting $\gamma_x = 0.5$, $\gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$, with Schur CG as the inner solver and the method's own tolerance set to $2\times 10^{-7}$; \Cref{tab:standard} lists the iteration counts.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/standard/lp_parameters.pdf}
+    \caption{The small LP ($n = 32$, $m = 9$): accuracy \Cref{eq:accuracy-measure} against outer iteration when the metric (left), the inner tolerance (middle), and the relaxation (right) are varied one at a time around $(\gamma_x, \gamma_\lambda, \sigma, \theta) = (0.5, 1, 0.2, 1)$, with Schur CG as the inner solver.
+    The oscillation is the usual behaviour of Douglas--Rachford on a polyhedral problem; the envelope decays linearly.}
+    \label{fig:standard-lp-parameters}
+\end{figure}
+\begin{table}[htbp]
+    \centering
+    \caption{Every run of the small QP ($n = 40$, $m = 12$) and LP ($n = 32$, $m = 9$) comparisons.
+    Unless the group varies it, $(\gamma_x, \gamma_\lambda, \sigma, \theta) = (0.5, 1, 0.2, 1)$ and the inner solver is Schur CG; the $M$ group uses $\sigma = 0.2$ and the $\theta$ group $\sigma = 0.15$.
+    Inner iterations are cumulative over the run.}
+    \label{tab:standard}
+    \small
+    \input{../results/tables/standard.tex}
+\end{table}
+Three observations carry through the rest of the section.
+First, the outer iteration count is insensitive to the inner tolerance: $\sigma = 0.05$, $0.25$, and $0.45$ need $1607$, $1606$, and $1634$ outer iterations, while the cumulative inner work drops from $6811$ to $3497$ to $2691$ CG steps.
+The relative-error test is doing what \Cref{cor:over-under-relaxation} says it may: a residual of a fixed fraction of the step costs almost nothing in outer progress.
+Second, on this LP the two inner solvers behave identically per outer iteration ($1607$ against $1714$ outer iterations) but coupled GMRES spends $2.6$ times as many inner steps as Schur CG ($10289$ against $3960$), because it works on a system of dimension $n + m$ with the nonsymmetric spectrum of \Cref{sec:linear-system-analysis} instead of the $m$-dimensional positive definite \Cref{eq:psd-system}.
+Third, over-relaxation does not help here: $\theta = 1.6$ needs $2446$ outer iterations against $1607$ at $\theta = 1$, whereas on the QP below it helps considerably.
+
+\paragraph{The shared step size.}
+\Cref{fig:gamma-sweep} sweeps $\gamma_x = \gamma_\lambda = \gamma$ over $25$ values in $[10^{-2}, 10]$ at $\sigma = 0.2$, $\theta = 1$ on an $8 \times 40$ LP with $\kappa(A) = 10$ and with $\kappa(A) = 100$, capped at $20000$ outer iterations; the other two panels are discussed in \Cref{sec:experiments-qp}.
+The LP is the hardest of the three families for the method: the instance with $\kappa(A) = 10$ converges within the cap only at $\gamma = 10$ ($16450$ outer iterations), the one with $\kappa(A) = 100$ only for $\gamma \geq 3.16$ ($12592$ at $\gamma = 10$), and the outer count keeps falling with $\gamma$ over the whole range.
+The inner work per outer iteration, however, rises with $\gamma$ because the spectrum $1 + \gamma^2 \sigma_i(A)^2$ of \Cref{eq:psd-system} spreads out: the mean number of CG steps per outer iteration is about one for $\gamma \leq 1$ and grows to $6.0$ ($\kappa(A) = 10$) and $8.7$ ($\kappa(A) = 100$) at $\gamma = 10$, and it separates the two matrices long before either converges.
+The two instances are different random draws, so their outer counts are not comparable with each other; what the sweep shows is that on an LP the outer count is the bottleneck, and that a large product $\gamma_x\gamma_\lambda$ is worth its inner cost.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/gamma_sweep/iteration_counts.pdf}
+    \caption{Outer iterations (top) and cumulative inner CG steps (bottom) to the method's stopping tolerance against the shared step size $\gamma = \gamma_x = \gamma_\lambda$, at $\sigma = 0.2$ and $\theta = 1$.
+    Equality QP with $A \in \R^{16\times 80}$, LP with $A \in \R^{8 \times 40}$, and slack-form inequality QP with $A \in \R^{100\times 500}$.
+    Crosses mark runs that hit the outer iteration cap ($8000$ for the QPs, $20000$ for the LP).}
+    \label{fig:gamma-sweep}
+\end{figure}
+
+\paragraph{Tuning on a proxy and transferring.}
+Rather than search over $(\gamma_x, \gamma_\lambda)$ on a large instance directly, we parameterize the metric by dimensionless scales,
+\begin{equation}\label{eq:data-scaled-metric}
+    \gamma_x = \frac{x_\mathrm{s}}{\mathrm{rms}(c)},
+    \qquad
+    \gamma_x \gamma_\lambda = \frac{p_\mathrm{s}}{\sigma_{\min}(A)\,\sigma_{\max}(A)},
+\end{equation}
+where $\mathrm{rms}(c) = \|c\|/\sqrt{n}$.
+The second relation places the transition of the spectrum $1 + \gamma_x \gamma_\lambda \sigma_i(A)^2$ at the geometric center of the singular values of $A$.
+The scales $(x_\mathrm{s}, p_\mathrm{s})$ are chosen on a \emph{proxy} LP with $n = 150$, $m = 30$ from the grid $\{0.25, 1, 4\} \times \{0.1, 1, 10\}$, then $(\sigma, \theta)$ from six candidates, and the three best pairs are transferred through \Cref{eq:data-scaled-metric} to a \emph{large} LP with $n = 500$, $m = 100$ drawn from the same generator.
+Runs are ranked by final accuracy first and cumulative inner work second.
+On the proxy the best scales are $(x_\mathrm{s}, p_\mathrm{s}) = (0.25, 10)$, that is, $\gamma_x = 0.26$ and $\gamma_\lambda = 44.6$, which is far from the fixed baseline $(\gamma_x, \gamma_\lambda) = (0.5, 1)$ and confirms the picture of \Cref{fig:gamma-sweep}: the LP wants a large product $\gamma_x\gamma_\lambda$.
+\Cref{tab:lp-transfer} and \Cref{fig:lp-transfer} show the large instance.
+\begin{table}[htbp]
+    \centering
+    \caption{Large LP ($n = 500$, $m = 100$) with the fixed baseline and the three settings transferred from the proxy.
+    No run reaches the method's tolerance of $3\times 10^{-7}$ within $30000$ outer iterations, so the work is reported at accuracy $10^{-4}$ as well as at the end of the run.}
+    \label{tab:lp-transfer}
+    \small
+    \input{../results/tables/lp_tuning_transfer.tex}
+\end{table}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lp_tuning/large_lp_convergence.pdf}
+    \caption{Large LP: accuracy against outer iteration (left) and against cumulative inner CG steps (right) for the settings of \Cref{tab:lp-transfer}.}
+    \label{fig:lp-transfer}
+\end{figure}
+The transferred metric reaches accuracy $10^{-4}$ in $2669$ outer iterations with $\sigma = 0.15$, $\theta = 1.3$, against $20525$ for the baseline, a factor of $7.7$ in outer iterations; measured in inner CG steps the factor is $1.9$ ($10653$ against $20634$), because the large $\gamma_\lambda$ makes each linear system harder, in line with \Cref{sec:linear-system-analysis}.
+None of the settings gets much below $10^{-5}$ in $30000$ outer iterations, which is the sublinear regime that \Cref{thm:relative-error-criterion} allows for a problem with no strong convexity; the tuned settings are $3$ to $4$ times more accurate at the end of the budget.
+\mynote{TODO: the LP proxy runs also do not reach the tolerance in $4000$ iterations, so the ranking is by final merit; decide whether to tune at a fixed accuracy instead.}
+
+\subsection{Quadratic Programs}\label{sec:experiments-qp}
+
+\subsubsection{Equality Constraints}
+The small QP has $n = 40$, $m = 12$, $Q = F^\top F + 0.35 I$ with Gaussian $F/\sqrt{n}$, and the method's tolerance is $2 \times 10^{-8}$.
+\Cref{fig:standard-qp-parameters} and \Cref{tab:standard} show the same three groups as for the LP.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/standard/qp_parameters.pdf}
+    \caption{The small equality QP ($n = 40$, $m = 12$): accuracy against outer iteration when the metric (left), the inner tolerance (middle), and the relaxation (right) are varied one at a time around $(\gamma_x, \gamma_\lambda, \sigma, \theta) = (0.5, 1, 0.2, 1)$, with Schur CG as the inner solver.
+    Convergence is linear, as \Cref{thm:linear-convergence} predicts for a strongly convex smooth objective.}
+    \label{fig:standard-qp-parameters}
+\end{figure}
+Convergence is linear in every case, and the metric matters most: $(\gamma_x, \gamma_\lambda) = (1, 1)$ needs $94$ outer iterations, $(0.25, 1)$ needs $160$, and $(1, 0.25)$ needs $362$.
+The three inner tolerances give $102$, $101$, and $101$ outer iterations, and at $\sigma = 0.45$ the cumulative inner count ($100$) is below the outer count: the warm start passes the relative-error test at some iterations with no CG step at all.
+Over-relaxation pays here: $\theta = 1.6$ needs $66$ outer iterations against $102$ at $\theta = 1$ and $157$ at $\theta = 0.65$, at the price of a smaller admissible $\sigma$.
+\Cref{fig:standard-qp-solvers} compares the inner solvers: the outer trajectories coincide, while coupled GMRES needs twice the inner steps of Schur CG ($223$ against $109$).
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/standard/qp_solvers.pdf}
+    \caption{The small equality QP: Schur CG against coupled GMRES at $(\gamma_x, \gamma_\lambda, \sigma, \theta) = (0.5, 1, 0.2, 1)$, against outer iteration (left) and cumulative inner iterations (right).}
+    \label{fig:standard-qp-solvers}
+\end{figure}
+
+The left column of \Cref{fig:gamma-sweep} sweeps $\gamma$ on a $16 \times 80$ equality QP with $Q = F^\top F + 0.3 I$.
+The outer count decreases monotonically with $\gamma$ over the whole range, from the $8000$-iteration cap at $\gamma \leq 0.13$ to $277$ at $\gamma = 10$, and is the same for both condition numbers to within a few percent.
+The inner work per outer iteration tells the two matrices apart: at $\gamma = 1$ the mean number of CG steps per outer iteration is $1.2$ for $\kappa(A) = 10$ and $5.8$ for $\kappa(A) = 100$, and at $\gamma = 10$ it is $7.4$ and $15.0$.
+The total inner work is minimized at $\gamma = 3.16$ for $\kappa(A) = 10$ ($1171$ CG steps) and at $\gamma = 5.62$ for $\kappa(A) = 100$ ($3343$ CG steps), a factor of $2.9$ between the two matrices at their respective optima.
+This is the trade-off that the integrated analysis of \Cref{eq:total-inner-work-estimate} describes: a larger step size lowers the number of outer iterations, while the contraction factor $a$ of the inner solver worsens with the condition number $(1 + \gamma^2 \sigma_{\max}(A)^2)/(1 + \gamma^2\sigma_{\min}(A)^2)$ of \Cref{eq:psd-system}.
+
+\subsubsection{Inequality Constraints}
+The inequality QP $\min\{x^\top Q x \mid Ax \leq b\}$ is solved in slack form with constraint matrix $B = [A \;\; I] \in \R^{m \times (n + m)}$; since $B B^\top = A A^\top + I$, the singular values of $B$ are $\sqrt{1 + \sigma_i(A)^2}$ together with ones, so the slack variables bound $\sigma_{\min}(B)$ away from zero.
+
+The right column of \Cref{fig:gamma-sweep}, redrawn with the traces at $\gamma = 1$ in \Cref{fig:inequality-gamma}, sweeps $\gamma$ on an instance with $n = 500$, $m = 100$, $Q = F^\top F + 0.3 I$, and $b = A x_0 + u$ with $u$ uniform on $[0.05, 0.2]$.
+Unlike the equality QP, the outer count is minimized at an interior step size, $\gamma = 1$ for the instance with $\kappa(A) = 10$ ($1180$ outer iterations) and $\gamma = 0.75$ for the one with $\kappa(A) = 100$ ($231$), and it grows by a factor of five on either side of the minimum within the sweep.
+The projection onto $s \geq 0$ makes the proximal step nonlinear, so a large step size no longer helps the way it does for a quadratic.
+The two instances have different right-hand sides and the ill-conditioned one happens to be the easier of the two for the outer iteration; the inner work per outer iteration is what the condition number controls.
+At $\gamma = 1$ the well-conditioned instance uses exactly one CG step per outer iteration, while the ill-conditioned one uses $9.5$, and at $\gamma = 10$ the counts are $2.1$ and $21.0$.
+The total inner work is minimized at $\gamma = 1$ ($1180$ CG steps) and at $\gamma = 0.42$ ($1200$ CG steps), a smaller step than the one that minimizes the outer count, exactly as for the LASSO in \Cref{sec:experiments-lasso}.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/gamma_sweep/inequality_qp_inner_iterations.pdf}
+    \caption{Slack-form inequality QP ($n = 500$, $m = 100$).
+    Top: outer iterations and cumulative inner CG steps against $\gamma$.
+    Bottom: accuracy at $\gamma = 1$ against outer iteration and against cumulative inner CG steps, for $\kappa(A) = 10$ and $\kappa(A) = 100$.}
+    \label{fig:inequality-gamma}
+\end{figure}
+
+\paragraph{Tuning, transfer, and adaptation.}
+The tuning procedure of \Cref{sec:experiments-lp} is repeated with the curvature $\mathrm{tr}(2Q)/n$ in place of $\mathrm{rms}(c)$ in \Cref{eq:data-scaled-metric} and the singular values of $B$ in place of those of $A$.
+The proxy has $n = 100$, $m = 20$, $Q = F^\top F + 0.2 I$, and the large instance $n = 500$, $m = 100$; the scales are chosen from $\{0.1, 0.3, 1\} \times \{0.1, 1, 10\}$ and $(\sigma, \theta)$ from six candidates.
+On top of the transferred settings we run a \emph{progress-based adaptation} of $\sigma$ and $\theta$ that sees no reference solution.
+Every $20$ outer iterations it measures the contraction of $\max\{\|s^{(k)}\|_M, \|Av^{(k)} - b\|\}$ over the window and raises $\theta$ by $0.1$ (up to $1.8$) if the contraction is below $0.98$ per iteration, or lowers it by $0.1$ (down to $0.6$) if progress has stalled; it then multiplies $\sigma$ by $1.3$ (up to $0.45$) if the mean inner count over the window exceeds $2.5$, divides it by $1.3$ (down to $0.03$) if the mean is below $1.25$, and finally clips $\sigma$ below $(2 - \theta)/2$ so that \Cref{thm:relative-error-criterion} continues to apply.
+\Cref{tab:inequality-transfer} and \Cref{fig:inequality-transfer} report the large instance; \Cref{fig:inequality-adaptive} shows the parameter paths.
+\begin{table}[htbp]
+    \centering
+    \caption{Large slack-form inequality QP ($n = 500$, $m = 100$): fixed baseline $(x_\mathrm{s}, p_\mathrm{s}) = (1, 1)$, the three settings transferred from the proxy, and the adaptive policy started from the baseline and from the tuned metric.
+    The merit is the relative objective error plus $\|\max\{Ax - b, 0\}\|$.}
+    \label{tab:inequality-transfer}
+    \small
+    \input{../results/tables/inequality_qp_transfer.tex}
+\end{table}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/inequality_qp_tuning/large_convergence.pdf}
+    \caption{Large inequality QP: merit against outer iteration (left) and cumulative inner CG steps (right) for the settings of \Cref{tab:inequality-transfer}.}
+    \label{fig:inequality-transfer}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{../results/inequality_qp_tuning/adaptive_parameters.pdf}
+    \caption{Paths of $\theta_k$ (left) and $\sigma_k$ (right) under the progress-based adaptation on the large inequality QP.}
+    \label{fig:inequality-adaptive}
+\end{figure}
+Here the tuning procedure backfires.
+The proxy ranking favours the metric $(x_\mathrm{s}, p_\mathrm{s}) = (0.3, 10)$ because its runs stop at a lower final merit, whereas the baseline $(1, 1)$ stops earlier at the method's tolerance; ranked by work at a fixed accuracy the baseline would have won on the proxy too, as the left panel of \Cref{fig:inequality-transfer} makes clear on the large instance.
+At accuracy $10^{-7}$ the baseline needs $102$ outer iterations and $102$ CG steps, the transferred settings between $146$ and $264$ outer iterations, and the adaptive policy from the baseline is the fastest of all at $87$.
+The adaptation moves $\theta$ from $1$ to $1.8$ in eight steps, and lowers $\sigma$ from $0.2$ to $0.07$ because the warm start was already passing the test and one CG step per outer iteration is all the policy asks for; that the run converges with essentially one inner iteration per outer iteration is the empirical content of the bound on $\mathbb{E}[N_k]$ in \Cref{eq:stopping-time-expectation-bound}.
+Two lessons follow for the rest of the section: settings should be compared at a fixed accuracy, which is how the sweeps below are scored, and $\gamma_x = \gamma_\lambda = 1$ is a good default for the QP families, which is the setting the sweeps fix.
+
+\subsection{LASSO}\label{sec:experiments-lasso}
+The LASSO
+\begin{equation}\label{eq:lasso}
+    \begin{array}{ll}
+        \text{minimize} & \frac{1}{2}\|Dx - y\|^2 + \tau \|x\|_1,
+    \end{array}
+\end{equation}
+with design $D \in \R^{m \times p}$, response $y \in \R^m$, and penalty $\tau > 0$, has no linear constraint, but it takes the form \Cref{eq:linearly-constrained-problem} once the residual is made a variable of its own.
+With $u = (x, z) \in \R^{p + m}$ and $z = Dx - y$,
+\begin{equation}\label{eq:lasso-split}
+    f(x, z) = \tau\|x\|_1 + \tfrac{1}{2}\|z\|^2,
+    \qquad
+    A = \begin{bmatrix} D & -I \end{bmatrix},
+    \qquad
+    b = y,
+\end{equation}
+and the proximal map is separable: $\prox_{\gamma f}(x, z) = (\mathrm{soft}_{\gamma\tau}(x),\; z/(1 + \gamma))$, where $\mathrm{soft}_t$ is the soft threshold at level $t$.
+The split has a pleasant consequence for the linear system.
+Since $AA^\top = DD^\top + I$, the singular values of $A$ are $\sqrt{1 + \sigma_i(D)^2}$, so $\sigma_{\min}(A) \geq 1$ and the Schur complement \Cref{eq:psd-system} has condition number at most $1 + \gamma_x\gamma_\lambda(1 + \sigma_{\max}(D)^2)$ over $1 + \gamma_x\gamma_\lambda$, whatever the columns of $D$ do.
+Correlated columns, which make \Cref{eq:lasso} hard for first-order methods, therefore make the inner problem only moderately harder.
+
+\paragraph{Instances.}
+We take $m = 100$ samples and $p = 400$ features, a ground truth with $10$ nonzero entries of magnitude between $0.5$ and $1.5$, Gaussian noise of standard deviation $0.01$, and $\tau = 0.1\,\|D^\top y\|_\infty$.
+Two designs are drawn from the same seed.
+The \emph{independent} design has i.i.d.\ Gaussian columns scaled by $1/\sqrt{m}$.
+The \emph{correlated} design applies the autoregressive recursion $d_j = \rho\, d_{j-1} + \sqrt{1 - \rho^2}\, g_j$ with $\rho = 0.9$ across the columns, so that $\mathrm{cov}(d_i, d_j) = \rho^{|i - j|}$.
+\Cref{tab:lasso-instances} lists the resulting penalties and condition numbers: the correlation raises $\kappa(D)$ from $2.8$ to $12.5$ but $\kappa(A)$ only from $2.2$ to $5.1$.
+The reference value $f^\star$ is the CVXPY solution of \Cref{eq:lasso} as described in \Cref{sec:experiments-setup}.
+\begin{table}[htbp]
+    \centering
+    \caption{The two LASSO instances.
+    Here $\kappa(A)$ is the condition number of the split constraint matrix $[D \;\; -I]$.}
+    \label{tab:lasso-instances}
+    \input{../results/tables/lasso_instances.tex}
+\end{table}
+
+\paragraph{Step size and inner tolerance.}
+\Cref{fig:lasso-sweeps} sweeps the shared step size $\gamma = \gamma_x = \gamma_\lambda$ at $\sigma = 0.2$ and the inner tolerance $\sigma$ at $\gamma = 1$, with block Kaczmarz as the inner solver on blocks of $5$ rows, and reports the work to accuracy $10^{-7}$.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lasso/parameter_sweeps.pdf}
+    \caption{LASSO ($m = 100$, $p = 400$) with block Kaczmarz on blocks of $5$ rows: outer iterations (top) and block projections (bottom) to accuracy $10^{-7}$ against the shared step size $\gamma$ at $\sigma = 0.2$ (left) and against the inner tolerance $\sigma$ at $\gamma = 1$ (right), for the independent and the correlated design, both at $\theta = 1$.}
+    \label{fig:lasso-sweeps}
+\end{figure}
+The outer count has an interior minimum in $\gamma$, at $\gamma = 0.56$ for the independent design ($90$ outer iterations) and $\gamma = 1$ for the correlated one ($279$), and it rises by an order of magnitude on either side; the correlated design needs about three times as many outer iterations throughout, which is the price of $\kappa(D)$ paid in the proximal step.
+The inner work per outer iteration is flat at small $\gamma$, at $19$ projections for the independent and $10$ for the correlated design, because \Cref{eq:psd-system} is then close to $(1 + \gamma^2) I$ and one sweep of the $20$ blocks solves it; beyond $\gamma \approx 0.3$ it grows with $\gamma$ throughout the sweep, by a factor of $7$ for the independent and $150$ for the correlated design, as the spectrum of \Cref{eq:psd-system} spreads.
+The block projections to target are consequently minimized at a step size smaller than the one that minimizes the outer count: $\gamma = 0.32$ ($2644$ projections) for the independent and $\gamma = 0.18$ ($14887$) for the correlated design.
+
+The right column is the cleanest illustration in this section of what the relative-error test buys.
+The outer count does not depend on $\sigma$ at all: it is $137$ or $136$ for the independent design and $279$ for the correlated one at every $\sigma$ from $0.01$ to $0.45$.
+The inner work does.
+Tightening $\sigma$ from $0.1$ to $0.01$ doubles the projections for the independent design ($9324$ to $18315$) and almost quadruples them for the correlated one ($115779$ to $442649$), the logarithmic growth in $1/\sigma$ that the term $\log_+ \beta_k$ with $\beta_k \propto \sigma^{-2}$ in \Cref{eq:stopping-time-expectation-bound} predicts.
+Loosening $\sigma$ from $0.2$ to $0.45$ still saves $39\%$ of the projections for the independent design ($6814$ to $4189$), while for the correlated design the count is flat at about $300$ projections per outer iteration beyond $\sigma = 0.2$.
+
+\paragraph{Inner solvers.}
+\Cref{tab:lasso-solvers} and \Cref{fig:lasso-solvers} compare the four inner solvers at $\gamma = 1$, $\sigma = 0.2$, $\theta = 1$.
+\begin{table}[htbp]
+    \centering
+    \caption{LASSO at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: outer iterations and cumulative inner iterations to accuracy $10^{-7}$, the mean and the largest inner count $N_k$ over the outer iterations, and wall-clock time to the target.
+    An inner iteration is one CG step, one block projection on $5$ rows, one row projection, or one GMRES step.}
+    \label{tab:lasso-solvers}
+    \input{../results/tables/lasso_solvers.tex}
+\end{table}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lasso/solver_convergence.pdf}
+    \caption{LASSO ($m = 100$, $p = 400$) at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: accuracy against outer iteration (left) and against cumulative inner iterations (right, logarithmic) for the four inner solvers, on the independent (top) and the correlated (bottom) design.
+    The split constraint matrix $[D \;\; -I]$ has $\kappa(A) = 2.2$ and $5.1$ respectively.}
+    \label{fig:lasso-solvers}
+\end{figure}
+As on the other families, the outer trajectories of the four solvers are indistinguishable: the relative-error test makes the outer iteration insensitive to how \Cref{eq:linear-system-step} is solved, as \Cref{cor:over-under-relaxation} says it should be.
+The inner counts span three orders of magnitude.
+Schur CG needs $2.3$ steps per outer iteration on the independent and $4.7$ on the correlated design, and never more than $6$; coupled GMRES needs about twice as many.
+Block Kaczmarz needs $50$ and $300$ projections per outer iteration, and randomized Kaczmarz $525$ and $1250$ row projections, which is $5$ to $12$ passes over the $m = 100$ rows of \Cref{eq:psd-system} per outer iteration.
+The row methods are also the slowest in wall-clock time in this implementation, because the relative-error test is evaluated after every projection and costs a product with $A$ and a proximal step each time, whereas a projection itself costs $O(m)$; checking the test only every few projections would recover most of that time, at the price of overshooting the stopping time $N_k$.
+
+\Cref{fig:lasso-inner} looks at the inner counts iteration by iteration.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lasso/inner_per_outer.pdf}
+    \caption{LASSO ($m = 100$, $p = 400$) at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: inner iterations $N_k$ at each outer iteration $k$ (thin) and their running mean $\frac{1}{k}\sum_{j \leq k} N_j$ (thick) for the four inner solvers, on the independent (left) and the correlated (right) design.
+    The running means are flat or decreasing, as the bound on $\mathbb{E}[N_k]$ in \Cref{eq:stopping-time-expectation-bound} predicts.}
+    \label{fig:lasso-inner}
+\end{figure}
+For every solver the running mean settles within the first few tens of outer iterations and then stays flat or drifts down, while the individual counts of the two Kaczmarz methods scatter by a factor of about two around it.
+The largest counts occur in the first iterations, where the solution of \Cref{eq:linear-system-step} moves most between consecutive outer iterations and the warm start is furthest from it, which is the drift term $\|H^{-1}\|_M\|s^{(k)}\|_M$ in the lemma preceding \Cref{eq:total-inner-work-estimate}.
+Once the outer iteration is in its linear regime the expected inner work is a constant that depends on the solver and the instance but not on $k$, and the total inner work is that constant times the number of outer iterations, which is the content of \Cref{eq:total-inner-work-estimate}.
+
+\subsubsection{Larger Instances and Hybrid Penalties}\label{sec:experiments-lasso-hybrid}
+The split \Cref{eq:lasso-split} is not tied to the two terms of the LASSO.
+Any objective of the form $g(Dx - y) + h(x)$ with proximable $g$ and $h$ has the same constraint matrix $A = [D \;\; -I]$ and the separable proximal map $(\prox_{\gamma h}, \prox_{\gamma g})$, so the linear system, and with it everything \Cref{sec:linear-system-analysis} says about the inner work, is unchanged while the proximal step changes.
+We use this to test the method on the hybrid penalty
+\begin{equation}\label{eq:hybrid}
+    \begin{array}{ll}
+        \text{minimize} & c_1 \|Dx - y\|^2 + c_2 \|Dx - y\|_1 + c_3 \|x\|_1 + c_4 \|x\|_2,
+    \end{array}
+\end{equation}
+with nonnegative coefficients $c_1, \ldots, c_4$, which contains the LASSO ($c_1 = 1/2$, $c_3 = \tau$, $c_2 = c_4 = 0$), least absolute deviations, and the sparse group penalty $\|x\|_1 + \|x\|_2$ as special cases.
+In split form $f(x, z) = c_3\|x\|_1 + c_4\|x\|_2 + c_1\|z\|^2 + c_2\|z\|_1$, and both blocks of $\prox_{\gamma f}$ are closed form: on $x$ the map of $c_3\|\cdot\|_1 + c_4\|\cdot\|_2$ is a soft threshold at $\gamma c_3$ followed by the shrinkage $w \mapsto \max\{1 - \gamma c_4/\|w\|, 0\}\, w$, and on $z$ the map of $c_1\|\cdot\|^2 + c_2\|\cdot\|_1$ is a soft threshold at $\gamma c_2$ followed by division by $1 + 2\gamma c_1$.
+The reference value is again the CVXPY solution, with \Cref{eq:hybrid} modelled as a sum of a quadratic, two $\ell_1$ norms, and a second-order cone term.
+An interior-point solution is sparse only to its tolerance, so in what follows an entry of $x^\star$ smaller than $10^{-6}\|x^\star\|_\infty$, or a residual $(Dx^\star - y)_i$ smaller than $10^{-6}$, is counted as zero.
+
+\paragraph{Larger instances.}
+\Cref{tab:lasso-sizes} repeats the solver comparison of \Cref{tab:lasso-solvers} on the independent design at $(m, p) = (100, 400)$, $(200, 800)$, and $(400, 1600)$, keeping the number of nonzero entries of the ground truth at $2.5\%$ of $p$ and the setting $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$.
+\begin{table}[htbp]
+    \centering
+    \caption{LASSO on the independent design at three sizes, at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: outer and cumulative inner iterations to accuracy $10^{-7}$, the mean and largest inner count $N_k$, and wall-clock time.
+    Block Kaczmarz uses blocks of $5\%$ of the rows, so one sweep is $20$ projections at every size.}
+    \label{tab:lasso-sizes}
+    \input{../results/tables/lasso_sizes.tex}
+\end{table}
+The outer count does not move with the size: $137$, $130$, and $138$ outer iterations, because the spectrum of $D$ scaled by $1/\sqrt{m}$ and hence $\kappa(A)$ ($2.16$, $2.17$, $2.24$) are the same at every size.
+Neither do the inner counts of the solvers whose cost per step scales with the problem: Schur CG needs $2.2$ steps per outer iteration and coupled GMRES $4.7$ at all three sizes, and block Kaczmarz $48$ to $50$ projections, since its blocks grow with $m$ and one sweep remains $20$ projections.
+Randomized Kaczmarz is the exception.
+Its row projections per outer iteration grow in proportion to $m$, from $525$ to $1091$ to $2188$, between $5.2\,m$ and $5.5\,m$ at every size, as the contraction factor $a = 1 - \sigma_{\min}(S)^2/\|S\|_F^2$ of randomized Kaczmarz on the Schur complement $S$ says it must: with the spectrum held fixed, $\|S\|_F^2$ grows like $m$, so $1/(1 - a)$ in \Cref{eq:stopping-time-expectation-bound} does too.
+Its time to target grows from $5.0$ to $210$ seconds while Schur CG goes from $0.05$ to $1.0$.
+Measured in passes over the rows, then, all four solvers need a size-independent amount of work per outer iteration.
+
+\paragraph{Hybrid penalties.}
+\Cref{tab:lasso-hybrid-instances} lists four penalties on the independent design with $m = 200$ and $p = 800$: the LASSO, the LASSO with the residual term $c_2\|Dx - y\|_1$ added, the LASSO with the norm $c_4\|x\|_2$ added, and all four terms together, with $c_1 = 1/2$, $c_2 = 0.05$, $c_3 = \tau$, and $c_4 = \tau/2$ whenever a term is present.
+\begin{table}[htbp]
+    \centering
+    \caption{The four penalties \Cref{eq:hybrid} on the independent design with $m = 200$, $p = 800$: coefficients, optimal value $F^\star$, number of nonzero entries of the minimizer, and number of residuals $(Dx^\star - y)_i$ equal to zero, both counted at the level $10^{-6}$ described in the text.}
+    \label{tab:lasso-hybrid-instances}
+    \input{../results/tables/lasso_hybrid_instances.tex}
+\end{table}
+The $\|\cdot\|_1$ data term does what it is meant to: at its minimizer $15$ of the $200$ residuals are exactly zero, and $17$ when all four terms are present, whereas the two penalties without it fit no observation exactly.
+\Cref{tab:lasso-hybrid} and \Cref{fig:lasso-hybrid} compare the four inner solvers on the four penalties at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$.
+\begin{table}[htbp]
+    \centering
+    \caption{The four penalties of \Cref{tab:lasso-hybrid-instances} at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: outer and cumulative inner iterations to accuracy $10^{-7}$, the mean and largest inner count $N_k$, and wall-clock time, for the four inner solvers.}
+    \label{tab:lasso-hybrid}
+    \input{../results/tables/lasso_hybrid.tex}
+\end{table}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/lasso/hybrid_convergence.pdf}
+    \caption{The four penalties of \Cref{tab:lasso-hybrid-instances} ($m = 200$, $p = 800$) at $\gamma_x = \gamma_\lambda = 1$, $\sigma = 0.2$, $\theta = 1$: accuracy against outer iteration (left) and against cumulative inner iterations (right, logarithmic) for the four inner solvers.
+    From top to bottom: the LASSO, with the $\|\cdot\|_1$ residual term, with the $\|\cdot\|_2$ norm, and with all four terms.}
+    \label{fig:lasso-hybrid}
+\end{figure}
+The penalties split into two groups.
+Adding $c_4\|x\|_2$ changes nothing that the method notices: $131$ outer iterations against $130$, the same inner counts per outer iteration, and convergence curves that lie on top of the LASSO's.
+Adding $c_2\|Dx - y\|_1$ changes the outer iteration entirely: $5225$ outer iterations with the residual term and $6242$ with all four, forty to fifty times the LASSO.
+The curves in the second and fourth rows of \Cref{fig:lasso-hybrid} show why: the accuracy drops to $10^{-3}$ in a few hundred iterations and then converges at a much slower linear rate, with a kink where the rate changes (near outer iteration $3800$ for all four terms), which is the behaviour of Douglas--Rachford on a problem with a polyhedral part, as on the LPs of \Cref{sec:experiments-lp}, until the set of exactly fitted observations has been identified.
+The outer trajectories of the four solvers again coincide on every penalty.
+
+What does not change with the penalty is the inner work per outer iteration.
+Schur CG needs $2.2$ steps per outer iteration on the two smooth-residual penalties and $3.0$ on the two others, never more than $3$; coupled GMRES needs $4.7$ and $4.0$, block Kaczmarz $48$ and $60$, and randomized Kaczmarz $1090$ and $1340$.
+The proximal step changed, the constraint matrix $A = [D \;\; -I]$ and with it \Cref{eq:psd-system} did not, and the inner work per iteration is a property of the linear system and the tolerance, as \Cref{eq:stopping-time-expectation-bound} says.
+The total inner work is therefore forty to fifty times larger on the nonsmooth-residual penalties for every solver, in proportion to the outer count and for no other reason, and the ranking of the solvers is unchanged: Schur CG reaches the target in $7$ seconds on the hardest penalty, coupled GMRES in $12$, block Kaczmarz in $35$, and randomized Kaczmarz in $13$ minutes.
+
+\subsection{Inner Tolerance, Relaxation, and Inner Solver}\label{sec:experiments-sweeps}
+The last three studies vary one thing at a time across all three families, on the planted-KKT instances of \Cref{sec:experiments-setup} with $\gamma_x = \gamma_\lambda = 1$, and score every run by its work to accuracy $10^{-7}$.
+The inner solver is a row-action method in the first two, because that is where the stopping time $N_k$ is a random variable with a nontrivial distribution and where the inner tolerance has the most to say.
+
+\paragraph{Relaxation.}
+\Cref{fig:theta-sweep} sweeps $\theta$ from $0.1$ to $1.9$ in steps of $0.1$ on instances with $m = 50$ and $n = 200$ ($n = 250$ in slack form), $\kappa(A) = 10$ and $\kappa(A) = 20$, with randomized Kaczmarz on \Cref{eq:psd-system}.
+Since \Cref{thm:relative-error-criterion} admits $\sigma < (2 - \theta)/2$, one tolerance cannot be held fixed across the whole range unless it is small, and the sweep runs two policies: a \emph{fixed} $\sigma = 0.04$, admissible for every $\theta$ tested, and a \emph{frontier} $\sigma = \min\{0.45, 0.9(2 - \theta)/2\}$, the loosest tolerance each $\theta$ admits with a margin of $10\%$.
+Each setting is repeated over three trials that redraw the instance (singular vectors and, with the extremes pinned, the interior singular values) and the Kaczmarz row stream; the figure shows the median with whiskers over the range, and a run counts only if it reached the target within $6000$ outer iterations.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/theta_sweep/iteration_counts.pdf}
+    \caption{Relaxation sweep on instances with $A \in \R^{50 \times 200}$ ($[A \;\; I] \in \R^{50\times 250}$ for the inequality QP): outer iterations (top), row projections (middle), and wall-clock time (bottom) to accuracy $10^{-7}$ against the relaxation $\theta$, at $\gamma_x = \gamma_\lambda = 1$ with randomized Kaczmarz as the inner solver, for the fixed tolerance $\sigma = 0.04$ (solid) and the frontier tolerance $\sigma = \min\{0.45, 0.9(2 - \theta)/2\}$ (dashed).
+    Medians of three trials with whiskers over the observed range; a cross marks a $\theta$ at which some trial did not reach the target within $6000$ outer iterations.}
+    \label{fig:theta-sweep}
+\end{figure}
+On the two quadratic families the outer count falls monotonically with $\theta$ and is essentially proportional to $1/\theta$: on the equality QP with $\kappa(A) = 10$ the medians are $1786$ at $\theta = 0.5$, $891$ at $\theta = 1$, and $467$ at $\theta = 1.9$, and on the inequality QP $3282$, $2183$, and $1720$ at $\theta = 1$, $1.5$, and $1.9$, with $\theta \leq 0.5$ not reaching the target within the cap.
+These counts do not depend on $\sigma$, since the fixed and frontier policies give the same medians to within one percent, nor on $\kappa(A)$, since the instances with $\kappa(A) = 20$ differ by at most three percent.
+On the LP the outer count has an interior minimum at $\theta = 1$ ($1884$ at $\theta = 1$ against $2565$ at $\theta = 0.5$ and $2413$ at $\theta = 1.5$, with $\theta \geq 1.9$ failing to reach the target), and here the tolerance does show in the outer count: the frontier policy needs $2626$ outer iterations at $\theta = 1$, $39\%$ more than the fixed one.
+On a polyhedral problem the inexactness of the linear solve is not absorbed the way it is on a quadratic.
+
+The inner work tells a different story, and it is the one \Cref{cor:over-under-relaxation} predicts.
+With the fixed tolerance the number of row projections per outer iteration is roughly constant in $\theta$, about $300$ on the equality QP with $\kappa(A) = 10$ and $550$ with $\kappa(A) = 20$, so the total inner work simply follows the outer count and is smallest at $\theta = 1.9$.
+With the frontier tolerance the total inner work has an interior minimum at $\theta = 1$ on both QP families ($110585$ projections on the equality QP with $\kappa(A) = 10$, against $136096$ at $\theta = 0.5$ and $160407$ at $\theta = 1.9$; $451616$ on the inequality QP against $580036$ at $\theta = 1.9$), because past $\theta = 1$ every step of over-relaxation must be paid for with a tighter $\sigma$, and the projections saved per outer iteration by a looser test outweigh the outer iterations saved by a larger step.
+At $\theta = 1.9$ the two policies coincide, since the frontier tolerance is then $0.045$.
+The wall-clock time in the bottom row follows the projections, and the frontier policy at $\theta = 1$ is the fastest setting on every family: $3.8$ seconds against $9.5$ with the fixed tolerance on the equality QP, and $11.6$ against $24.8$ on the inequality QP.
+The practical rule that emerges is to keep $\theta$ near $1$ and spend the admissible slack on $\sigma$ rather than on $\theta$.
+
+\paragraph{Inner tolerance.}
+\Cref{fig:sigma-sweep} sweeps $\sigma$ over $21$ values from $0$ to $0.49$ at $\theta = 1$ on instances with $m = 100$ and $n = 200$ ($n = 300$ in slack form), $\kappa(A) = 10$ and $\kappa(A) = 20$, with block Kaczmarz on blocks of $5$ rows, so that one cyclic sweep is $20$ projections.
+The value $\sigma = 0$ asks for a solve to a residual of $100$ machine epsilons, that is, for the exact method.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/sigma_sweep/iteration_counts.pdf}
+    \caption{Inner-tolerance sweep on instances with $A \in \R^{100 \times 200}$ ($[A \;\; I] \in \R^{100 \times 300}$ for the inequality QP): outer iterations (top), block projections (middle), and wall-clock time (bottom) to accuracy $10^{-7}$ against the inner tolerance $\sigma$, at $\theta = 1$ and $\gamma_x = \gamma_\lambda = 1$ with block Kaczmarz on blocks of $5$ rows as the inner solver.
+    Note the linear scale of the top row: on the two QP families the outer count varies by less than one percent.}
+    \label{fig:sigma-sweep}
+\end{figure}
+On the two QP families the outer count is the same at every $\sigma$: $891 \pm 1$ on the equality QP with $\kappa(A) = 10$ and $3818 \pm 4$ on the inequality QP, and likewise with $\kappa(A) = 20$.
+The inner work is not.
+On the equality QP with $\kappa(A) = 10$ the projections per outer iteration are $354$ for the exact solve, $53$ at $\sigma = 0.05$, $33$ at $\sigma = 0.2$, and $20$ at $\sigma = 0.49$, which is the floor of one sweep; with $\kappa(A) = 20$ they are $1904$, $229$, $120$, and $68$.
+The exact solve costs between $7$ and $20$ times the work of the loosest admissible test, for the same number of outer iterations, and the decrease between $\sigma = 0.05$ and $\sigma = 0.49$ is the slow, logarithmic one of the term $\log_+\beta_k$ in \Cref{eq:stopping-time-expectation-bound}.
+The factor of about four between the two condition numbers at every $\sigma > 0$ is the contraction factor $a$ of block Kaczmarz, which deteriorates with the spread of the spectrum $1 + \sigma_i(A)^2$ of \Cref{eq:psd-system}.
+On the LP the outer count grows with $\sigma$, from $1824$ at $\sigma \leq 0.05$ to $2903$ at $\sigma = 0.49$ for $\kappa(A) = 10$ and from $1696$ to $2432$ for $\kappa(A) = 20$, as in the relaxation sweep, but the projections per outer iteration fall faster than the outer count rises, and the total inner work is still smallest at the largest $\sigma$ ($47817$ against $635182$ for the exact solve with $\kappa(A) = 10$), flattening out beyond $\sigma \approx 0.3$.
+The wall-clock time follows the projections: on the equality QP with $\kappa(A) = 10$ the run takes $12.3$ seconds with exact solves and $0.9$ seconds at $\sigma = 0.49$.
+
+\paragraph{Inner solver.}
+The last study holds $\sigma = 0.2$, $\theta = 1$, $\gamma_x = \gamma_\lambda = 1$ fixed and varies only the inner solver, on $20$ independent instances of each family with $m = 100$ and $n = 500$ ($n = 600$ in slack form) and $\kappa(A) = 10$ or $20$.
+The instances of one family share the singular-value ladder and differ in their singular vectors and planted solutions, so the spread over instances is the spread the method sees on one problem class.
+\Cref{tab:solver-sweep} and \Cref{fig:solver-sweep} report means and standard deviations; every one of the $480$ runs reached the target.
+\begin{table}[htbp]
+    \centering
+    \caption{Inner-solver comparison at $\sigma = 0.2$, $\theta = 1$, $\gamma_x = \gamma_\lambda = 1$ over $20$ instances per family and condition number ($m = 100$, $n = 500$): mean and standard deviation of the outer iterations and cumulative inner iterations to accuracy $10^{-7}$, and mean wall-clock time.
+    An inner iteration is one CG step, one block projection on $5$ rows, one row projection, or one GMRES step.
+    Times were measured with $8$ instances running concurrently, one thread each, while other studies shared the machine.}
+    \label{tab:solver-sweep}
+    \footnotesize
+    \input{../results/tables/solver_sweep.tex}
+\end{table}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{../results/solver_sweep/solver_comparison.pdf}
+    \caption{Inner-solver comparison at $\sigma = 0.2$, $\theta = 1$, $\gamma_x = \gamma_\lambda = 1$ on instances with $A \in \R^{100\times 500}$ ($[A \;\; I] \in \R^{100 \times 600}$ for the inequality QP): outer iterations (top), cumulative inner iterations (middle, logarithmic), and wall-clock time (bottom, logarithmic) to accuracy $10^{-7}$, as means over $20$ instances per family and condition number with error bars of one standard deviation.}
+    \label{fig:solver-sweep}
+\end{figure}
+On the two QP families the four solvers need the same number of outer iterations on every instance, to within one iteration: $865$ on the equality QP and $2980$ on the inequality QP with $\kappa(A) = 10$, with an instance-to-instance spread of about $6\%$.
+On the LP the solvers separate slightly, Schur CG needing $1901 \pm 61$ outer iterations against $2166 \pm 88$ for block Kaczmarz with $\kappa(A) = 10$, in keeping with the sensitivity of the LP to the inner residual seen in the two previous sweeps.
+The inner counts per outer iteration are where the solvers differ, and by orders of magnitude.
+Schur CG needs $1.1$ to $1.2$ steps per outer iteration at $\kappa(A) = 10$ and $1.4$ to $2.1$ at $\kappa(A) = 20$: the warm start passes the test outright at most iterations, and one CG step suffices at the rest.
+Coupled GMRES needs $1.7$ to $2.0$ and $2.8$ to $3.4$, block Kaczmarz $24$ to $31$ and $58$ to $111$, and randomized Kaczmarz $355$ to $417$ and $592$ to $854$ row projections, that is, four to nine passes over the $m = 100$ rows of \Cref{eq:psd-system} per outer iteration.
+Doubling $\kappa(A)$ from $10$ to $20$ roughly doubles the inner work of the Krylov methods and the randomized Kaczmarz method and triples that of block Kaczmarz; the outer count is unchanged.
+The standard deviations of the inner counts are $5$ to $10\%$ of the means, so the ranking is the same on every instance.
+Wall-clock time follows the inner counts, tempered by the cost of a step: Schur CG solves an instance in $0.3$ to $1.2$ seconds, coupled GMRES in two to three times that, block Kaczmarz in five to sixteen times, and randomized Kaczmarz in $70$ to $130$ times, the last again inflated by the relative-error test being evaluated after every single projection.
+
+Two conclusions carry across the three sweeps.
+The outer iteration of the method is, on the quadratic families, indifferent to how \Cref{eq:linear-system-step} is solved and how accurately, exactly as \Cref{cor:over-under-relaxation} and \Cref{thm:relative-error-criterion} say; on the LP a looser or cruder inner solve costs some outer iterations, but never more than $40\%$.
+The inner work, in turn, is a per-iteration constant that depends on the solver, the tolerance, and the conditioning of \Cref{eq:psd-system} but not on the iteration count, so the total work is that constant times the outer count, which is the shape of the bound \Cref{eq:total-inner-work-estimate}; among the solvers tested, conjugate gradients on the Schur complement makes that constant close to one.
+
+\numericalexperimentsclose

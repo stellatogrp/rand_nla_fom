@@ -13,11 +13,11 @@ from rand_nla_fom import quadratic_prox
 from .problems import (
     Prox,
     Vector,
-    equality_qp_solution,
+    equality_qp_optimum,
     inequality_qp_optimum,
+    lp_optimum,
     nonnegative_linear_prox,
     slack_quadratic_prox,
-    standard_form_lp_optimum,
 )
 
 Condition = Literal[
@@ -67,7 +67,20 @@ def matrix_with_spectrum(
     _, _, right_vectors = np.linalg.svd(source, full_matrices=False)
     high, low = SINGULAR_LIMITS[condition]
     singular_values = np.geomspace(high, low, constraints)
-    return singular_values[:, None] * right_vectors
+    return _left_rotation(rng, constraints) @ (singular_values[:, None] * right_vectors)
+
+
+def _left_rotation(rng: np.random.Generator, constraints: int) -> np.ndarray:
+    """Return a Haar-random orthogonal matrix for the left singular vectors.
+
+    Without it the constructions below give ``A = Sigma V^T``, so that
+    ``A A^T = Sigma^2`` is diagonal and the Schur complement decouples: a
+    Krylov solver does not notice, but one cyclic sweep of block Kaczmarz then
+    solves the system exactly, which would make the row-action sweeps
+    meaningless.
+    """
+    basis, triangular = np.linalg.qr(rng.standard_normal((constraints, constraints)))
+    return basis * np.sign(np.diag(triangular))
 
 
 def make_equality_qp(condition: Condition, seed: int = 41) -> SweepProblem:
@@ -78,7 +91,6 @@ def make_equality_qp(condition: Condition, seed: int = 41) -> SweepProblem:
     hessian = factor.T @ factor + 0.3 * np.eye(variables)
     linear_term = rng.standard_normal(variables) / np.sqrt(variables)
     rhs = matrix @ rng.standard_normal(variables)
-    solution = equality_qp_solution(hessian, linear_term, matrix, rhs)
 
     def objective(vector: Vector) -> float:
         return float(0.5 * vector @ hessian @ vector + linear_term @ vector)
@@ -91,7 +103,7 @@ def make_equality_qp(condition: Condition, seed: int = 41) -> SweepProblem:
         rhs,
         quadratic_prox(hessian, linear_term),
         objective,
-        objective(solution),
+        equality_qp_optimum(hessian, linear_term, matrix, rhs),
         8_000,
         2e-7,
         np.linalg.cond(matrix),
@@ -124,7 +136,7 @@ def make_lp(condition: Condition, seed: int = 42) -> SweepProblem:
         rhs,
         nonnegative_linear_prox(cost),
         objective,
-        standard_form_lp_optimum(cost, matrix, rhs),
+        lp_optimum(cost, matrix, rhs),
         20_000,
         1e-6,
         np.linalg.cond(matrix),
@@ -193,7 +205,7 @@ def _large_matrix(
         rng.standard_normal((variables, constraints)), mode="reduced"
     )
     values = _singular_values(rng, constraints, condition, randomize_spectrum)
-    return values[:, None] * basis.T
+    return _left_rotation(rng, constraints) @ (values[:, None] * basis.T)
 
 
 def _large_lp_matrix(
@@ -203,14 +215,15 @@ def _large_lp_matrix(
     condition: Condition,
     randomize_spectrum: bool = False,
 ) -> np.ndarray:
-    """Construct orthonormal rows with a well-conditioned leading basis."""
+    """Construct a controlled-spectrum matrix with a well-conditioned leading basis."""
     trailing = rng.standard_normal((constraints, variables - constraints))
     trailing *= 0.05 / np.sqrt(variables - constraints)
     source = np.hstack((np.eye(constraints), trailing))
     eigenvalues, eigenvectors = np.linalg.eigh(source @ source.T)
     inverse_root = (eigenvectors / np.sqrt(eigenvalues)) @ eigenvectors.T
     singular_values = _singular_values(rng, constraints, condition, randomize_spectrum)
-    return singular_values[:, None] * (inverse_root @ source)
+    rows = singular_values[:, None] * (inverse_root @ source)
+    return _left_rotation(rng, constraints) @ rows
 
 
 def _diagonal_quadratic_prox(
@@ -230,7 +243,7 @@ def make_large_equality_qp(
     seed: int = 41,
     randomize_spectrum: bool = False,
 ) -> SweepProblem:
-    """Build a scalable equality QP with an exact KKT solution."""
+    """Build a scalable equality QP from a planted KKT point."""
     rng = np.random.default_rng(seed)
     matrix = _large_matrix(rng, constraints, variables, condition, randomize_spectrum)
     diagonal = np.geomspace(0.3, 3.0, variables)
@@ -251,7 +264,7 @@ def make_large_equality_qp(
         rhs,
         _diagonal_quadratic_prox(diagonal, linear_term),
         objective,
-        objective(solution),
+        equality_qp_optimum(diagonal, linear_term, matrix, rhs),
         200_000,
         2e-7,
         high / low,
@@ -265,7 +278,7 @@ def make_large_lp(
     seed: int = 42,
     randomize_spectrum: bool = False,
 ) -> SweepProblem:
-    """Build a scalable LP with an exact primal-dual certificate."""
+    """Build a scalable LP from a planted primal--dual pair."""
     rng = np.random.default_rng(seed)
     matrix = _large_lp_matrix(
         rng, constraints, variables, condition, randomize_spectrum
@@ -291,7 +304,7 @@ def make_large_lp(
         rhs,
         nonnegative_linear_prox(cost),
         objective,
-        objective(solution),
+        lp_optimum(cost, matrix, rhs),
         200_000,
         1e-6,
         high / low,
@@ -305,7 +318,7 @@ def make_large_inequality_qp(
     seed: int = 43,
     randomize_spectrum: bool = False,
 ) -> SweepProblem:
-    """Build a scalable inequality QP with an exact KKT solution."""
+    """Build a scalable inequality QP from a planted KKT point."""
     rng = np.random.default_rng(seed)
     matrix = _large_matrix(rng, constraints, variables, condition, randomize_spectrum)
     diagonal = np.geomspace(0.3, 3.0, variables)
@@ -331,7 +344,7 @@ def make_large_inequality_qp(
         rhs,
         prox,
         objective,
-        objective(solution),
+        inequality_qp_optimum(diagonal, matrix, rhs),
         200_000,
         2e-7,
         high / low,

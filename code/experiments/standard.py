@@ -21,9 +21,9 @@ from ._results import write_rows
 from .problems import (
     Prox,
     Vector,
-    equality_qp_solution,
+    equality_qp_optimum,
+    lp_optimum,
     nonnegative_linear_prox,
-    standard_form_lp_optimum,
 )
 
 STUDY = "standard"
@@ -79,7 +79,6 @@ def make_qp(seed: int = QP_SEED) -> Problem:
     hessian = factor.T @ factor + 0.35 * np.eye(variables)
     linear_term = rng.standard_normal(variables) / np.sqrt(variables)
     rhs = rng.standard_normal(constraints)
-    solution = equality_qp_solution(hessian, linear_term, matrix, rhs)
 
     def objective(vector: Vector) -> float:
         return float(0.5 * vector @ hessian @ vector + linear_term @ vector)
@@ -90,7 +89,7 @@ def make_qp(seed: int = QP_SEED) -> Problem:
         rhs,
         quadratic_prox(hessian, linear_term),
         objective,
-        objective(solution),
+        equality_qp_optimum(hessian, linear_term, matrix, rhs),
         2e-8,
         4_000,
     )
@@ -116,7 +115,7 @@ def make_lp(seed: int = LP_SEED) -> Problem:
         rhs,
         nonnegative_linear_prox(cost),
         objective,
-        standard_form_lp_optimum(cost, matrix, rhs),
+        lp_optimum(cost, matrix, rhs),
         2e-7,
         12_000,
     )

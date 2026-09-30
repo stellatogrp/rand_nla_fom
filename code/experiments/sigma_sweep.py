@@ -23,7 +23,7 @@ from ._metrics import accuracy_history, target_index
 from ._paths import RESULTS, study_dir
 from ._results import merge_rows, read_rows, write_rows
 from .sweep_problems import (
-    CONDITIONS,
+    Condition,
     SweepProblem,
     make_large_equality_qp,
     make_large_inequality_qp,
@@ -40,8 +40,17 @@ INNER_SOLVER = "schur_block_kaczmarz"
 BLOCK_FRACTION = 0.05
 RANDOM_SEED = 0
 INNER_ITERATION_FACTOR = 1_000
-CONSTRAINTS = 500
-VARIABLES = 1_000
+# The relative-error test is evaluated after every block projection and costs
+# a product with A each time, so the sweep is sized for minutes, not hours.
+CONSTRAINTS = 100
+VARIABLES = 200
+# Block Kaczmarz needs tens of thousands of projections per outer iteration
+# on kappa(A) = 100 at small sigma, so the sweep contrasts the same two
+# regimes as the theta sweep.
+CONDITIONS: tuple[Condition, ...] = (
+    "moderately-conditioned",
+    "mildly-ill-conditioned",
+)
 KINDS = ("equality QP", "LP", "inequality QP")
 MAKERS = {
     "equality QP": make_large_equality_qp,

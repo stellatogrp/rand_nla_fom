@@ -49,7 +49,7 @@ from ._metrics import accuracy_history, target_index  # noqa: E402
 from ._paths import RESULTS, SUMMARY, study_dir  # noqa: E402
 from ._results import read_rows, select, write_rows  # noqa: E402
 from .sweep_problems import (  # noqa: E402
-    CONDITIONS,
+    Condition,
     SweepProblem,
     make_large_equality_qp,
     make_large_inequality_qp,
@@ -72,6 +72,12 @@ BLOCK_FRACTION = 0.05
 KACZMARZ_SEED = 0
 WORKERS = 6
 
+# The Kaczmarz solvers need hours per instance on kappa(A) = 100, so the
+# comparison contrasts the same two regimes as the sigma and theta sweeps.
+CONDITIONS: tuple[Condition, ...] = (
+    "moderately-conditioned",
+    "mildly-ill-conditioned",
+)
 KINDS = ("equality QP", "LP", "inequality QP")
 MAKERS = {
     "equality QP": make_large_equality_qp,

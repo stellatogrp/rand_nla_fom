@@ -1,4 +1,4 @@
-"""Draw every figure the paper uses from the CSVs under ``results/``.
+"""Draw every figure and table the paper uses from the CSVs under ``results/``.
 
 Nothing here recomputes anything: a study whose CSVs are missing is reported
 and skipped, so this is safe to run at any point while results accumulate.
@@ -24,6 +24,8 @@ FIGURES = {
     "theta-sweep": ("theta_sweep", "make"),
     "solver-sweep": ("solver_sweep", "make"),
     "solver-sweep-randomized": ("solver_sweep", "make_randomized"),
+    "lasso": ("lasso", "make"),
+    "tables": ("tables", "make"),
 }
 
 

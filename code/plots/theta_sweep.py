@@ -16,7 +16,7 @@ import numpy as np
 from experiments._paths import study_dir
 
 from ._data import load, select
-from ._style import condition_label, matrix_label, plt, save_figure
+from ._style import condition_label, plt, save_figure
 
 STUDY = "theta_sweep"
 KINDS = ("equality QP", "LP", "inequality QP")
@@ -73,7 +73,7 @@ def plot_work(rows: list[dict], output: Path) -> Path:
     fig, axes = plt.subplots(
         len(QUANTITIES),
         len(kinds),
-        figsize=(4.2 * len(kinds), 9.5),
+        figsize=(3.4 * len(kinds), 10),
         sharex=True,
         squeeze=False,
     )
@@ -135,8 +135,7 @@ def plot_work(rows: list[dict], output: Path) -> Path:
                             zorder=4,
                         )
 
-        family = select(rows, problem=kind)
-        axes[0, column_index].set_title(f"{kind}\n{matrix_label(family)}")
+        axes[0, column_index].set_title(kind)
         axes[-1, column_index].set_xlabel(r"relaxation $\theta$")
         for index in range(len(QUANTITIES)):
             axis = axes[index, column_index]
@@ -150,25 +149,9 @@ def plot_work(rows: list[dict], output: Path) -> Path:
     seen: dict[str, object] = {}
     for handle, label in zip(handles, labels, strict=True):
         seen.setdefault(label, handle)
-    fig.legend(
-        seen.values(),
-        seen.keys(),
-        loc="lower center",
-        ncol=len(seen),
-        fontsize=8,
-        frameon=False,
-        bbox_to_anchor=(0.5, -0.01),
-    )
-    cap = int(max(row["max_outer_iterations"] for row in rows))
-    fig.suptitle(
-        "Target: normalized objective error + feasibility "
-        rf"$\leq {rows[0]['target_accuracy']:g}$; "
-        rf"$\gamma_x=\gamma_\lambda={rows[0]['gamma_x']:g}$; "
-        "randomized Kaczmarz inner solver; "
-        rf"median of {trials} trials, whiskers span the observed range; "
-        rf"$\times$ marks $\theta$ where some trial missed the target "
-        rf"within {cap} outer iterations"
-    )
+    # The inequality-QP panel has no data at small theta or large counts, so
+    # the legend fits there without covering a curve.
+    axes[0, -1].legend(seen.values(), seen.keys(), fontsize=7, loc="upper right")
     return save_figure(fig, output)
 
 

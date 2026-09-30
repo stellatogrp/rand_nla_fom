@@ -42,6 +42,16 @@ and `random_seed`), `schur_randomized_kaczmarz` (single rows drawn with
 probability proportional to their squared norms), or `coupled_gmres`
 (unrestarted GMRES on the full primal--dual system).
 
+## Reference solutions
+
+Every reference optimum is computed by CVXPY with Clarabel through
+`experiments.problems.solve_reference`, at tolerances of `1e-12` (relaxed to
+`1e-10`, then `1e-8`, when Clarabel reports the tighter ones unattainable); no
+reference
+algorithm is implemented in this repository.  The planted-KKT generators of
+the sweeps still fix a solution by construction, which the tests use to
+check the CVXPY values.
+
 ## Environment
 
 ```bash
@@ -61,7 +71,10 @@ uv run python -m experiments.theta_sweep --help            # its flags
 ```
 
 `--plot` draws the study's figures from the CSVs it just wrote; `all` runs
-the broad studies in sequence.  Plotting is otherwise a separate step, so a
+the broad studies in sequence.  The full catalogue is `standard`, `lp`,
+`inequality-qp`, `gamma-sweep`, `sigma-sweep`, `theta-sweep`, `lasso`, and
+the focused `solver-sweep`, `solver-sweep-randomized`, and
+`inequality-gamma-sweep`.  Plotting is otherwise a separate step, so a
 figure can be redrawn without recomputing anything:
 
 ```bash
@@ -114,7 +127,8 @@ at two condition numbers.  `inequality-gamma-sweep` reruns only the large
 inequality QP and additionally records the convergence traces of its
 `gamma = 1` runs.
 
-`sigma-sweep` sweeps the admissible inner tolerances at
+`sigma-sweep` sweeps the admissible inner tolerances on `100 x 200` instances
+with `kappa(A)` of 10 and 20 at
 `theta = gamma_x = gamma_lambda = 1`, recording the outer and cumulative inner
 block-Kaczmarz iterations at the first iterate reaching the target accuracy.
 Restrict it to one family with `--kinds`.
@@ -129,7 +143,8 @@ Kaczmarz row stream; the extreme singular values stay pinned, so every trial
 has exactly the stated `kappa(A)`.  The figure shows the median with whiskers
 spanning the observed range.
 
-`solver-sweep` holds the parameters fixed and varies only the inner solver,
+`solver-sweep` holds the parameters fixed and varies only the inner solver
+(`kappa(A)` of 10 and 20, like the other two sweeps),
 over many independent instances of each family, so the spread over instances
 can be shown with error bars.  Instances run on a process pool with one BLAS
 thread each, so the recorded times are comparable across solvers but measured
@@ -139,6 +154,26 @@ draws; `solver-sweep-randomized` pins the extremes, leaving `kappa(A)`
 unchanged, and redraws the interior log-uniformly per instance.  Its results
 go to a separate directory and carry a `randomize_spectrum` column.
 
+`lasso` writes the LASSO `min ||D x - y||^2 / 2 + tau ||x||_1` over the pair
+`(x, z)` with the residual `z = D x - y` as its own variable, so that it has
+the form `min f(u)` subject to `[D  -I] u = y` with a separable proximal map.
+Two designs of `D` are drawn, independent Gaussian columns and columns with
+autoregressive correlation; `A A^T = D D^T + I` keeps the Schur complement
+well conditioned in both.  The `gamma` and `sigma` stages sweep the shared
+metric and the inner tolerance with block Kaczmarz, and the `solver` stage
+compares the four inner solvers and keeps the traces, whose per-iteration
+inner counts test the bounded expected inner work of the theory.  The `size`
+stage repeats that comparison at growing `(m, p)`, and the `hybrid` stage
+repeats it for the penalty `c1 ||Dx-y||^2 + c2 ||Dx-y||_1 + c3 ||x||_1 +
+c4 ||x||_2`, whose proximal map is still separable and closed form.
+
+## Tables
+
+`python -m plots.make_plots tables` writes the LaTeX tables the paper
+`\input`s to `results/tables/`, one `tabular` fragment per file, from the
+same CSVs the figures use.  Like a figure, a table whose study has not run is
+skipped.
+
 ## Adding a study
 
 1. Write `experiments/<name>.py` with `build_parser()`, `run_study(args)`,
@@ -147,4 +182,5 @@ go to a separate directory and carry a `randomize_spectrum` column.
 2. Write `plots/<name>.py` with `make(results_dir)` returning the paths it
    wrote, reading only through `plots._data`.
 3. Register both in `experiments/run_experiments.STUDIES` and
-   `plots/make_plots.FIGURES`.
+   `plots/make_plots.FIGURES`; add a builder to `plots/tables.py` if the
+   paper needs a table from it.

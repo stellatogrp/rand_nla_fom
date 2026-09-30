@@ -12,6 +12,8 @@ dependencies = [
 experiments = [
     "scipy>=1.11",
     "matplotlib>=3.8",
+    "cvxpy>=1.5",
+    "clarabel>=0.9",
 ]
 
 [dependency-groups]

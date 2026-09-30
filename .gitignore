@@ -26,3 +26,6 @@ tex/*.toc
 tex/Draft.pdf
 
 .DS_Store
+
+# Standalone build of the numerical-experiments draft
+tex/numerical_experiments_draft.pdf

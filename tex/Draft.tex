@@ -17,7 +17,7 @@
 \bibliographystyle{unsrtnat}
 % cleveref is loaded before definitions.tex so that it picks up the names of
 % the theorem environments defined there.
-\usepackage[nameinlink]{cleveref}
+\usepackage[nameinlink,capitalize]{cleveref}
 
 % Math macros and theorem environments shared by everything in tex/.
 \input{definitions.tex}
@@ -59,8 +59,9 @@ Since this may be difficult and largely unnecessary in the early stages of an al
 
 We focus on a particular type of problem, yet one that is broad enough to include linear and quadratic programming, as well as other popular convex problems such as LASSO.
 Our proposed method incorporates an inexact linear solve with an exact proximal step, and does not make any assumptions on the smoothness or sharpness of $f$.
-We show that under these very mild hypotheses, the squared fixed-point residual of the algorithm decays at an asymptotic $o(1/k)$ rate, with a linear convergence rate in the case of strong convexity and smoothness.
+We show that under these very mild hypotheses, the squared fixed-point residual of the algorithm decays at an $O(1/k)$ rate, with a linear convergence rate in the case of strong convexity and smoothness.
 Furthermore, we provide an integrated analysis of the requisite inner solve iterations, which bridges the gap between the outer convergence rate of the algorithm, where the linear solve and proximal steps are treated as black-boxes, and the analysis of a particular linear system, where we can use standard ideas from numerical linear algebra.
+All code is available at \url{https://github.com/stellatogrp/rand_nla_fom}.
 
 
 \section{Setting and Notation}
@@ -76,12 +77,12 @@ That is,
 \end{align}
 The norm when written without subscript is the standard Euclidean norm: $\|x\|^2 = \|x\|_2^2 = x^\top x$.
 For norms derived from a positive definite matrix $M$, we write $\|x\|_M^2 = x^\top M x$.
-We will not use any norms not derived from a quadratic form.
+We will not use any norms not derived from a quadratic form in the analysis; other norms will only be used for numerical experiments.
 
 We will use $A^\dagger$ to represent the Moore-Penrose pseudoinverse of a matrix $A$.
 We assume $\mathrm{rank}(A) = r$ and that $\sigma_1 \geq \dots \geq \sigma_r(A) > 0$ are the singular values of $A$.
 Similarly, $\sigma_{\max}(A)$ (respectively, $\sigma_{\min}(A)$) denotes the largest (respectively, smallest) singular value of $A$.
-The notation $\sigma_{\min}^+(A)$ refers to the largest nonzero singular value of $A$.
+The notation $\sigma_{\min}^+(A)$ refers to the smallest nonzero singular value of $A$.
 
 
 \section{Algorithm}
@@ -163,8 +164,68 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
     \end{align}
     \end{subequations}
 \end{enumerate}
+Fix $z = (x,\lambda)$ and let $(\xi, \nu)$ be any approximate solution of the linear system \Cref{eq:linear-system-step}.
+Define
+\begin{align}
+    v &= \prox_{\gamma_x f}(\xi - \gamma_x A^\top \nu), \qquad
+    \hat{z} = \begin{bmatrix} v + \gamma_x A^\top \nu \\ \nu \end{bmatrix}, \qquad
+    s = \begin{bmatrix} v - \xi \\ \gamma_\lambda (A\xi - b) \end{bmatrix}, \label{eq:true-step-definitions}
+\end{align}
+and let $\varepsilon = \hat{z} - z - s$ be the residual of the linear system.
+We call $(\hat z, s)$ an \emph{admissible pair} if it arises from some $(\xi, \nu) \in \R^n \times \R^m$ through \Cref{eq:true-step-definitions}, and we write $\mathcal{G}$ for the set of admissible pairs.
+Note that $\mathcal{G}$ does not depend on $z$: the point $z$ only enters through the residual $\varepsilon$.
+Let $\mathcal{Z}^\star = \{ (x^\star + \gamma_x A^\top\lambda^\star, \lambda^\star) \mid (x^\star,\lambda^\star) \text{ satisfies } -A^\top\lambda^\star \in \partial f(x^\star),\ Ax^\star = b \}$ denote the set of fixed points.
+Finally, let $s^\star(z)$ denote the step \Cref{eq:true-step-definitions} obtained from the exact solution of the linear system at $z$; this is the step of the exact Douglas--Rachford method, and $s^\star(z) = 0$ if and only if $z \in \mathcal{Z}^\star$.
+
 
 % TODO: add interpretation and intuition for variable updates + meaning
+% TODO: Also reorganize to introduce s before this lemma
+We begin with a useful lemma that provides intuition for why the algorithm works, even in the presence of inexactness:
+\begin{lemma}\label{lem:monotonicity}
+    The following statements hold.
+    \begin{enumerate}
+        \item For any two admissible pairs $(\hat z_1, s_1)$ and $(\hat z_2, s_2)$,
+        \begin{align}
+            \langle \hat z_1 - \hat z_2, s_1 - s_2\rangle_M \le 0. \label{eq:acc-two-point}
+        \end{align}
+        \item For every $z^\star \in \mathcal{Z}^\star$, the pair $(z^\star, 0)$ is admissible.
+        \item Let $(\hat z, s)$ be admissible with residual $\varepsilon$ at $z$, and let $(\hat z^\star, s^\star(z))$ be the exact pair at $z$.
+        Then $\|s - s^\star(z)\|_M \le \|\varepsilon\|_M$.
+        In particular, if $\|\varepsilon\|_M \le \sigma\|s\|_M$ with $\sigma < 1$, then
+        \begin{align}
+            (1-\sigma)\|s\|_M \le \|s^\star(z)\|_M \le (1+\sigma)\|s\|_M. \label{eq:acc-exact-vs-inexact}
+        \end{align}
+    \end{enumerate}
+\end{lemma}
+\begin{proof}
+    For an admissible pair generated by $(\xi_i, \nu_i)$, the optimality condition of the proximal step reads
+    \begin{align}
+        u_i := \gamma_x^{-1}(\xi_i - v_i) - A^\top\nu_i \in \partial f(v_i). \label{eq:acc-prox-optimality}
+    \end{align}
+    Expanding the $M$-inner product and cancelling the terms in $A\xi_i$,
+    \begin{align}
+        \langle \hat z_1 - \hat z_2, s_1 - s_2\rangle_M
+        &= \gamma_x^{-1}\langle v_1 - v_2 + \gamma_x A^\top(\nu_1 - \nu_2),\, (v_1 - \xi_1) - (v_2 - \xi_2)\rangle
+           + \langle \nu_1 - \nu_2,\, A(\xi_1 - \xi_2)\rangle \\
+        &= \gamma_x^{-1}\langle v_1 - v_2,\, (v_1 - \xi_1) - (v_2 - \xi_2)\rangle
+           + \langle \nu_1 - \nu_2,\, A(v_1 - v_2)\rangle \\
+        &= \left\langle v_1 - v_2,\, \gamma_x^{-1}\big((v_1 - \xi_1) - (v_2 - \xi_2)\big) + A^\top(\nu_1 - \nu_2)\right\rangle \\
+        &= -\langle v_1 - v_2,\, u_1 - u_2\rangle \le 0,
+    \end{align}
+    where the last inequality is monotonicity of $\partial f$.
+    This proves the first statement.
+
+    For the second statement take $\xi = x^\star$ and $\nu = \lambda^\star$.
+    Since $-A^\top\lambda^\star \in \partial f(x^\star)$, the proximal step returns $v = \prox_{\gamma_x f}(x^\star - \gamma_x A^\top\lambda^\star) = x^\star$.
+    Hence $\hat z = (x^\star + \gamma_x A^\top\lambda^\star, \lambda^\star) = z^\star$ and $s = (0, \gamma_\lambda(Ax^\star - b)) = 0$.
+
+    For the third statement, $\hat z = z + s + \varepsilon$ and $\hat z^\star = z + s^\star(z)$ give $\varepsilon = (\hat z - \hat z^\star) - (s - s^\star(z))$.
+    Expanding the square and using \Cref{eq:acc-two-point},
+    \begin{align}
+        \|\varepsilon\|_M^2 = \|\hat z - \hat z^\star\|_M^2 - 2\langle \hat z - \hat z^\star, s - s^\star(z)\rangle_M + \|s - s^\star(z)\|_M^2 \ge \|s - s^\star(z)\|_M^2. \label{eq:true-update-drift-inequality}
+    \end{align}
+    The two-sided bound \Cref{eq:acc-exact-vs-inexact} follows from the triangle inequality.
+\end{proof}
 
 \begin{theorem}\label{thm:lyapunov-inequality}
     Let $(x^\star,\lambda^\star)$ be a KKT point: $\partial f(x^\star) + A^\top\lambda = 0$ and $Ax^\star = b$.
@@ -187,25 +248,27 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
             \hat{z}^{(k+1)} &= \begin{bmatrix} v^{(k+1)} + \gamma_xA^\top\nu^{(k+1)} \\ \nu^{(k+1)} \end{bmatrix}
         \end{align}
         Note that $s^{(k+1)} + \varepsilon^{(k+1)} = q^{(k+1)} = \hat{z}^{(k+1)} - z^{(k)}$.
-        Thus,
+        Thus, applying \Cref{lem:monotonicity},
         \begin{align}
             \|z^{(k+1)} - z^\star\|_M^2 &= \|z^{(k)} + s^{(k+1)} - z^\star\|_M^2 \\
             &= \|z^{(k)} - z^\star\|_M^2 + 2\langle z^{(k)} - z^\star, s^{(k+1)}\rangle_M + \|s^{(k+1)}\|_M^2 \\
             &= \|z^{(k)} - z^\star\|_M^2 + 2\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - 2\langle q^{(k+1)}, s^{(k+1)}\rangle_M + \|s^{(k+1)}\|_M^2 \\
-            &= \|z^{(k)} - z^\star\|_M^2 + 2\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - \| q^{(k+1)}\|_M + \|\varepsilon^{(k+1)}\|_M^2.
+            &= \|z^{(k)} - z^\star\|_M^2 + 2\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - \| q^{(k+1)}\|_M^2 + \|\varepsilon^{(k+1)}\|_M^2 \\
+            &\leq \|z^{(k)} - z^\star\|_M^2 - \| q^{(k+1)}\|_M^2 + \|\varepsilon^{(k+1)}\|_M^2.
         \end{align}
-        Then,
-        \begin{align}
-            \langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M &= \gamma_x^{-1}\langle v^{(k+1)} + \gamma_x A^\top\nu^{(k+1)} - (x^\star + A^\top\lambda^\star), v^{(k+1)} - \xi^{(k+1)}\rangle \\
-            &\quad\quad - \gamma_\lambda^{-1}\langle\nu^{(k+1)} - \lambda^\star, \gamma_\lambda(A\xi^{(k+1)}-b)\rangle \notag \\
-            &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} - A\xi^{(k+1)}\rangle \\
-            &\quad\quad - \langle\nu^{(k+1)} - \lambda^\star, A\xi^{(k+1)}-b \rangle \notag \\
-            &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} -b \rangle \\
-            &= \langle v^{(k+1)} - x^\star, -A^\top\nu^{(k+1)} - \partial f(v^{(k+1)})\rangle + \langle A^\top (\nu^{(k+1)} - \lambda^\star), v^{(k+1)} -x^\star \rangle\\
-            &= \langle v^{(k+1)} - x^\star, -A^\top\lambda^\star - \partial f(v^{(k+1)})\rangle \\
-            &= -\langle v^{(k+1)} - x^\star, \partial f(v^{(k+1)}) - \partial f(x^\star)\rangle \label{eq:montonicity-of-update}\\
-            &\leq 0.
-        \end{align}
+        
+        % Then,
+        % \begin{align}
+        %     \langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M &= \gamma_x^{-1}\langle v^{(k+1)} + \gamma_x A^\top\nu^{(k+1)} - (x^\star + A^\top\lambda^\star), v^{(k+1)} - \xi^{(k+1)}\rangle \\
+        %     &\quad\quad - \gamma_\lambda^{-1}\langle\nu^{(k+1)} - \lambda^\star, \gamma_\lambda(A\xi^{(k+1)}-b)\rangle \notag \\
+        %     &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} - A\xi^{(k+1)}\rangle \\
+        %     &\quad\quad - \langle\nu^{(k+1)} - \lambda^\star, A\xi^{(k+1)}-b \rangle \notag \\
+        %     &= \gamma_x^{-1}\langle v^{(k+1)} - x^\star, v^{(k+1)} - \xi^{(k+1)}\rangle + \langle \nu^{(k+1)} - \lambda^\star, Av^{(k+1)} -b \rangle \\
+        %     &= \langle v^{(k+1)} - x^\star, -A^\top\nu^{(k+1)} - \partial f(v^{(k+1)})\rangle + \langle A^\top (\nu^{(k+1)} - \lambda^\star), v^{(k+1)} -x^\star \rangle\\
+        %     &= \langle v^{(k+1)} - x^\star, -A^\top\lambda^\star - \partial f(v^{(k+1)})\rangle \\
+        %     &= -\langle v^{(k+1)} - x^\star, \partial f(v^{(k+1)}) - \partial f(x^\star)\rangle \label{eq:montonicity-of-update}\\
+        %     &\leq 0.
+        % \end{align}
     \end{proof}
 \end{theorem}
 
@@ -216,7 +279,7 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
             &= \|z^{(k)} - z^\star\|_M^2 + 2\theta\langle z^{(k)} - z^\star, s^{(k+1)}\rangle_M + \theta^2\|s^{(k+1)}\|_M^2 \\
             &= \|z^{(k)} - z^\star\|_M^2 + 2\theta\langle \hat{z}^{(k+1)} - z^\star, s^{(k+1)}\rangle_M - 2\theta\langle q^{(k+1)}, s^{(k+1)}\rangle_M + \theta^2\|s^{(k+1)}\|_M^2 \\
             &\leq \|z^{(k)} - z^\star\|_M^2 + \theta(\| \varepsilon^{(k+1)}\|_M^2 - \|q^{(k+1)}\|_M^2) + (\theta^2-\theta)\|s^{(k+1)}\|^2_M \\
-            &= \|z^{(k)} - z^\star\|_M^2 -\theta(2-\theta)\|s^{(k+1)}\|^2_M + 2\theta \langle\varepsilon^{(k+1)},s^{(k+1)}\rangle_M \label{eq:inexactness-one-step-inequality}
+            &= \|z^{(k)} - z^\star\|_M^2 -\theta(2-\theta)\|s^{(k+1)}\|^2_M - 2\theta \langle\varepsilon^{(k+1)},s^{(k+1)}\rangle_M \label{eq:inexactness-one-step-inequality}
     \end{align}
 \end{corollary}
 
@@ -226,7 +289,7 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
     Using the same notation as \Cref{thm:lyapunov-inequality}, when using over-relaxation (or under-relaxation), if $\theta\in(0,2)$ we can enforce $\|\varepsilon^{(k+1)}\|_M \leq \sigma\|s^{(k+1)}\|_M$ for $\sigma \in (0,\frac{2-\theta}{2})$.
     Applying the Cauchy-Schwarz inequality to \Cref{eq:inexactness-one-step-inequality} and using the telescoping identity yields
     \begin{align}
-        \|s^{(k+1)}\|^2_M\leq \sum_{t=0}^{k}\|s^{(k+1)}\|^2_M \leq \frac{\|z^{(0)} - z^\star\|_M^2 - \|z^{(k)} - z^\star\|_M^2}{(\theta(2-\theta)-\theta\sigma)} \label{eq:convergence-of-fixed-point-residual}
+        \|s^{(k+1)}\|^2_M\leq \sum_{t=0}^{k}\|s^{(t+1)}\|^2_M \leq \frac{\|z^{(0)} - z^\star\|_M^2 - \|z^{(k+1)} - z^\star\|_M^2}{\theta((2-\theta)-2\sigma)} \label{eq:convergence-of-fixed-point-residual}
     \end{align}
 
     The relation $s^{(k+1)} + \varepsilon^{(k+1)} = q^{(k+1)}$ relates this formulation and that of \Cref{eq:one-step-inequality-no-relaxation}.
@@ -239,7 +302,7 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
             \|z^{(k+1)} - z^\star\|_M^2 &\leq \left(1 - C_{\theta,\sigma,\mu,L,A,M}^{-1}\right)\|z^{(k)} - z^\star\|_M^2.
     \end{align}
     \begin{proof}
-        Using \Cref{eq:montonicity-of-update} and \Cref{cor:over-under-relaxation}, we can get
+        Using \Cref{lem:monotonicity} and \Cref{cor:over-under-relaxation}, we can get
         \begin{align}
             \|z^{(k+1)} - z^\star\|_M^2 &\leq \|z^{(k)} - z^\star\|_M^2 -\theta(2-\theta-2\sigma)\|s^{(k+1)}\|^2_M \label{eq:lyapunov-decrease-estimate}\\
             &\quad\quad -2\theta\langle v^{(k+1)} - x^\star, \partial f(v^{(k+1)}) - \partial f(x^\star)\rangle \notag
@@ -256,15 +319,15 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
         Note that 
         \begin{align}
             A^\top(\nu^{(k)}-\lambda^\star) = A^\top \nu^{(k)} - A^\top\lambda^\star &= A^\top \nu^{(k)} + \nabla f(v^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star) \\
-            &= \gamma_x^{-1}(v^{(k)}-\xi^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star).
+            &= \gamma_x^{-1}(\xi^{(k)}-v^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star).
         \end{align}
-        Also, from above, we can see that if $A$ is full rank, we have 
+        Also, from above, we can see that if $A$ is full row rank, we have 
         \begin{align}
             \|\gamma_x^{-1}(v^{(k)}-\xi^{(k)}) - \nabla f(v^{(k)}) + \nabla f(x^\star)\| \geq \sigma^+_{\min}(A)\|\nu^{(k)}-\lambda^\star\|.
         \end{align}
         Thus, we see that 
         \begin{align}
-            \|z^{(k)} - z^\star\|_M &\leq \gamma_x^{-1/2}\|v^{(k)}-z^\star\|^2 + \sqrt{\gamma_x + (\gamma_\lambda \sigma^2_{\min}(A))^{-1}}\|\nabla f(v^{(k)} - \nabla f(x^\star)\| \label{eq:lyapunov-bound}\\
+            \|z^{(k)} - z^\star\|_M &\leq \gamma_x^{-1/2}\|v^{(k)}-x^\star\|^2 + \sqrt{\gamma_x + (\gamma_\lambda \sigma^+_{\min}(A)^2)^{-1}}\|\nabla f(v^{(k)}) - \nabla f(x^\star)\| \label{eq:lyapunov-bound}\\
             &\quad\quad+ \left(1 + \sigma + \sqrt{1 + (\gamma_x\gamma_\lambda \sigma^+_{\min}(A)^2)^{-1}}\right)\|s^{(k)}\|_M \notag
         \end{align}
         Now define the constants
@@ -275,7 +338,7 @@ Thus, the Douglas-Rachford algorithm \cite{DouglasRachfordOriginalPaper} applied
         \end{align}
         Then, from \Cref{eq:lyapunov-bound}, we find
         \begin{align}
-            \|z^{(k)} - z^\star\|_M &\leq C_{\theta,\sigma,\mu,L,A,M}\Bigg(\theta(2-\theta-2\sigma)\|s^{(k+1)}\|^2_M + \frac{\mu L}{\mu + L} \|v^{(k+1)} - x^\star\|^2 \\
+            \|z^{(k)} - z^\star\|_M^2 &\leq C_{\theta,\sigma,\mu,L,A,M}\Bigg(\theta(2-\theta-2\sigma)\|s^{(k+1)}\|^2_M + \frac{\mu L}{\mu + L} \|v^{(k+1)} - x^\star\|^2 \\
             &\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad\quad + \frac{1}{\mu+L}\|\nabla f(v^{(k+1)}) - \nabla f(x^\star)\|^2\Bigg)
         \end{align}
         Combining this with \Cref{eq:lyapunov-decrease-estimate} and \Cref{eq:l-smooth-mu-strongly-convex-inequality} yields
@@ -307,22 +370,23 @@ The method on its own would be otherwise unremarkable, were it not for the fact 
     \begin{align}\label{eq:stopping-time-probability-bound}
         P(N_k > l) \leq \beta_k a^l
     \end{align}
-    where $\beta_k = \left(\frac{(1 + \sigma)\mathcal{E}_{k,0}}{\sigma \bar{R}_k}\right)^2$ and $\bar{R}_k = \|s^{(k,\star)}\|^2_M$ is the error-free iterate.
+    where $\beta_k = \left(\frac{(1 + \sigma)\mathcal{E}_{k,0}}{\sigma \bar{R}_k}\right)^2$ and $\bar{R}_k = \|s^{(k,\star)}\|^2_M$ is the norm of the exact iterate.
     As a consequence,
     \begin{align}\label{eq:stopping-time-expectation-bound}
         \mathbb{E}[N_k] \leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{\beta_k a^{\left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil}}{1-a} \leq \left\lceil -\frac{\log_+\beta_k}{\log a} \right\rceil + \frac{1}{1-a} 
     \end{align}
     \begin{proof}
-        From \cite{EcksteinRelativeError2018}, we know that the algorithm above constructs a point $(\hat{z}^{(k)}_{(l)},s^{(k)}_{(l)})\in \mathcal{S}$, where $S$ is the maximal monotone DRS splitting operator.
-        Let $(\hat{z}^{(k,\star)}_{(l)},s^{(k,\star)}_{(l)})\in \mathcal{S}$ denote the exact output of the iteration.
-        Then, by monotonicity of $\mathcal{S}$, the definition of $z^{(k)}$, and the reverse triangle inequality
-        \begin{align}
-            \|\varepsilon^{(k)}_{(l)}\|^2_M &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} + s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \label{eq:true-update-drift-inequality}\\
-            &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)}\|^2_M + \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M + 2 \langle \hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} , s^{(k)}_{(l)} - s^{(k,\star)}\rangle_M \\
-            &\geq \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \\
-            &\geq |\|s^{(k)}_{(l)}\|_M - \|s^{(k,\star)}\|_M|^2.
-        \end{align}
+        % From \cite{EcksteinRelativeError2018}, we know that the algorithm above constructs a point $(\hat{z}^{(k)}_{(l)},s^{(k)}_{(l)})\in \mathcal{S}$, where $S$ is the maximal monotone DRS splitting operator.
+        Let $(\hat{z}^{(k,\star)}_{(l)},s^{(k,\star)}_{(l)})\in \mathcal{S}$ denote the exact output of the iteration (that is, the hypothetical where $\sigma = 0$).
+        % Then, by monotonicity of $\mathcal{S}$, the definition of $z^{(k)}$, and the reverse triangle inequality
+        % \begin{align}
+        %     \|\varepsilon^{(k)}_{(l)}\|^2_M &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} + s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \label{eq:true-update-drift-inequality}\\
+        %     &= \|\hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)}\|^2_M + \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M + 2 \langle \hat{z}^{(k)}_{(l)} - \hat{z}^{(k,\star)}_{(l)} , s^{(k)}_{(l)} - s^{(k,\star)}\rangle_M \\
+        %     &\geq \|s^{(k)}_{(l)} - s^{(k,\star)}\|^2_M \\
+        %     &\geq |\|s^{(k)}_{(l)}\|_M - \|s^{(k,\star)}\|_M|^2.
+        % \end{align}
         Using this, we can see that 
+        Using \Cref{lem:monotonicity}, we can see that 
         \begin{align}
             \{N_K > l\} = \{ \|\varepsilon^{(k)}_{(l)}\|^2_M > \sigma\|s^{(k)}_{(l)}\|_M^2\} \subseteq \left\{ \|\varepsilon^{(k)}_{(l)}\|^2_M > \frac{\sigma}{1+\sigma}\|s^{(k,\star)}\|_M^2\right\}.
         \end{align}
@@ -360,7 +424,7 @@ Assuming we warm-start the solver at the previous solution, we find that $\mathc
     Let $u^\star_{k+1}$ denote the solution of this system and $u_{t,k+1}$ denote the $t$-th iterate of the inner solver's solution to this problem.
     Then, $u_{0,k+1} - u^\star_{k+1} = u_{0,k+1} - u^\star_{k} + u^\star_{k} - u^\star_{k+1}$.
     Assuming that we warm start with the previously computed solution, we can bound the error as the previous error plus a drift term.
-    Thus, using \Cref{thm:relative-error-criterion,eq:true-update-drift-inequality},
+    Thus, using \Cref{thm:relative-error-criterion,lem:monotonicity,eq:true-update-drift-inequality},
     \begin{align}
         \mathcal{E}_{k+1,0}=\|u_{0,k+1} - u^\star_{k+1}\|_M &= \|u_{0,k+1} - u^\star_{k} + u^\star_{k} - u^\star_{k+1}\|_M \\
         &\leq \|\varepsilon^{(k)}\|_M + \|H^{-1} s^{(k)}\|_M \\
@@ -436,7 +500,7 @@ The $(n+m)\times(n+m)$ matrix $H = \begin{bmatrix}
 \begin{align}
     \frac{\sqrt{4 + (\gamma_x+\gamma_\lambda)^2\sigma_i(A)^2} \pm |\gamma_x-\gamma_\lambda|\sigma_i(A)}{2}.
 \end{align}
-with multiplicity 2, and $n + m - 2r$ singular values equal to 1.
+and $n + m - 2r$ singular values equal to 1.
 \begin{proof}
     Let $A = U\Sigma V^\top $ be the singular value decomposition of $A$.
     Then,
@@ -530,18 +594,26 @@ That is,
 \end{align}
 
 
-\section{Numerical Results}
-\subsection{Linear Programs}
-\subsection{Quadratic Programs}
-\subsubsection{Equality Constraints}
-\subsubsection{Inequality Constraints}
-\subsection{LASSO}
+\input{numerical_experiments_draft.tex}
+% \section{Numerical Results}
+% \subsection{Linear Programs}
+% \subsection{Quadratic Programs}
+% \subsubsection{Equality Constraints}
+% \subsubsection{Inequality Constraints}
+% \subsection{LASSO}
 
-\section{Discussion}
 \section{Conclusion}
+We proposed and analyzed an algorithm for linearly constrained convex optimization.
+We showed that the squared fixed point residual converges at an $O(1/k)$ rate, as well as showing that the algorithm accelerates to a linear convergence rate when $f$ is smooth and strongly convex.
+Extensive numerical testing confirms the theoretical results as well as the wide range of applicability of the method.
+In general, the method has clear parameter preferences for different settings, but it is relatively robust to parameter misspecification, as showed in the variety of sweeps in the numerical experiments section.
 
-\appendix
-\section{Adaptive Hyperparameter Selection}
+
+Further directions include a per-iteration analysis of the number of expected inner iterations, as well as a theoretical analysis of optimal parameter selection and adaptive parameter selection.
+It is also open if there is a more flexible linear solver that can accelerate the convergence, as well as amortization strategies to possibly reduce the time required for the inner solvers.
+Another interesting direction seems to be to specifically analyze why varying the inexactness for a general QP does not seem to affect the convergence rate too much.
+
+All code is available at \url{https://github.com/stellatogrp/rand_nla_fom}.
 
 \bibliography{bibliography}
 

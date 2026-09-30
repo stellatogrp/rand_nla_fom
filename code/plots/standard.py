@@ -12,6 +12,23 @@ from ._style import plot_convergence, plt, save_figure
 STUDY = "standard"
 YLABEL = "relative objective error + feasibility"
 PARAMETER_GROUPS = ("M", "sigma", "theta")
+GROUP_TITLES = {
+    "M": r"metric $(\gamma_x, \gamma_\lambda)$",
+    "sigma": r"inner tolerance $\sigma$",
+    "theta": r"relaxation $\theta$",
+}
+
+
+def _typeset(label: str) -> str:
+    """Turn the plain-text setting labels of the study into math."""
+    for plain, math in (
+        ("gx", r"$\gamma_x$"),
+        ("gl", r"$\gamma_\lambda$"),
+        ("sigma", r"$\sigma$"),
+        ("theta", r"$\theta$"),
+    ):
+        label = label.replace(plain, math)
+    return label
 
 
 def plot_parameters(histories: list[dict], problem: str, output: Path) -> Path:
@@ -24,14 +41,13 @@ def plot_parameters(histories: list[dict], problem: str, output: Path) -> Path:
             axis.semilogy(
                 [row["iteration"] for row in trace],
                 [row["accuracy"] for row in trace],
-                label=label,
+                label=_typeset(label),
             )
-        axis.set_title(name)
+        axis.set_title(GROUP_TITLES[name])
         axis.set_xlabel("outer iteration")
         axis.grid(True, alpha=0.3)
         axis.legend(fontsize=8)
     axes[0].set_ylabel(YLABEL)
-    fig.suptitle(f"Section 5 {problem}: M, tolerance, and relaxation")
     return save_figure(fig, output)
 
 
@@ -44,7 +60,7 @@ def plot_solvers(histories: list[dict], problem: str, output: Path) -> Path:
     ]
     return plot_convergence(
         traces,
-        f"Section 5 {problem}: linear-system methods",
+        problem,
         YLABEL,
         output,
     )

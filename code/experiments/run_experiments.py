@@ -27,6 +27,7 @@ STUDIES = {
     "sigma-sweep": ("sigma_sweep", "run_study", "sigma_sweep", "make"),
     "theta-sweep": ("theta_sweep", "run_study", "theta_sweep", "make"),
     "solver-sweep": ("solver_sweep", "run_study", "solver_sweep", "make"),
+    "lasso": ("lasso", "run_study", "lasso", "make"),
     "solver-sweep-randomized": (
         "solver_sweep",
         "run_study",

@@ -16,15 +16,15 @@ PANELS = (
         "proxy",
         "preconditioner",
         "proxy_preconditioners.pdf",
-        "Inequality QP proxy: preconditioner sweep",
+        "proxy inequality QP: metric",
     ),
     (
         "proxy",
         "sigma_theta",
         "proxy_sigma_theta.pdf",
-        "Inequality QP proxy: sigma/theta sweep",
+        r"proxy inequality QP: $(\sigma, \theta)$",
     ),
-    ("large", "transfer", "large_convergence.pdf", "Large inequality QP"),
+    ("large", "transfer", "large_convergence.pdf", "large inequality QP"),
 )
 
 
@@ -52,7 +52,6 @@ def plot_adaptation(histories: list[dict], output: Path) -> Path:
         axis.set_xlabel("outer iteration")
         axis.grid(True, alpha=0.3)
         axis.legend(fontsize=8)
-    fig.suptitle("Progress-based adaptive parameters")
     return save_figure(fig, output)
 
 

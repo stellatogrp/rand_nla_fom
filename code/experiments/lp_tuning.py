@@ -28,7 +28,7 @@ from ._cli import base_parser
 from ._metrics import ACCURACY_FLOOR, history_rows, normalized_objective_error
 from ._paths import HISTORIES, RESULTS, study_dir
 from ._results import write_rows
-from .problems import nonnegative_linear_prox, standard_form_lp_optimum
+from .problems import lp_optimum, nonnegative_linear_prox
 
 STUDY = "lp_tuning"
 PROXY_SIZE = 150
@@ -91,7 +91,7 @@ def make_lp(n: int, seed: int) -> LP:
         A,
         b,
         c,
-        standard_form_lp_optimum(c, A, b),
+        lp_optimum(c, A, b),
         float(s[-1]),
         float(s[0]),
         float(np.linalg.norm(c) / np.sqrt(n)),

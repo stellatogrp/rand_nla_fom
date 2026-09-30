@@ -9,19 +9,12 @@ import numpy as np
 from experiments._paths import study_dir
 
 from ._data import column, load, select
-from ._style import (
-    CONDITION_LABELS,
-    SOLVER_COLORS,
-    SOLVER_LABELS,
-    matrix_label,
-    plt,
-    save_figure,
-)
+from ._style import CONDITION_LABELS, SOLVER_COLORS, SOLVER_LABELS, plt, save_figure
 
 STUDY = "solver_sweep"
 RANDOMIZED_STUDY = "solver_sweep_randomized_spectrum"
 KINDS = ("equality QP", "LP", "inequality QP")
-CONDITIONS = ("moderately-conditioned", "ill-conditioned")
+CONDITIONS = ("moderately-conditioned", "mildly-ill-conditioned")
 SOLVERS = (
     "schur_cg",
     "schur_block_kaczmarz",
@@ -38,33 +31,6 @@ FIELDS = (
 def _reached(rows: list[dict], kind: str, condition: str, solver: str) -> list[dict]:
     selected = select(rows, problem=kind, matrix=condition, inner_solver=solver)
     return [row for row in selected if row["reached_accuracy"]]
-
-
-def _spectrum_label(rows: list[dict]) -> str:
-    """Describe how the singular values were drawn across instances."""
-    flags = {bool(row.get("randomize_spectrum")) for row in rows}
-    if flags == {True}:
-        return "randomized interior spectrum"
-    if flags == {False}:
-        return "fixed geometric spectrum"
-    return "mixed spectrum sampling"
-
-
-def _caption(rows: list[dict], kinds: list[str]) -> str:
-    instances = max(
-        len(select(rows, problem=kind, matrix=condition, inner_solver=solver))
-        for kind in kinds
-        for condition in CONDITIONS
-        for solver in SOLVERS
-    )
-    return (
-        f"Inner solver comparison over {instances} random instances per family "
-        f"({_spectrum_label(rows)}); "
-        rf"$\sigma={rows[0]['sigma']:g}$, $\theta={rows[0]['theta']:g}$, "
-        rf"$\gamma_x=\gamma_\lambda={rows[0]['gamma_x']:g}$; "
-        "target: normalized objective error + feasibility "
-        rf"$\leq {rows[0]['target_accuracy']:g}$"
-    )
 
 
 def _bar_panel(axis, rows: list[dict], kind: str, field: str, solvers) -> None:
@@ -160,14 +126,8 @@ def plot_comparison(rows: list[dict], output: Path) -> Path:
             _bar_panel(axis, rows, kind, field, solvers)
             if column_index == 0:
                 axis.set_ylabel(ylabel)
-        axes[0, column_index].set_title(
-            f"{kind}\n{matrix_label(select(rows, problem=kind))}"
-        )
+        axes[0, column_index].set_title(kind)
     axes[0, 0].legend(fontsize=7, ncol=2)
-    fig.suptitle(
-        _caption(rows, kinds)
-        + "\nbars are means, error bars one standard deviation over instances"
-    )
     return save_figure(fig, output)
 
 
@@ -225,7 +185,6 @@ def plot_distributions(rows: list[dict], output: Path) -> Path:
         axes[0, column_index].set_title(kind)
     axes[0, 0].set_ylabel("outer iterations to target")
     axes[1, 0].set_ylabel("inner iterations to target")
-    fig.suptitle(_caption(rows, kinds))
     return save_figure(fig, output)
 
 

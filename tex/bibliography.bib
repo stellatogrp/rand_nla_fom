@@ -341,3 +341,46 @@ url={https://doi.org/10.1007/s10107-017-1160-5}
    author={Needell, Deanna and Tropp, Joel A.},
    year={2014},
    month=Jan, pages={199–221} }
+
+@article{diamond2016cvxpy,
+author = {Diamond, Steven and Boyd, Stephen},
+title = {CVXPY: a python-embedded modeling language for convex optimization},
+year = {2016},
+issue_date = {January 2016},
+publisher = {JMLR.org},
+volume = {17},
+number = {1},
+issn = {1532-4435},
+abstract = {CVXPY is a domain-specific language for convex optimization embedded in Python. It allows the user to express convex optimization problems in a natural syntax that follows the math, rather than in the restrictive standard form required by solvers. CVXPY makes it easy to combine convex optimization with high-level features of Python such as parallelism and object-oriented design. CVXPY is available at http://www.cvxpy.org/ under the GPL license, along with documentation and examples.},
+journal = {J. Mach. Learn. Res.},
+month = jan,
+pages = {2909–2913},
+numpages = {5},
+keywords = {Python, conic programming, convex optimization, convexity verification, domain-specific languages}
+}
+
+@article{agrawal2018rewriting,
+author = {Akshay Agrawal and Robin Verschueren and Steven Diamond and Stephen Boyd},
+title = {A rewriting system for convex optimization problems},
+journal = {Journal of Control and Decision},
+volume = {5},
+number = {1},
+pages = {42--60},
+year = {2018},
+publisher = {Taylor \& Francis},
+doi = {10.1080/23307706.2017.1397554},
+URL = {https://doi.org/10.1080/23307706.2017.1397554},
+eprint = {https://doi.org/10.1080/23307706.2017.1397554},
+abstract = { We describe a modular rewriting system for translating optimization problems written in a domain-specific language (DSL) to forms compatible with low-level solver interfaces. Translation is facilitated by reductions, which accept a category of problems and transform instances of that category to equivalent instances of another category. Our system proceeds in two key phases: analysis, in which we attempt to find a suitable solver for a supplied problem, and canonicalization, in which we rewrite the problem in the selected solver’s standard form. We implement the described system in version 1.0 of CVXPY, a DSL for mathematical and especially convex optimization. By treating reductions as first-class objects, our method makes it easy to match problems to solvers well-suited for them and to support solvers with a wide variety of standard forms.}
+}
+
+@misc{goulart2024clarabel,
+  title = {Clarabel: {{An}} Interior-Point Solver for Conic Programs with Quadratic Objectives},
+  author = {Goulart, Paul J. and Chen, Yuwen},
+  year = 2026,
+  month = may,
+  journal = {Mathematical Programming Computation},
+  issn = {1867-2957},
+  doi = {10.1007/s12532-026-00320-7},
+  abstract = {We present a general-purpose interior-point solver for convex optimization problems with conic constraints. Our method is based on a homogeneous embedding method originally developed for general monotone complementarity problems and more recently applied to operator splitting methods, and here specialized to an interior-point method for problems with quadratic objectives. We allow for a variety of standard symmetric and non-symmetric cones, and provide support for chordal decomposition methods in the case of semidefinite cones. We describe the implementation of this method in the open-source solver Clarabel, and provide a detailed numerical evaluation of its performance versus several state-of-the-art solvers on a wide range of standard benchmark problems. Clarabel is faster than competing commercial and open-source solvers across a range of test sets with quadratic objectives, and remains competitive for problems with linear objectives even at large scale. Clarabel is currently distributed as a default solver for the Python Cvxpy optimization suite.}
+}
