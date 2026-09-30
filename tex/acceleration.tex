@@ -450,26 +450,26 @@ Each computed optimum is a certificate: its Gram matrix is an explicit instance 
     \caption{Worst case of $N\|s^{(N)}\|_M/D$ for the anchored method with $\theta = 1$ and constant tolerance $\sigma$, over all firmly nonexpansive maps and admissible errors, with the ratio to the exact value $2N/(N+1)$ in parentheses.
     The exact case is tight for the one-dimensional instance of \Cref{prop:acc-clip}.}
     \label{tab:acc-pep}
-    \begin{tabular}{lcccc}
+    \begin{tabular}{lccccc}
         \toprule
-        $N$ & 4 & 8 & 16 & 32 \\
+        $N$ & 4 & 8 & 16 & 32 & 48 \\
         \midrule
-        $\sigma = 0$   & 1.600 & 1.778 & 1.882 & 1.939 \\
-        $\sigma = 0.1$ & 1.689 (1.06) & 1.867 (1.05) & 1.984 (1.05) & 2.054 (1.06) \\
-        $\sigma = 0.2$ & 1.880 (1.18) & 2.109 (1.19) & 2.267 (1.20) & 2.382 (1.23) \\
-        $\sigma = 0.3$ & 2.207 (1.38) & 2.518 (1.42) & 2.764 (1.47) & 2.974 (1.53) \\
-        $\sigma = 0.4$ & 2.708 (1.69) & 3.230 (1.82) & 3.694 (1.96) & 4.167 (2.15) \\
-        $\sigma = 0.5$ & 3.695 (2.31) & 5.273 (2.97) & 7.844 (4.17) & 11.611 (5.99) \\
+        $\sigma = 0$   & 1.600 & 1.778 & 1.882 & 1.939 & 1.959 \\
+        $\sigma = 0.1$ & 1.689 (1.06) & 1.867 (1.05) & 1.984 (1.05) & 2.054 (1.06) & \\
+        $\sigma = 0.2$ & 1.880 (1.18) & 2.109 (1.19) & 2.267 (1.20) & 2.382 (1.23) & \\
+        $\sigma = 0.3$ & 2.207 (1.38) & 2.518 (1.42) & 2.764 (1.47) & 2.974 (1.53) & 3.091 (1.58) \\
+        $\sigma = 0.4$ & 2.708 (1.69) & 3.230 (1.82) & 3.694 (1.96) & 4.167 (2.15) & \\
+        $\sigma = 0.5$ & 3.695 (2.31) & 5.273 (2.97) & 7.844 (4.17) & 11.611 (5.99) & \\
         \bottomrule
     \end{tabular}
 \end{table}
-\mynote{TODO: the runs for $N \in \{48, 64\}$ and $\sigma \in \{0.2, 0.3, 0.4\}$ were still in progress when this was written; add them, and repeat the table for $\theta \in \{0.5, 1.5\}$.}
+\mynote{TODO: the runs for $N \in \{48, 64\}$ and $\sigma \in \{0.2, 0.4\}$ and for $N = 64$, $\sigma = 0.3$ were still in progress when this was written; add them, and repeat the table for $\theta \in \{0.5, 1.5\}$.}
 
 Three features of \Cref{tab:acc-pep} matter.
 \begin{enumerate}
     \item For every $\sigma > 0$ the ratio to the exact constant increases with $N$.
     For $\sigma = 0.5 = (2-\theta)/2$ it grows by a factor close to $\sqrt{2}$ per doubling of $N$, so the worst-case residual decays like $N^{-1/2}$, the rate of the base method.
-    \item For $\sigma \in \{0.3, 0.4\}$ the growth factor per doubling is itself increasing ($1.027$, $1.037$, $1.044$ for $\sigma = 0.3$ and $1.073$, $1.080$, $1.095$ for $\sigma = 0.4$), the opposite of what convergence to a finite constant would show.
+    \item For $\sigma \in \{0.3, 0.4\}$ the growth factor per doubling is itself increasing ($1.027$, $1.037$, $1.044$ and, from $N = 32$ to $48$ rescaled to a doubling, $1.048$ for $\sigma = 0.3$; $1.073$, $1.080$, $1.095$ for $\sigma = 0.4$), the opposite of what convergence to a finite constant would show.
     For $\sigma \le 0.2$ the growth is slow over this range of horizons.
     \item A simple balance explains where the growth sets in.
     The anchor moves the iterate by at most $2D/(k+2)$ per step, whereas the adversary controls a perturbation of size $\sigma\|s^{(k+1)}\|_M \approx \sigma C D/k$ of the evaluation point.
