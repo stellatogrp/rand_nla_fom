@@ -25,6 +25,13 @@
 %                      programming, arXiv 2024.
 %   robinson1981polyhedral  S. M. Robinson, Some continuity properties of
 %                      polyhedral multifunctions, Math. Program. Study 14 (1981).
+%   taylor2017smooth   A. B. Taylor, J. M. Hendrickx and F. Glineur, Smooth strongly
+%                      convex interpolation and exact worst-case performance of
+%                      first-order methods, Math. Program. 161 (2017) 307--345.
+%   ryu2020operator    E. K. Ryu, A. B. Taylor, C. Bergeling and P. Giselsson,
+%                      Operator splitting performance estimation: tight contraction
+%                      factors and optimal parameter selection, SIAM J. Optim. 30
+%                      (2020) 2251--2271.
 
 \documentclass[11pt]{article}
 
@@ -250,8 +257,7 @@ Writing $z^{(k)} - z^{(0)} = (z^{(k)} - z^\star) + (z^\star - z^{(0)})$ and usin
 \end{proof}
 
 For $\theta = 1$ the bound reads $\|s^{(k+1)}\|_M \le 2D/(k+2)$, which is the bound of \citet{lieder2021halpern} for the Halpern iteration of a nonexpansive map, and for $\theta = 2$ it reads $D/(k+1)$, the bound of \citet{kim2021accelerated} for the accelerated proximal point method.
-Both are known to be tight \citep{park2022exact}, so \Cref{thm:acc-exact} cannot be improved by a different proof.
-\mynote{TODO: I also solved the worst-case (performance estimation) problem for this iteration numerically for $\theta \in \{1, 2\}$ and $k \le 8$; the computed worst cases match $2D/(\theta k + 2)$ to four digits.  The script lives only in scratch space; add it under \texttt{code/experiments/} if we keep this remark.}
+Both are known to be tight \citep{park2022exact}, and \Cref{prop:acc-clip} below exhibits a one-dimensional instance that attains the bound for every $\theta$ and every $k$, so \Cref{thm:acc-exact} cannot be improved by a different proof.
 
 \subsection{Inexact linear solves}
 \Cref{lem:acc-one-step} shows exactly how the inexactness enters: the error term $\Lambda_k\langle e_k, d_k\rangle_M$ is of the same order $k^2\|s\|_M^2$ as the potential itself, while the slack $\frac{2-\theta}{2}\Lambda_k\|d_k\|_M^2$ only controls the \emph{difference} of consecutive steps.
@@ -341,23 +347,148 @@ A constant tolerance therefore cannot be absorbed by this argument (see \Cref{re
 \end{remark}
 
 \begin{remark}[Constant tolerance]\label{rem:acc-fixed-sigma}
-    For a constant tolerance $\sigma_k \equiv \sigma > 0$, \Cref{eq:acc-step1} only gives $V_k \le O(\sigma^2 D^2 k)$ when $\|s^{(k+1)}\|_M = O(D/k)$, which through \Cref{eq:acc-potential-lower} yields no more than the $O(1/\sqrt{k})$ rate of the base method.
-    This is not an artifact of a careless estimate: for every anchor sequence of the form $1 - \beta_k = \tau_k/\tau_{k+1}$ and every potential of the form $\tau_k\langle s^{(k+1)}, z^{(k)} - z^{(0)}\rangle_M + A_k\|s^{(k+1)}\|_M^2$, the coefficients that make the exact potential nonincreasing are determined at leading order, so there is no room of order $k^2\|s\|_M^2$ to absorb an error of that order.
-    Whether the anchored method with constant $\sigma$ still converges at rate $O(1/k)$ is open.
-    \mynote{TODO: numerical worst-case (performance estimation) computations for $\theta=1$, over all firmly nonexpansive maps and all residuals with $\|\varepsilon\|_M \le \sigma\|s\|_M$, gave the following values of $k\|s^{(k)}\|_M/D$ (nonconvex Burer--Monteiro solve, so lower bounds on the true worst case; the $\sigma = 0$ column matches $2k/(k+1)$ exactly).  Reproduce with a proper SDP solver before quoting.}
-    \begin{center}
-    \begin{tabular}{lccccc}
+    For a constant tolerance $\sigma_k \equiv \sigma > 0$ the error term in \Cref{eq:acc-step1} is of the same order as the potential, and no potential of the form $\tau_k\langle s^{(k+1)}, z^{(k)} - z^{(0)}\rangle_M + A_k\|s^{(k+1)}\|_M^2$ can absorb it: for every anchor sequence $1 - \beta_k = \tau_k/\tau_{k+1}$ the coefficients that make the exact potential nonincreasing are determined at leading order, so there is no slack of order $k^2\|s\|_M^2$.
+    \Cref{sec:acc-constant} studies the constant tolerance case in detail.
+\end{remark}
+
+\section{The case of a constant tolerance}\label{sec:acc-constant}
+\Cref{thm:acc-inexact} needs square-summable tolerances, whereas the base method of the draft works with a constant tolerance $\sigma \in (0, (2-\theta)/2)$.
+This section asks whether the anchored method with a constant tolerance still satisfies a bound of the form $\|s^{(k+1)}\|_M \le C(\sigma,\theta)\,D/k$.
+We were not able to prove such a bound, and the evidence collected below indicates that none exists:
+\begin{enumerate}
+    \item the potential argument, pushed as far as it goes, only bounds the residual by $2D/(\theta k)$ plus a floor proportional to $\sigma D$ (\Cref{prop:acc-floor});
+    \item the threshold $\sigma = (2-\theta)/2$ of the draft is sharp: at that value the base method can stall on a linear two-dimensional instance (\Cref{prop:acc-sharp}), and there the numerical worst case of the anchored method decays only like $N^{-1/2}$;
+    \item for every constant $\sigma > 0$ the worst-case constant $N\|s^{(N)}\|_M/D$, computed exactly for horizons $N \le 32$ by semidefinite programming, increases with $N$, and for $\sigma \ge 0.3$ it increases at an accelerating pace (\Cref{sec:acc-pep}).
+\end{enumerate}
+What is missing is an explicit family of instances, valid for all horizons, on which the constant provably diverges; \Cref{sec:acc-mechanism} records what the computed worst cases say such a family must look like.
+
+Throughout this section we work with the abstract oracle that the proofs of \Cref{sec:acc-anchored} actually use.
+An \emph{oracle} for a firmly nonexpansive map $F$ with $F(z^\star) = 0$ returns, at a query point $z$, a point $y$ with $\|y - z\|_M \le \sigma\|F(y)\|_M$ and the step $s = -F(y)$, so that $\varepsilon = y - z$ and $\hat z = y - F(y)$.
+Every such oracle has the properties of \Cref{lem:acc-monotone}, because $\langle \hat z_1 - \hat z_2, s_1 - s_2\rangle_M = -\langle y_1 - y_2, F(y_1) - F(y_2)\rangle_M + \|F(y_1) - F(y_2)\|_M^2 \le 0$, and the oracle of the draft is the special case $F = I - T$ with $T$ the exact Douglas--Rachford map.
+Lower bounds in the abstract model therefore show what the proof technique cannot exclude; whether they can be realized by an actual problem $(f, A, b)$ with an inexact linear solver is not addressed here.
+\mynote{TODO: decide whether the one-dimensional instance of \Cref{prop:acc-clip} can be realized by a problem with $m \ge 1$ constraints; with $m = 0$ the oracle is exact.}
+
+\subsection{What the potential argument gives}
+\begin{proposition}\label{prop:acc-floor}
+    Let $\theta \in (0,2)$, let $\sigma_k \equiv \sigma \in [0, (2-\theta)/2)$, and let $c_0 = \theta(2 - \theta - 2\sigma) > 0$.
+    Then for every $k \ge 0$,
+    \begin{align}
+        \|s^{(k+1)}\|_M \le \frac{2D}{\theta k + 1} + \frac{2\sigma (k+2)\, D}{\sqrt{(2-\theta)\, c_0\, (k+1)(\theta k + 1)}} .
+    \end{align}
+\end{proposition}
+\begin{proof}
+    Write $a_k = \|s^{(k+1)}\|_M^2$ and $\delta_k = \|z^{(k)} - z^\star\|_M^2$.
+    The one-step inequality of the draft together with \Cref{eq:acc-star-inequality} gives $\|z^{(k)} + \theta s^{(k+1)} - z^\star\|_M^2 \le \delta_k - c_0 a_k$, and since $z^{(k+1)}$ is a convex combination of $z^{(0)}$ and $z^{(k)} + \theta s^{(k+1)}$, convexity of the squared norm gives $(k+2)\delta_{k+1} \le D^2 + (k+1)\delta_k - (k+1)c_0 a_k$.
+    Summing from $0$ to $k$ and using $\delta_0 = D^2$,
+    \begin{align}
+        c_0 \sum_{j=0}^{k}(j+1)\, a_j \le (k+2) D^2 . \label{eq:acc-fejer-sum}
+    \end{align}
+    Next, \Cref{eq:acc-step1} with constant $\sigma$, $V_0 = 0$ and $\Lambda_{j-1} \le \Lambda_j \le (k+2)(j+1)$ for $j \le k$ gives
+    \begin{align}
+        V_k \le \frac{2\sigma^2}{2-\theta}\sum_{j=0}^{k}\Lambda_j a_j \le \frac{2\sigma^2 (k+2)}{2-\theta}\sum_{j=0}^{k}(j+1)a_j \le \frac{2\sigma^2 (k+2)^2 D^2}{(2-\theta)\, c_0} .
+    \end{align}
+    Since $\sigma < 1/2$, \Cref{eq:acc-potential-lower} holds with $W_k \ge (k+1)(\theta k+1)/2$, and solving $W_k a_k - (k+1)D\sqrt{a_k} \le V_k$ as in Step 4 of the proof of \Cref{thm:acc-inexact} gives the claim.
+\end{proof}
+
+The second term does not decay: as $k \to \infty$ it tends to $2\sigma D/\sqrt{\theta(2-\theta)c_0}$.
+The potential argument therefore proves the accelerated rate only while $k \lesssim 1/\sigma$ and says nothing afterwards, since the base method's own bound $D/\sqrt{c_0 k}$ is smaller than the floor for $k \gtrsim 1/\sigma^2$.
+The floor is not merely a weakness of the estimates in the proof: the summation in \Cref{eq:acc-fejer-sum} is the only place where the growth of $\sum_j \Lambda_j a_j$ can be controlled, and it is exactly the Fej\'er sum that yields the $O(1/\sqrt{k})$ rate of the base method.
+
+\subsection{The threshold of the base method is sharp}
+The draft requires $\sigma < (2-\theta)/2$.
+The following instance shows that this cannot be relaxed, and it also isolates the geometric mechanism that the worst cases below exploit: an error \emph{aligned with the step} lets the oracle report the value of $F$ at a point that is farther from $z^\star$ than the iterate.
+
+\begin{proposition}\label{prop:acc-sharp}
+    Let $\theta \in (0,2)$, identify $\R^2$ with $\mathbb{C}$, fix $c \in (0,1)$, and let $F(y) = \lambda y$ with $\lambda = c + i\sqrt{c - c^2}$.
+    Then $F$ is firmly nonexpansive with $F(y) = 0$ only at $y = 0$, and the oracle that returns $y = z + \sigma F(y)$ (so that $\varepsilon = -\sigma s$ and $\|\varepsilon\| = \sigma\|s\|$) is admissible for every $\sigma \in [0,1)$.
+    For this oracle the base iteration $z^{(k+1)} = z^{(k)} + \theta s^{(k+1)}$ satisfies
+    \begin{align}
+        \frac{|z^{(k+1)}|^2}{|z^{(k)}|^2} = 1 - \frac{c\,\theta\,(2 - 2\sigma - \theta)}{1 - \sigma c (2 - \sigma)} .
+    \end{align}
+    In particular, for $\sigma = (2-\theta)/2$ the iteration is an isometry, $|z^{(k)}| = D$ and $\|s^{(k+1)}\| = |\lambda| D/|1 - \sigma\lambda|$ for all $k$, and for $\sigma > (2-\theta)/2$ the iterates diverge.
+\end{proposition}
+\begin{proof}
+    Since $|\lambda|^2 = c = \operatorname{Re}\lambda$, we have $\langle F(y_1) - F(y_2), y_1 - y_2\rangle = \operatorname{Re}(\lambda)|y_1 - y_2|^2 = \|F(y_1) - F(y_2)\|^2$, so $F$ is firmly nonexpansive.
+    The oracle equation $g = \lambda(z + \sigma g)$ has the unique solution $g = \lambda z/(1 - \sigma\lambda)$ because $|\sigma\lambda| < 1$, and $\|\varepsilon\| = \sigma|g|$ by construction.
+    The base step is $z^{(k+1)} = z^{(k)} - \theta g = z^{(k)}\,(1 - (\sigma + \theta)\lambda)/(1 - \sigma\lambda)$.
+    For real $a$, $|1 - a\lambda|^2 = 1 - 2ac + a^2 c = 1 - ac(2-a)$, and $(\sigma+\theta)(2 - \sigma - \theta) - \sigma(2-\sigma) = \theta(2 - 2\sigma - \theta)$, which gives the displayed ratio.
+    The remaining claims read off from its sign, and $|g| = |\lambda||z^{(k)}|/|1 - \sigma\lambda|$ is constant along an isometric orbit.
+\end{proof}
+
+For the anchored method the same linear instance is harmless: every fixed linear instance gives $O(D/k)$ because $(k+1)\, z^{(k)}$ is then a bounded geometric sum.
+The numerical worst case at $\sigma = (2-\theta)/2$ in \Cref{tab:acc-pep} is nonlinear and decays only like $N^{-1/2}$, that is, at the boundary the anchor buys nothing.
+
+\subsection{Explicit one-dimensional instances}
+\begin{proposition}\label{prop:acc-clip}
+    Let $\theta \in (0,2]$, $\sigma \in [0,1)$, $N \ge 1$, and $\delta = 2D/(\theta(N-1) + 2(1-\sigma))$.
+    Let $F$ be the projection of $\R$ onto $[-\delta, \delta]$, which is firmly nonexpansive with $F(y) = 0$ only at $y = 0$, and start the anchored method at $z^{(0)} = D$ with the oracle that returns $y = z + \sigma\delta$ whenever $z \ge (1-\sigma)\delta$.
+    Then $\|s^{(k+1)}\| = \delta$ for $k = 0, \ldots, N-1$; in particular
+    \begin{align}
+        \|s^{(N)}\| = \frac{2D}{\theta(N-1) + 2(1-\sigma)} .
+    \end{align}
+    With $\sigma = 0$ this attains the bound of \Cref{thm:acc-exact} for $k = N-1$.
+\end{proposition}
+\begin{proof}
+    As long as $y^{(k)} = z^{(k)} + \sigma\delta \ge \delta$ the oracle returns $F(y^{(k)}) = \delta$, so $s^{(k+1)} = -\delta$ and $\varepsilon^{(k+1)} = \sigma\delta = \sigma\|s^{(k+1)}\|$ is admissible.
+    The anchored update then reads $(k+2)z^{(k+1)} = D + (k+1)(z^{(k)} - \theta\delta)$, whose solution is $z^{(k)} = D - \theta\delta k/2$.
+    The condition $z^{(k)} + \sigma\delta \ge \delta$ is most restrictive at $k = N-1$, where it is equivalent to $\delta \le 2D/(\theta(N-1) + 2(1-\sigma))$.
+\end{proof}
+
+Two conclusions follow.
+First, any bound $C(\sigma,\theta)D/k$ for a constant tolerance would need $C \ge 2/\theta$, and \Cref{prop:acc-clip} together with the final-step inflation $\|s\| \le \|z - z^\star\|/(1-\sigma)$ from \Cref{eq:acc-star-inequality} shows that one-dimensional instances lose only a constant factor, so a diverging constant requires several dimensions.
+Second, the exact worst case is one-dimensional: the semidefinite programs of \Cref{sec:acc-pep} return a rank-one Gram matrix for $\sigma = 0$, matching \Cref{prop:acc-clip}, whereas for $\sigma > 0$ they return Gram matrices whose rank grows with the horizon.
+
+\subsection{Worst-case computations}\label{sec:acc-pep}
+The largest value of $\|s^{(N)}\|_M/D$ over all firmly nonexpansive maps and all admissible errors is a performance estimation problem in the sense of \citet{taylor2017smooth}: a semidefinite program in the Gram matrix of the $2N+1$ vectors $z^{(0)} - z^\star$, $s^{(1)}, \ldots, s^{(N)}$, $\varepsilon^{(1)}, \ldots, \varepsilon^{(N)}$.
+Its constraints are the pairwise interpolation inequalities $\langle F(y_i) - F(y_j), y_i - y_j\rangle \ge \|F(y_i) - F(y_j)\|^2$ over all visited points and $z^\star$, which are necessary and sufficient for a firmly nonexpansive map through the points to exist \citep{ryu2020operator}, together with $\|\varepsilon^{(i)}\|^2 \le \sigma^2\|s^{(i)}\|^2$ and $\|z^{(0)} - z^\star\|^2 = 1$.
+The script \texttt{code/experiments/anchored\_worst\_case.py} solves it with a small ADMM loop (no external solver) to affine and cone residuals below $3\cdot 10^{-8}$; \Cref{tab:acc-pep} reports $N\|s^{(N)}\|_M/D$ for $\theta = 1$.
+The $\sigma = 0$ column agrees with $2N/(\theta(N-1)+2)$ to within half a percent, which is the accuracy of the solver on that degenerate program; the columns with $\sigma > 0$ converge to eight digits.
+Each computed optimum is a certificate: its Gram matrix is an explicit instance on which the anchored method attains the reported value.
+
+\begin{table}
+    \centering
+    \caption{Worst case of $N\|s^{(N)}\|_M/D$ for the anchored method with $\theta = 1$ and constant tolerance $\sigma$, over all firmly nonexpansive maps and admissible errors, with the ratio to the exact value $2N/(N+1)$ in parentheses.
+    The exact case is tight for the one-dimensional instance of \Cref{prop:acc-clip}.}
+    \label{tab:acc-pep}
+    \begin{tabular}{lcccc}
         \toprule
-        $k$ & 1 & 2 & 4 & 8 & 12 \\
+        $N$ & 4 & 8 & 16 & 32 \\
         \midrule
-        $\sigma = 0$   & 1.00 & 1.33 & 1.60 & 1.78 & 1.85 \\
-        $\sigma = 0.1$ & 1.11 & 1.44 & 1.69 & 1.87 & 1.94 \\
-        $\sigma = 0.3$ & 1.43 & 1.82 & 2.21 & 2.52 & 2.67 \\
+        $\sigma = 0$   & 1.600 & 1.778 & 1.882 & 1.939 \\
+        $\sigma = 0.1$ & 1.689 (1.06) & 1.867 (1.05) & 1.984 (1.05) & 2.054 (1.06) \\
+        $\sigma = 0.2$ & 1.880 (1.18) & 2.109 (1.19) & 2.267 (1.20) & 2.382 (1.23) \\
+        $\sigma = 0.3$ & 2.207 (1.38) & 2.518 (1.42) & 2.764 (1.47) & 2.974 (1.53) \\
+        $\sigma = 0.4$ & 2.708 (1.69) & 3.230 (1.82) & 3.694 (1.96) & 4.167 (2.15) \\
+        $\sigma = 0.5$ & 3.695 (2.31) & 5.273 (2.97) & 7.844 (4.17) & 11.611 (5.99) \\
         \bottomrule
     \end{tabular}
-    \end{center}
-    The growth with $k$ for $\sigma = 0.3$ is slow but has not clearly saturated by $k = 12$.
-\end{remark}
+\end{table}
+\mynote{TODO: the runs for $N \in \{48, 64\}$ and $\sigma \in \{0.2, 0.3, 0.4\}$ were still in progress when this was written; add them, and repeat the table for $\theta \in \{0.5, 1.5\}$.}
+
+Three features of \Cref{tab:acc-pep} matter.
+\begin{enumerate}
+    \item For every $\sigma > 0$ the ratio to the exact constant increases with $N$.
+    For $\sigma = 0.5 = (2-\theta)/2$ it grows by a factor close to $\sqrt{2}$ per doubling of $N$, so the worst-case residual decays like $N^{-1/2}$, the rate of the base method.
+    \item For $\sigma \in \{0.3, 0.4\}$ the growth factor per doubling is itself increasing ($1.027$, $1.037$, $1.044$ for $\sigma = 0.3$ and $1.073$, $1.080$, $1.095$ for $\sigma = 0.4$), the opposite of what convergence to a finite constant would show.
+    For $\sigma \le 0.2$ the growth is slow over this range of horizons.
+    \item A simple balance explains where the growth sets in.
+    The anchor moves the iterate by at most $2D/(k+2)$ per step, whereas the adversary controls a perturbation of size $\sigma\|s^{(k+1)}\|_M \approx \sigma C D/k$ of the evaluation point.
+    Once $\sigma C \gtrsim 1$ the errors can offset the anchor, and the iteration can behave like the unanchored base method, whose worst case is $\Theta(N^{-1/2})$.
+    At $N = 32$ the product $\sigma C$ equals $0.2$, $0.5$, $0.9$, $1.7$ and $5.8$ for $\sigma = 0.1, \ldots, 0.5$, which is consistent with the onset of fast growth between $\sigma = 0.3$ and $\sigma = 0.4$.
+    Since $C$ increases with $N$, this balance is eventually reached for every fixed $\sigma > 0$, which is why we expect the constant to diverge for every constant tolerance.
+\end{enumerate}
+
+\subsection{Structure of the worst cases}\label{sec:acc-mechanism}
+The optimal Gram matrices carry more information than their value.
+For $\sigma = 0.3$ and $N \in \{12, 24, 32\}$ their numerical ranks are $7$, $10$ and $11$, so the worst case uses a number of dimensions that grows with the horizon; the exact worst case is one-dimensional.
+Along the worst-case trajectory every error constraint is active, the error has a positive component along the step (correlation mostly between $0.4$ and $0.7$ for $\sigma = 0.3$, above $0.95$ for $\sigma = 0.5$), and the step is close to orthogonal to $z^{(k)} - z^\star$ during a long middle phase, in which the constraint $\langle s, z - z^\star\rangle_M \le -(1-\sigma)\|s\|_M^2$ holds with equality.
+In that phase the iterate circles $z^\star$ at a slowly decreasing distance while the residual stays almost constant, exactly the behaviour of the unanchored method on a rotation, and the errors are what makes this circling compatible with firm nonexpansiveness once the anchor is present.
+At the boundary $\sigma = (2-\theta)/2$ the worst case is a zigzag: consecutive steps alternate between two directions and the errors are almost parallel to the steps, which is the discrete version of the isometric orbit in \Cref{prop:acc-sharp}.
+
+We also searched over linear firmly nonexpansive maps, including maps with a spread spectrum designed to let the perturbations accumulate coherently, and found no growth: on every linear instance the scaled residual $(k+1)\|s^{(k+1)}\|_M/D$ stayed below the exact constant $2/\theta$.
+The reason is visible in the recursion for $u_k = (k+1)F(z^{(k)} - z^\star)$, in which the error enters through $F^2$ and is therefore small exactly in the directions where $I - \theta F$ contracts slowly.
+An explicit counterexample must therefore be nonlinear and multi-dimensional, and a natural candidate is a self-similar construction that repeats the middle phase above on successively longer time scales.
+\mynote{TODO: construct such a family, or prove that none exists.}
 
 \section{Restarts and linear convergence}\label{sec:acc-restart}
 The anchored method converges at rate $O(1/k)$ in the worst case, but it also converges no faster than that on easy problems.
@@ -437,7 +568,8 @@ Because $(\sigma_j)$ is nonincreasing, the step that opens a new epoch was compu
 The anchored update \Cref{eq:anchored-update} accelerates the inexact primal-dual Douglas--Rachford method from $O(1/\sqrt{k})$ to $O(1/k)$ in the fixed-point residual and in both KKT residuals (\Cref{thm:acc-inexact,cor:acc-kkt}), at the price of a tolerance sequence with $\sum_k\sigma_k^2 < \infty$, which costs $O(\log k)$ inner iterations per outer iteration.
 With exact solves the bound $2D/(\theta k+2)$ of \Cref{thm:acc-exact} is tight.
 Restarting the anchor when the residual halves gives linear convergence under an error bound, with an iteration count linear rather than quadratic in the error-bound constant (\Cref{thm:acc-restart}).
-Two questions remain open: whether a constant tolerance also gives $O(1/k)$ (\Cref{rem:acc-fixed-sigma}), and the transfer of the total inner-work bound of the draft to the anchored update (\Cref{rem:acc-inner-work}).
+A constant tolerance does not give an $O(1/k)$ guarantee that we can prove, and \Cref{sec:acc-constant} collects the evidence that none exists: the potential argument only yields a noise floor, the threshold $\sigma = (2-\theta)/2$ of the base method is sharp, and the exactly computed worst-case constant increases with the horizon, at an accelerating pace once $\sigma$ times the constant exceeds one.
+Two questions remain open: an explicit family of instances on which the constant provably diverges for a constant tolerance, and the transfer of the total inner-work bound of the draft to the anchored update (\Cref{rem:acc-inner-work}).
 
 \bibliography{bibliography}
 

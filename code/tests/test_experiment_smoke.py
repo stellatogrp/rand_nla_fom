@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 
+from experiments.anchored_worst_case import solve_worst_case
 from experiments.problems import inequality_qp_optimum, slack_quadratic_prox
 from experiments.standard import make_lp, solve
 from experiments.theta_sweep import POLICIES, THETAS, sigma_for
@@ -45,6 +46,19 @@ class ExperimentSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(slack.min(), -1e-12)
         self.assertLess(np.linalg.norm(matrix @ primal + slack - rhs), 2e-8)
         self.assertLess(abs(float(primal @ hessian @ primal) - optimum), 5e-6)
+
+    def test_anchored_worst_case_matches_exact_bound(self):
+        # With exact solves the worst case of the anchored iteration over
+        # firmly nonexpansive maps is 2N / (theta (N - 1) + 2); relative
+        # errors can only enlarge it.
+        theta, horizon = 1.0, 3
+        # The exact program is degenerate (its solution has rank one), so the
+        # first-order solver converges slowly there; one percent is enough.
+        exact, *_ = solve_worst_case(horizon, 0.0, theta, iterations=40_000)
+        self.assertLess(abs(exact - 2 * horizon / (theta * (horizon - 1) + 2)), 0.02)
+        inexact, primal, dual, _ = solve_worst_case(horizon, 0.3, theta)
+        self.assertGreater(inexact, exact)
+        self.assertLess(max(primal, dual), 1e-6)
 
     def test_theta_sweep_tolerances_stay_admissible(self):
         # Theorem 5 couples the two parameters, so every (theta, sigma) the
