@@ -41,10 +41,11 @@
     We consider the minimization of a closed proper convex function subject to linear equality constraints.
     We propose a relaxed Douglas--Rachford method in which the proximal step is exact and the linear system that forms the other step is solved inexactly, by any iterative method, up to a relative-error test on its residual.
     We make no smoothness or growth assumptions on the objective.
-    We show that the squared fixed-point residual is summable, so that its running minimum decays at an asymptotiic rate of $o(1/k)$, and that the iterates converge linearly when the objective is smooth and strongly convex.
-    We then give an integrated analysis of the inner work: for a linear solver that contracts the residual geometrically, the expected number of inner iterations per outer iteration is bounded independently of the iteration count, and the total inner work over $n$ outer iterations is bounded by a constant times $n$ plus a logarithmic term.
+    We show that the squared fixed-point residual is summable, so that its running minimum decays at an asymptotic rate of $o(1/k)$, that the iterates converge to a fixed point, and that the iterates converge linearly when the objective is smooth and strongly convex.
+    We then give an integrated analysis of the inner work: for a linear solver that contracts the residual geometrically, the expected total inner work over $n$ outer iterations is bounded by a constant times $n$ plus the logarithm of the ratio of the first to the last exact step norm.
+    When consecutive exact step norms decrease by at most a bounded factor, which holds for instance when $\theta < 1 - \sigma$, the expected number of inner iterations per outer iteration is bounded independently of the iteration count.
     The analysis rests on an explicit description of the spectrum of the linear system in terms of the step sizes and the singular values of the constraint matrix.
-    Numerical experiments on linear programs, quadratic programs, and the LASSO confirm the analysis.
+    Numerical experiments on linear programs, quadratic programs, and the LASSO illustrate the analysis and empirically exhibit an outer iteration that is insensitive to the inner tolerance on quadratic problems.
 \end{abstract}
 
 \section{Introduction}\label{sec:introduction}
@@ -70,10 +71,11 @@ Our contributions are the following.
 \begin{enumerate}
     \item We formulate a relaxed Douglas--Rachford method for \Cref{eq:linearly-constrained-problem} in a block-diagonal metric with separate step sizes $\gamma_x$ and $\gamma_\lambda$ for the primal and dual variables, respectively, in which a linear system is solved inexactly up to a relative-error test on its residual.
     We show that the test is admissible whenever $\sigma < (2 - \theta)/2$, where $\theta \in (0, 2)$ is the relaxation parameter and $\sigma$ is an inexactness parameter (\Cref{sec:algorithm}).
-    \item Without any smoothness or growth assumption on $f$, we show that the squared fixed-point residual is summable and that its running minimum decays as $o(1/k)$.
+    \item Without any smoothness or growth assumption on $f$, we show that the squared fixed-point residual is summable, that its running minimum decays as $o(1/k)$, that the iterates converge to a fixed point, and that the reported primal--dual pair carries a computable KKT residual of the same order as the step.
     Furthermore, when $f$ is smooth and strongly convex, we show linear convergence with an explicit rate (\Cref{sec:algorithm}).
     \item We give an integrated analysis of the inner work.
-    For any inner solver that contracts the residual geometrically, the expected number of inner iterations at each outer iteration is bounded by a quantity that depends on the tolerance $\sigma$ and the contraction factor but not on the iteration count, and the total inner work over $n$ outer iterations is bounded by a constant times $n$ plus a logarithm of the progress made (\Cref{sec:linear-system}).
+    For any inner solver that contracts the residual geometrically in conditional expectation given the outer history, the expected total inner work over $n$ outer iterations is bounded by a constant times $n$ plus the logarithm of the total progress $\bar R_0/\bar R_{n-1}$ of the exact step norm, and the expected work to a prescribed step tolerance is bounded explicitly.
+    If consecutive exact step norms satisfy $\bar R_{k-1} \leq \Delta \bar R_k$, which we prove for $\theta < 1 - \sigma$, the expected number of inner iterations at each outer iteration is bounded by a quantity that depends on $\sigma$, $\theta$, $\Delta$, and the solver but not on the iteration count (\Cref{sec:linear-system}).
     The bridge between the two levels is an explicit description of the spectrum of the linear system in terms of $\gamma_x$, $\gamma_\lambda$, and the singular values of $A$.
     \item We test the method on linear programs, quadratic programs with equality and inequality constraints, and the LASSO, with conjugate gradients, GMRES, block Kaczmarz, and randomized Kaczmarz as inner solvers (\Cref{sec:numerical-results}).
 \end{enumerate}
@@ -125,15 +127,37 @@ The primal iterate that is reported is $v^{(k+1)}$, the output of the proximal s
 \begin{algorithm}[htbp]
     \caption{Relaxed Douglas--Rachford with an inexact linear solve}
     \label{alg:main}
-    \KwIn{$z^{(0)} = (x^{(0)}, \lambda^{(0)})$; step sizes $\gamma_x, \gamma_\lambda > 0$; relaxation $\theta \in (0, 2)$; tolerance $\sigma \in [0, (2-\theta)/2)$}
+    \KwIn{$z^{(0)} = (x^{(0)}, \lambda^{(0)})$; initial pair $(\xi^{(0)}, \nu^{(0)})$; step sizes $\gamma_x, \gamma_\lambda > 0$; relaxation $\theta \in (0, 2)$; tolerance $\sigma \in [0, (2-\theta)/2)$, stopping tolerance $\delta$, inner batch size $b$}
     \For{$k = 0, 1, 2, \ldots$}{
-        find $(\xi^{(k+1)}, \nu^{(k+1)})$, by an iterative method applied to \Cref{eq:linear-system-step} at $z^{(k)}$ and warm started at $(\xi^{(k)}, \nu^{(k)})$, whose step $s^{(k+1)}$ and residual $\varepsilon^{(k+1)}$ from \Cref{eq:true-step-definitions,eq:residual-definition} satisfy $\|\varepsilon^{(k+1)}\|_M \leq \sigma \|s^{(k+1)}\|_M$\;
-        $v^{(k+1)} \gets \prox_{\gamma_x f}(\xi^{(k+1)} - \gamma_x A^\top \nu^{(k+1)})$\;
-        $z^{(k+1)} \gets z^{(k)} + \theta s^{(k+1)}$\;
+        Compute $s^{(k+1)}$ and $\varepsilon^{(k+1)}$ from \Cref{eq:true-step-definitions,eq:residual-definition}\;
+        \uIf{$\|s^{(k+1)}\|_M < \delta$}{
+            Stop and return $z^{(k+1)} + \theta s^{(k+1)}$\;
+        } \uElseIf{$\|\varepsilon^{(k+1)}\|_M \leq \sigma \|s^{(k+1)}\|_M$}{
+            $v^{(k+1)} \gets \prox_{\gamma_x f}(\xi^{(k+1)} - \gamma_x A^\top \nu^{(k+1)})$\;
+            $z^{(k+1)} \gets z^{(k)} + \theta s^{(k+1)}$\;
+        } \uElse {
+            \For{$\ell = 1, 2, \ldots,b$}{
+                $(\xi^{(k+1)}, \nu^{(k+1)}) \gets$ one iteration of an iterative method applied to \Cref{eq:linear-system-step} at $z^{(k)}$\;
+            }
+            Go to line 2\;
+        }
     }
 \end{algorithm}
-The test can always be met: as the inner method converges, $\varepsilon \to 0$ while $s \to s^\star(z^{(k)})$, which is nonzero unless $z^{(k)}$ is already a fixed point.
-\Cref{sec:linear-system} bounds how many inner iterations the test requires.
+Whether the test can be met depends on $\sigma$ and on whether $z^{(k)}$ is a fixed point.
+\begin{enumerate}
+    \item If $\sigma > 0$ and $z^{(k)} \notin \mathcal{Z}^\star$, then $\|s^\star(z^{(k)})\|_M > 0$ and, by \Cref{lem:monotonicity} below, every inner iterate satisfies $\|s\|_M \geq \|s^\star(z^{(k)})\|_M - \|\varepsilon\|_M$.
+    The test therefore passes as soon as $\|\varepsilon\|_M \leq \sigma\|s^\star(z^{(k)})\|_M/(1 + \sigma)$, which any inner method whose residual tends to zero reaches after finitely many iterations.
+    \Cref{sec:linear-system} bounds how many.
+    \item If $\sigma = 0$ the test demands an exact solve.
+    An iterative method reaches it in finitely many steps only if it has finite termination, as conjugate gradients and GMRES do in exact arithmetic within the dimension of the system.
+    An iterative method, such as Kaczmarz or coordinate descent, in general does not.
+    In floating point an exact solve is replaced by an absolute floor on the residual (\Cref{sec:scope}).
+    \item If $z^{(k)} \in \mathcal{Z}^\star$, then $s^\star(z^{(k)}) = 0$ and \Cref{lem:monotonicity} gives $\|s\|_M \leq \|\varepsilon\|_M$ for every inner iterate.
+    Acceptance with $\sigma < 1$ then forces $s = \varepsilon = 0$ (an exact solve), and so the warm start does not pass the test automatically.
+    Conversely, an accepted pair with $s^{(k+1)} = 0$ has $\varepsilon^{(k+1)} = 0$, certifies $z^{(k)} \in \mathcal{Z}^\star$, and returns the KKT point $(v^{(k+1)}, \nu^{(k+1)})$ (\Cref{prop:iterate-convergence}).
+    We say that the method \emph{terminates exactly} at iteration $k$ in this case, and \Cref{alg:main} stops.
+\end{enumerate}
+The analysis of \Cref{sec:linear-system} treats exact termination separately from the generic case $s^\star(z^{(k)}) \neq 0$.
 
 \subsection{Motivation}
 The method is a variant of the relative-error Douglas--Rachford method of \citet{EcksteinRelativeError2018}.
@@ -354,8 +378,51 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
 \begin{remark}
     The quantity $\|s^{(k+1)}\|_M$ is the fixed-point residual of the inexact iteration, and by \Cref{eq:acc-exact-vs-inexact} it is within a factor $1 \pm \sigma$ of the exact residual $\|s^\star(z^{(k)})\|_M$.
     \Cref{thm:relative-error-criterion} therefore controls the exact residual as well.
-    Convergence of $z^{(k)}$ itself to a point of $\mathcal{Z}^\star$ follows from the standard Fej\'er monotonicity argument.
 \end{remark}
+
+\begin{proposition}[Convergence of the iterates]\label{prop:iterate-convergence}
+    Under the assumptions of \Cref{thm:relative-error-criterion}, the sequence $z^{(k)}$ converges to a point $\bar z = (\bar x + \gamma_x A^\top\bar\lambda, \bar\lambda) \in \mathcal{Z}^\star$, and the reported pair satisfies $(v^{(k)}, \nu^{(k)}) \to (\bar x, \bar\lambda)$, which is a KKT point of \Cref{eq:linearly-constrained-problem}.
+    If the method terminates exactly at iteration $k$, that is, if the accepted step is $s^{(k+1)} = 0$, then $(v^{(k+1)}, \nu^{(k+1)})$ is a KKT point.
+\end{proposition}
+\begin{proof}
+    Fix $z^\star \in \mathcal{Z}^\star$.
+    By \Cref{thm:relative-error-criterion} the sequence $\|z^{(k)} - z^\star\|_M$ is nonincreasing, so $(z^{(k)})$ is bounded and has a cluster point $\bar z$, say $z^{(k_j)} \to \bar z$.
+    By \Cref{lem:monotonicity}, item 4, the map $s^\star$ is $1$-Lipschitz in $\|\cdot\|_M$, hence continuous, and by \Cref{eq:acc-exact-vs-inexact}, $\|s^\star(z^{(k)})\|_M \leq (1 + \sigma)\|s^{(k+1)}\|_M \to 0$.
+    Hence $s^\star(\bar z) = \lim_j s^\star(z^{(k_j)}) = 0$, and $\bar z \in \mathcal{Z}^\star$ by \Cref{def:admissible-pairs}.
+    Since $\bar z$ is itself a fixed point, $\|z^{(k)} - \bar z\|_M$ is nonincreasing, and a nonincreasing sequence with a subsequence tending to zero tends to zero.
+    Thus, $z^{(k)} \to \bar z$.
+    
+    Let $\bar z = (\bar x + \gamma_x A^\top\bar\lambda, \bar\lambda)$ with $(\bar x, \bar\lambda)$ a KKT point.
+    The pair is determined by $\bar z$: $\bar\lambda$ is the second block and $\bar x = \bar z_x - \gamma_x A^\top\bar z_\lambda$.
+    For the reported pair, \Cref{eq:true-step-definitions,eq:residual-definition} give
+    \begin{equation*}
+        \hat z^{(k+1)} = (v^{(k+1)} + \gamma_x A^\top\nu^{(k+1)},\ \nu^{(k+1)}) = z^{(k)} + s^{(k+1)} + \varepsilon^{(k+1)} \to \bar z,
+    \end{equation*}
+    so $\nu^{(k+1)} \to \bar\lambda$ and $v^{(k+1)} = \hat z^{(k+1)}_x - \gamma_x A^\top\nu^{(k+1)} \to \bar x$.
+    Finally, if the accepted step is $s^{(k+1)} = 0$, then $\|\varepsilon^{(k+1)}\|_M \leq \sigma\|s^{(k+1)}\|_M = 0$, so $\hat z^{(k+1)} = z^{(k)}$ and $\|s^\star(z^{(k)})\|_M \leq \|s^{(k+1)}\|_M + \|\varepsilon^{(k+1)}\|_M = 0$ by \Cref{lem:monotonicity}, item 3.
+    Thus $z^{(k)} \in \mathcal{Z}^\star$, and $(v^{(k+1)}, \nu^{(k+1)})$ is the KKT point that $\hat z^{(k+1)} = z^{(k)}$ determines.
+\end{proof}
+
+\begin{corollary}[KKT residual of the reported pair]\label{cor:kkt-certificate}
+    Let $(v, \nu)$ be generated from $(\xi, \nu)$ by \Cref{eq:true-step-definitions} with step $s = (s_x, s_\lambda)$, and let $u = \gamma_x^{-1}(\xi - v) - A^\top\nu \in \partial f(v)$ be the subgradient of \Cref{eq:acc-prox-optimality}.
+    Then
+    \begin{equation}\label{eq:kkt-identities}
+        u + A^\top\nu = -\gamma_x^{-1}s_x, \qquad Av - b = \gamma_\lambda^{-1}s_\lambda + As_x,
+    \end{equation}
+    and therefore
+    \begin{equation}\label{eq:kkt-residual-bound}
+        \|u + A^\top\nu\| \leq \gamma_x^{-1/2}\|s\|_M, \qquad \|Av - b\| \leq \left(\gamma_\lambda^{-1/2} + \gamma_x^{1/2}\sigma_{\max}(A)\right)\|s\|_M.
+    \end{equation}
+    Under the assumptions of \Cref{thm:relative-error-criterion}, the iterate among $v^{(1)}, \ldots, v^{(k)}$ with the smallest step norm has both KKT residuals of order $o(1/\sqrt{k})$.
+\end{corollary}
+\begin{proof}
+    The first identity is the definition of $u$ with $s_x = v - \xi$.
+    For the second, $Av - b = A(v - \xi) + (A\xi - b) = As_x + \gamma_\lambda^{-1}s_\lambda$.
+    The bounds follow from $\|s_x\| \leq \gamma_x^{1/2}\|s\|_M$ and $\|s_\lambda\| \leq \gamma_\lambda^{1/2}\|s\|_M$, and the rate from \Cref{eq:small-o-rate}.
+\end{proof}
+The corollary turns the controlled step norm into a computable certificate at the reported pair.
+It is a best-iterate bound on the KKT residuals.
+The analysis gives neither a last-iterate rate nor a rate on the objective gap $f(v^{(k)}) - f(x^\star)$, and the two should not be conflated with \Cref{eq:small-o-rate}.
 
 \begin{theorem}[Linear convergence]\label{thm:linear-convergence}
     Let $\theta \in (0,2)$, $\sigma \in [0, (2-\theta)/2)$, let $A$ have full row rank, and let $f$ be $\mu$-strongly convex and $L$-smooth.
@@ -374,7 +441,7 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
 \end{theorem}
 \begin{proof}
     Uniqueness of the KKT point follows from strong convexity ($x^\star$ is unique) and full row rank ($\lambda^\star$ is determined by $A^\top\lambda^\star = -\nabla f(x^\star)$).
-    We fix an outer iteration and drop the superscripts: $z = z^{(k)}$, $z^+ = z^{(k+1)}$, and $(\xi, \nu, v, \hat z, s, \varepsilon, q)$ are the quantities of \Cref{eq:true-step-definitions,eq:residual-definition} at iteration $k$.
+    We fix an outer iteration and drop the superscripts: $z = z^{(k)}$, $z^+ = z^{(k+1)}$, and $(\xi, \nu, v, \hat z, s, \varepsilon)$ are the quantities of \Cref{eq:true-step-definitions,eq:residual-definition} at iteration $k$, and $q = \hat z - z = s + \varepsilon$ is the inexact Douglas--Rachford step.
     Since $f$ is differentiable, we may define $u = \nabla f(v)$ and $u^\star = \nabla f(x^\star)$, and write $g = \nabla f(v) - \nabla f(x^\star)$.
 
     Firstly, by \Cref{eq:lyapunov-decrease-estimate} and \cite[Theorem 2.1.12]{nesterov2004introductory}
@@ -391,9 +458,13 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
     \begin{equation*}
         A^\top(\nu - \lambda^\star) = \gamma_x^{-1}(\xi - v) - \nabla f(v) + \nabla f(x^\star) = -\gamma_x^{-1} s_x - g.
     \end{equation*}
-    Since $A$ has full row rank, 
-    \[\|\nu - \lambda^\star\| \leq \sigma_{\min}(A)^{-1}\|A^\top(\nu - \lambda^\star)\| \leq \sigma_{\min}(A)^{-1}(\gamma_x^{-1}\|s_x\| + \|g\|).\]
-    Split $\hat z - z^\star$ into the three vectors $(v - x^\star, 0)$, $(-s_x, w_1)$, and $(-\gamma_x g, w_2)$, where $w_1 + w_2 = \nu - \lambda^\star$ is the corresponding split of the multiplier component with $\|w_1\| \leq \sigma_{\min}(A)^{-1}\gamma_x^{-1}\|s_x\|$ and $\|w_2\| \leq \sigma_{\min}(A)^{-1}\|g\|$.
+    Since $A$ has full row rank, $A^\top$ has full column rank, so its pseudo-inverse $(A^\top)^\dagger = (AA^\top)^{-1}A$ satisfies $(A^\top)^\dagger A^\top = I$ and $\|(A^\top)^\dagger\|_2 = \sigma_{\min}(A)^{-1}$.
+    Hence
+    \begin{equation*}
+        \nu - \lambda^\star = (A^\top)^\dagger A^\top(\nu - \lambda^\star) = w_1 + w_2, \qquad w_1 = -\gamma_x^{-1}(A^\top)^\dagger s_x, \qquad w_2 = -(A^\top)^\dagger g,
+    \end{equation*}
+    with $\|w_1\| \leq \sigma_{\min}(A)^{-1}\gamma_x^{-1}\|s_x\|$ and $\|w_2\| \leq \sigma_{\min}(A)^{-1}\|g\|$.
+    Split $\hat z - z^\star$ into the three vectors $(v - x^\star, 0)$, $(-s_x, w_1)$, and $(-\gamma_x g, w_2)$.
     The triangle inequality in $\|\cdot\|_M$ and the bound $\gamma_x^{-1/2}\|s_x\| \leq \|s\|_M$ give
     \begin{equation*}
         \|\hat z - z^\star\|_M \leq \gamma_x^{-1/2}\|v - x^\star\| + \sqrt{\gamma_x + \frac{1}{\gamma_\lambda\sigma_{\min}(A)^2}}\,\|g\| + \sqrt{1 + \frac{1}{\gamma_x\gamma_\lambda\sigma_{\min}(A)^2}}\,\|s\|_M.
@@ -416,9 +487,53 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
     Hence $\delta \geq C^{-1}\|z - z^\star\|_M^2$.
     Applying this lower bound to \Cref{eq:decrease-delta} yields the theorem.
 \end{proof}
-\begin{remark}
-    If $A$ does not have full row rank, the same argument holds, but with $\dist_M(z^{(k)}, \mathcal{Z}^\star)$ instead of $\|z^{(k)} - z^\star\|_M$, $\sigma_{\min}^+(A)$ in place of $\sigma_{\min}(A)$, and the multiplier component measured in the range of $A$, since $\lambda^\star$ is not unique in this case.
-\end{remark}
+
+\begin{proposition}[Linear convergence without full row rank]\label{prop:linear-rate-rank-deficient}
+    Let $\theta \in (0, 2)$, $\sigma \in [0, (2-\theta)/2)$, let $f$ be $\mu$-strongly convex and $L$-smooth, and let $A$ have rank $r \geq 1$.
+    Let $P$ be the orthogonal projector onto $\range(A)$ and $P^\perp = I - P$.
+    Then the primal solution $x^\star$ is unique, the multipliers form the affine set $\lambda^\star + \nullspace(A^\top)$ for any one multiplier $\lambda^\star$, and
+    \begin{equation*}
+        \mathcal{Z}^\star = \{ (x^\star + \gamma_x A^\top\lambda^\star, \lambda) \mid \lambda \in \lambda^\star + \nullspace(A^\top) \}.
+    \end{equation*}
+    The point $z^\star_\parallel = (x^\star + \gamma_x A^\top\lambda^\star,\ \lambda^\star_\parallel)$ with $\lambda^\star_\parallel = P\lambda^\star + P^\perp\lambda^{(0)}$ belongs to $\mathcal{Z}^\star$, satisfies $\|z^{(k)} - z^\star_\parallel\|_M = \dist_M(z^{(k)}, \mathcal{Z}^\star)$ for every $k$, and the iterates of \Cref{alg:main} satisfy
+    \begin{equation}\label{eq:linear-rate-rank-deficient}
+        \dist_M(z^{(k+1)}, \mathcal{Z}^\star)^2 \leq \left(1 - C_+^{-1}\right)\dist_M(z^{(k)}, \mathcal{Z}^\star)^2,
+    \end{equation}
+    where $C_+$ is the constant $C$ of \Cref{eq:linear-rate-constants} with $\sigma_{\min}(A)$ replaced by $\sigma_{\min}^+(A)$ and $D$ replaced by $D_+ = D + \sigma = 1 + 2\sigma + \sqrt{1 + (\gamma_x\gamma_\lambda\sigma_{\min}^+(A)^2)^{-1}}$.
+    In particular, $z^{(k)} \to z^\star_\parallel$ linearly.
+\end{proposition}
+\begin{proof}
+    Strong convexity makes $x^\star$ unique, and the multipliers are the solutions of $A^\top\lambda = -\nabla f(x^\star)$, the affine set $\lambda^\star + \nullspace(A^\top)$ with $\nullspace(A^\top) = \range(A)^\perp$.
+    Since $A^\top\lambda$ is the same for every multiplier, every point of $\mathcal{Z}^\star$ has the primal block $x^\star + \gamma_x A^\top\lambda^\star$, which gives the description of $\mathcal{Z}^\star$.
+
+    The dual update is $\lambda^{(k+1)} = \lambda^{(k)} + \theta\gamma_\lambda(A\xi^{(k+1)} - b)$, and $A\xi^{(k+1)} - b \in \range(A)$ because $b = Ax^\star$.
+    Hence $P^\perp\lambda^{(k)} = P^\perp\lambda^{(0)}$ for all $k$.
+    Since $A^\top P^\perp = 0$, we have $A^\top\lambda^\star_\parallel = A^\top\lambda^\star$, so $z^\star_\parallel \in \mathcal{Z}^\star$.
+    For any $\lambda \in \lambda^\star + \nullspace(A^\top)$ we have $P\lambda = P\lambda^\star$, so
+    \begin{equation*}
+        \|\lambda^{(k)} - \lambda\|^2 = \|P(\lambda^{(k)} - \lambda^\star)\|^2 + \|P^\perp(\lambda^{(0)} - \lambda)\|^2 \geq \|P(\lambda^{(k)} - \lambda^\star)\|^2 = \|\lambda^{(k)} - \lambda^\star_\parallel\|^2,
+    \end{equation*}
+    where the last identity uses $\lambda^{(k)} - \lambda^\star_\parallel = P(\lambda^{(k)} - \lambda^\star) + P^\perp(\lambda^{(k)} - \lambda^{(0)}) = P(\lambda^{(k)} - \lambda^\star)$.
+    As all points of $\mathcal{Z}^\star$ share the same primal block, $z^\star_\parallel$ is the $M$-projection of $z^{(k)}$ onto $\mathcal{Z}^\star$ for every $k$.
+
+    Since $z^\star_\parallel$ is a fixed point, \Cref{cor:over-under-relaxation} and hence \Cref{eq:decrease-delta} hold with $z^\star = z^\star_\parallel$ and $\lambda^\star$ replaced by $\lambda^\star_\parallel$, and the identity $A^\top(\nu - \lambda^\star_\parallel) = -\gamma_x^{-1}s_x - g$ holds verbatim because $A^\top\lambda^\star_\parallel = -\nabla f(x^\star)$.
+    The only step in the proof of \Cref{thm:linear-convergence} that uses full row rank is the bound on $\|\nu - \lambda^\star\|$.
+    Here $(A^\top)^\dagger A^\top = P$ and $\|(A^\top)^\dagger\|_2 = 1/\sigma_{\min}^+(A)$, so
+    \begin{equation*}
+        \nu - \lambda^\star_\parallel = P(\nu - \lambda^\star_\parallel) + P^\perp(\nu - \lambda^\star_\parallel)
+        = \underbrace{-\gamma_x^{-1}(A^\top)^\dagger s_x}_{w_1} \;\underbrace{-\, (A^\top)^\dagger g}_{w_2} \;+\; \underbrace{P^\perp(\nu - \lambda^{(k)})}_{w_3},
+    \end{equation*}
+    where we used $P^\perp\lambda^\star_\parallel = P^\perp\lambda^{(0)} = P^\perp\lambda^{(k)}$.
+    By \Cref{eq:residual-definition}, $\nu - \lambda^{(k)} = \varepsilon_\lambda + \gamma_\lambda(A\xi - b)$ with $A\xi - b \in \range(A)$, so $w_3 = P^\perp\varepsilon_\lambda$ and
+    \begin{equation*}
+        \|w_3\| \leq \|\varepsilon_\lambda\| \leq \gamma_\lambda^{1/2}\|\varepsilon\|_M \leq \gamma_\lambda^{1/2}\sigma\|s\|_M.
+    \end{equation*}
+    The bounds $\|w_1\| \leq \gamma_x^{-1}\|s_x\|/\sigma_{\min}^+(A)$ and $\|w_2\| \leq \|g\|/\sigma_{\min}^+(A)$ are as before.
+    Split $\hat z - z^\star_\parallel$ into the four vectors $(v - x^\star, 0)$, $(-s_x, w_1)$, $(-\gamma_x g, w_2)$, and $(0, w_3)$.
+    The fourth has $M$-norm $\gamma_\lambda^{-1/2}\|w_3\| \leq \sigma\|s\|_M$, so the triangle inequality gives \Cref{eq:lyapunov-bound} with $\sigma_{\min}(A)$ replaced by $\sigma_{\min}^+(A)$ and $D$ by $D + \sigma = D_+$.
+    The rest of the proof of \Cref{thm:linear-convergence} is unchanged and yields $\|z^{(k+1)} - z^\star_\parallel\|_M^2 \leq (1 - C_+^{-1})\|z^{(k)} - z^\star_\parallel\|_M^2$, which is \Cref{eq:linear-rate-rank-deficient} by the first part.
+\end{proof}
+
 \begin{remark}[Choosing the step size]\label{rem:step-size}
     With $\gamma_x = \gamma_\lambda = \gamma$, the constant $K$ in \Cref{eq:linear-rate-constants} becomes $2(\mu + L)\left(\gamma + (1/(\mu L) + 1/\sigma_{\min}(A)^2)/\gamma\right)$, which is minimized at
     \begin{equation*}
@@ -429,7 +544,7 @@ Conversely, at $\theta = 1$ the linear system may be solved to any relative accu
     The minimizer of $C$ therefore lies at or above this value, and a search algorithm like bisection over $\gamma$ may be used to find it.
 \end{remark}
 \begin{remark}
-    The bound says nothing about the cost of the inner solve, which grows with $\gamma$.
+    The bounds from \Cref{thm:relative-error-criterion,thm:linear-convergence,prop:linear-rate-rank-deficient} say nothing about the cost of the inner solve, which grows with $\gamma$.
     This is addressed theoretically in \Cref{sec:linear-system} and the experimentally in \Cref{sec:experiments-qp}.
 \end{remark}
 
