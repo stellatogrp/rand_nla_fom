@@ -20,7 +20,7 @@ tex/*.log
 tex/*.out
 tex/*.synctex.gz
 tex/*.toc
-tex/Draft.pdf
+tex/*.pdf
 
 .DS_Store
 
