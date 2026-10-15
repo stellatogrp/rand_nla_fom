@@ -4,12 +4,6 @@
 \usepackage{xcolor}
 \usepackage[normalem]{ulem}
 \newcommand{\TODO}[1]{{\color{purple}\textbf{TODO:} #1}}
-% Change tracking: \added{...} new text (blue), \removed{...} deleted text (red, struck),
-% \removedlong{...} long or math-heavy deletions (red, not struck), addedblock env (blue).
-\newcommand{\added}[1]{{\color{blue}#1}}
-\newcommand{\removed}[1]{{\color{red}\sout{#1}}}
-\newcommand{\removedlong}[1]{{\color{red}[deleted:] #1}}
-\newenvironment{addedblock}{\par\begingroup\color{blue}}{\endgroup\par}
 
 \usepackage{amssymb, amsfonts, amsmath, amsthm, mathtools}
 \usepackage[margin=1in, footskip=1cm, headheight = 1.5cm]{geometry}
@@ -52,14 +46,19 @@
 \crefname{algocf}{Algorithm}{Algorithms}
 
 
-\title{Expected Inner Work of Inexact HPE Methods}
+\title{Expected Inner Work of Inexact Proximal Point Methods}
 \author{Pranav Reddy}
 \date{\small \today \vspace{-5mm}}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-    \TODO{abstract}
+    \TODO{}
+    We consider a monotone inclusion problem in a Hilbert space.
+    Under mild assumptions, it is known that the proximal point method (PPM) converges to a zero of the operator, even with inexact computations of the resolvent.
+    We extend this analysis to get an explicit $o(1/k)$ convergence rate of the squared fixed-point residual, as well as a linear convergence rate in the presence of an error bound.
+    Assuming access to a contractive procedure to compute the resolvent, we show that it requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\mathcal{A}u_k) \leq\varepsilon$ for a general monotone inclusion problem.
+    We validate our theoretical findings on numerical experiements and show that many popular algorithms are robust to inexactness, and often benefit from it.
 \end{abstract}
 \section{Introduction}
 In this paper we consider the problem of a maximal monotone inclusion on a real Hilbert space $\mathcal{H}$:
@@ -69,9 +68,9 @@ In this paper we consider the problem of a maximal monotone inclusion on a real 
 where $\Acal:\Hcal\rightrightarrows\mathcal{H}$ is a maximal monotone operator.
 % These problems have been well-studied for over 50 years, going back to the original work of \cite{Martinet1970RegularisationDV}.
 A popular class of methods for solving this problem is the proximal point method (PPM): for a stepsize $\gamma$, we try to solve the backwards inclusion $x_k \in (I + \gamma\mathcal{A})x_{k+1}$.
-PPM has a long history, going back to the original work of \cite{Martinet1970RegularisationDV}, but it more well-known in the English-speaking world through Rockafellar's pioneering work on the subject (\cite{rockafellar-ppm-paper,rockafellar1976monotoneoperatorsandppm}).
+PPM has a long history, going back to the original work of \cite{Martinet1970RegularisationDV}, but it is more well-known in the English-speaking world through Rockafellar's pioneering work on the subject \citep{rockafellar-ppm-paper,rockafellar1976monotoneoperatorsandppm}.
 The operator $(I + \gamma\mathcal{A})^{-1}$ is single-valued and defined everywhere whenever $\Acal$ is maximal monotone (Minty's theorem, see \cite[Theorem 21.1]{Bauschke2017FinerPropertiesOfMonotoneOperators}) and is known as the \emph{resolvent} of $\mathcal{A}$.
-It is known that PPM includes general classes of operator splitting methods, such as Douglas--Rachford (\cite{EcksteinBertsekasDouglasRachfordSplitting}).
+It is known that PPM includes general classes of operator splitting methods, such as Douglas--Rachford \citep{EcksteinBertsekasDouglasRachfordSplitting}.
 For an introduction to the theory of monotone operators and their application in these methods, see \citet{Ryu_Yin_OptimizationMonotoneOperators}.
 The intuition is that by regularizing via $\gamma$ and solving the inclusion problem, a previously difficult problem may be decomposed into a sequence of simpler operations that are easier to implement.
 This broad idea finds many applications in convex optimization, with notable success stories such as ISTA, FISTA, and PDLP and its variants \citep{ISTA-original-paper,FISTA-original-paper,applegate2022practicallargescalelinearprogramming-pdlp-paper}.
@@ -79,12 +78,12 @@ This broad idea finds many applications in convex optimization, with notable suc
 It is a curious and important fact in algorithm design that the resolvent computation need not be done exactly.
 \cite{rockafellar-ppm-paper} first showed that it suffices to compute a sequence of iterates whose errors form a summable sequence.
 \cite{EcksteinBertsekasDouglasRachfordSplitting} extended the result to show that in fact, Douglas-Rachford is an instance of PPM and therefore it once again sufficed to compute iterates whose approximation errors were summable.
-However, the choice of such a sequence forms another parameter for the optimizer to tune, making practical implementations difficult.
+However, the choice of such a sequence adds an infinite number of parameters for the optimizer to tune, making practical implementations difficult.
 Moreover, the theory does not provide meaningful guidance on the design of such a sequence, nor does it provide guidance on how the choice of tolerance affects the work done over the course of the algorithm.
 
 To alleviate this difficulty, it would be nice to have a \emph{relative} error criterion: one where the tolerance is a function of the current state of the algorithm (e.g.\ the fixed-point residual of the iterates).
 This would provide meaningful guidance on the difficulty of solving a particular subproblem, as well as making tuning the algorithm easier.
-\cite{EcksteinRelativeError2018} provide an affirmative answer to the question of designing a relative error criterion for Douglas-Rachford and ADMM, and their result was extended by \cite{svaiter2018weaklyconvergentfullyinexact,BarrePEPInexactMethods}.
+\cite{EcksteinRelativeError2018} provide an affirmative answer to the question of designing a relative error criterion for Douglas-Rachford and the alternating direction method of multipliers (ADMM), and their result was extended by \cite{svaiter2018weaklyconvergentfullyinexact,BarrePEPInexactMethods}.
 
 More recently, \cite{bredies2021degeneratepreconditionedproximalpoint} showed that many existing operator splitting methods, such as Chambolle-Pock, Douglas-Rachford, Peaceman-Rachford, and Davis-Yin, are instances of \emph{degenerate preconditioned} proximal point methods.
 That is, we precondition the monotone inclusion problem \Cref{eq:monotone-inclusion} by replacing the scalar stepsize $\gamma$ with a matrix $M\succeq 0$ and evaluate $(I + M^{-1}\Acal)^{-1} = (M + \Acal)^{-1}M$.
@@ -94,7 +93,7 @@ However, an analysis of the \emph{inner complexity}, the complexity of computing
 \cite{machart2012optimalcomputationaltradeoffinexact} considers the complexity of inexact proximal gradient methods, but they only consider the case of absolute errors, with the standard summability conditions.
 Moreover, they only consider a specific instance of an algorithm, whereas our setting is general enough to cover many more operator splitting methods.
 \cite{LinMairal2018CatalystAcceleration} considers a model of global complexity, factoring in inner and outer complexity, but their error criterion is not generally computable, requiring knowledge of the exact solution to the subproblem or access to the dual function.
-\cite{alves2017iterationcomplexityinexactdouglasrachford} provides analysis in a similar setting but provides only asymptotic guarantees of inner complexity.
+\cite{alves2017iterationcomplexityinexactdouglasrachford} provide analysis in a similar setting but only show asymptotic guarantees of inner complexity.
 
 
 \TODO{literature review \& comparison with previous results. I believe this result is novel in a few ways
@@ -111,6 +110,8 @@ Our contribution is therefore as follows:
     \item We modify \cite[Algorithm 1]{alves2025generalframeworkinexactsplitting} to analyze a practical stopping criterion and provide bounds on the error at stopping (\Cref{prop:certificate}).
     \item We improve the analysis of \cite{alves2025generalframeworkinexactsplitting} to get an explicit convergence rate as well as linear convergence in the presence of an error bound (\Cref{thm:convergence-guarantee,thm:error-bound-outer-convergence-guarantee}).
     \item We analyze the total inner work done over the course of the algorithm and show that it requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\mathcal{A}u_k) \leq\varepsilon$ for a general monotone inclusion problem (\Cref{thm:total-inner-work-bound}).
+    \item We analyze our results on some model choices of algorithms, such as PPM and ADMM, and infer some principled guidelines on selecting algorithm parameters (\Cref{prop:optimal-sigma-gradient-descent-inside-ppm,prop:admm}).
+    \item We compare our theoretical results against empirical studies and find that the theorems are often conservative. In fact, most instances benefited from decreased accuracy (\Cref{sec:numerical-experiments}).
 \end{enumerate}
 
 \subsection{Setting and Notation}
@@ -750,7 +751,7 @@ The verified terminal condition $|z_l|=\alpha^{l/2}\leq\delta$ does terminate fo
     This function is convex on $(0, \infty)$ and minimized at $b^\star = \sqrt{C/B}$.
     Since $f$ is decreasing on $(0, b^\star]$ and increasing on $[b^\star, \infty)$, its minimizer over the positive integers is one of $\lfloor b^\star\rfloor$ or $\lceil b^\star\rceil$.
 \end{proof}
-\begin{remark}
+\begin{remark}\label{rem:b-star-remark}
     This bound is very loose, especially as $\alpha\to 1$, so it may not be suitable for all problems.
     Nevertheless, it is a heuristic that one could estimate before launching their algorithm of choice.
     For an exact answer, one would replace $\frac{1}{1-\alpha}$ in \Cref{eq:check-frequency-upper-bound-looseness} with $\frac{1}{1-\alpha^b}$ and attempt to numerically find the minimum.
@@ -768,7 +769,7 @@ Nevertheless, we hope this provides a more principled heuristic for implementati
 \subsection{Proximal Point Method}
 As a prescriptive example, let us consider the case of inexact proximal point on a smooth convex function.
 The optimal choice of fixed stepsize is $\gamma_{GD} = \frac{2}{(L + 1/\gamma) + 1/\gamma} = \frac{2\gamma}{\gamma L + 2}$, where $\gamma_{GD}$ is the inner stepsize of the gradient method applied to the proximal subproblem $\min_x f(x) + \frac{1}{2\gamma}\norm{x - w}^2$, which is $(L+1/\gamma)$-smooth and $(1/\gamma)$-strongly convex.
-\begin{proposition}\label{prop:optimal-sigma-gd}
+\begin{proposition}\label{prop:optimal-sigma-gradient-descent-inside-ppm}
     Consider the case where $\Ccal = I$ and $\Acal = \nabla f$ where $f$ is convex and $L$-smooth.
     At outer iteration $k$, run vanilla gradient descent with stepsize $\gamma_{GD} = \frac{2\gamma}{\gamma L + 2}$ on the proximal subproblem $\argmin_{x}\varphi_k(x) := f(x) + \frac{1}{2\gamma}\norm{x - w_k}^2$, warm-started at the previously accepted $u$, and use the graph pair $(u^l, z^l) = (x^l, \nabla f(x^l))$.
     \begin{enumerate}
@@ -780,7 +781,7 @@ The optimal choice of fixed stepsize is $\gamma_{GD} = \frac{2}{(L + 1/\gamma) +
         Substitute $\mathbb{E}[K_\delta]\leq K_\delta^+\leq\frac{1+\sigma}{1-\sigma}\cdot\frac{\dist(w_0,\zer B)^2}{\gamma^2\delta^2}$ into either bound.
         The coefficient of $\delta^{-2}$ is then $\frac{\dist(w_0,\zer B)^2}{\log(1/\alpha)}\,g(\sigma)$, where
         \begin{align}
-            g(\sigma) := \frac{1+\sigma}{1-\sigma}\bigl(c + \log D(\sigma)\bigr), \qquad D(\sigma) = \frac{(1+\sigma)^4C_0}{\sigma^2(1-\sigma)^2}.
+            g(\sigma) := \frac{1+\sigma}{1-\sigma}\left( c + \log D(\sigma) \right), \qquad D(\sigma) = \frac{(1+\sigma)^4C_0}{\sigma^2(1-\sigma)^2}.
         \end{align}
         Over $\sigma\in(0,1)$, $g$ has a unique minimizer $\sigma^\star$, which is the unique solution in $(0,1)$ of
         \begin{align}
@@ -800,16 +801,19 @@ The optimal choice of fixed stepsize is $\gamma_{GD} = \frac{2}{(L + 1/\gamma) +
     The pair $(x^l,\nabla f(x^l))$ lies in $\gra B$, and its residual is $e^l = \gamma\nabla f(x^l) + x^l - w_k = \gamma\nabla\varphi_k(x^l)$.
     The function $\varphi_k$ is $\mu$-strongly convex and $L_\varphi$-smooth with $\mu = 1/\gamma$ and $L_\varphi = L + 1/\gamma$, so its condition number is $L_\varphi/\mu = 1 + \gamma L$.
     With stepsize $2/(L_\varphi+\mu) = \gamma_{GD}$, gradient descent satisfies $\norm{x^l - x_k^\star}\leq q^l\norm{x^0 - x_k^\star}$ with $q = \frac{L_\varphi - \mu}{L_\varphi + \mu} = \frac{\gamma L}{\gamma L + 2}$~\cite[Theorem 2.1.15]{nesterov2004introductory}.
-    Using $\mu\norm{x - x_k^\star}\leq\norm{\nabla\varphi_k(x)}\leq L_\varphi\norm{x - x_k^\star}$,
+    Since $\mu\norm{x - x_k^\star}\leq\norm{\nabla\varphi_k(x)}\leq L_\varphi\norm{x - x_k^\star}$,
     \begin{align*}
-        \norm{e^l}^2 = \gamma^2\norm{\nabla\varphi_k(x^l)}^2 \leq \gamma^2L_\varphi^2q^{2l}\norm{x^0 - x_k^\star}^2 \leq \left(\frac{L_\varphi}{\mu}\right)^2q^{2l}\gamma^2\norm{\nabla\varphi_k(x^0)}^2 = (1+\gamma L)^2q^{2l}\norm{e^0}^2.
+        \norm{e^l}^2 &= \gamma^2\norm{\nabla\varphi_k(x^l)}^2 \\
+        &\leq \gamma^2L_\varphi^2q^{2l}\norm{x^0 - x_k^\star}^2 \\
+        &\leq \left(\frac{L_\varphi}{\mu}\right)^2q^{2l}\gamma^2\norm{\nabla\varphi_k(x^0)}^2 \\
+        &= (1+\gamma L)^2q^{2l}\norm{e^0}^2.
     \end{align*}
-    This holds deterministically for every $l$ and $k$.
+    This is a deterministic bound that holds for every inner iteration $l$, independently of outer iteration $k$, so we are in the setting of \Cref{thm:deterministic-inner-work}.
 
     Define $S = \frac{1+\sigma}{1-\sigma}$ and $\Delta = \dist(w_0,\zer B)^2/(\gamma^2\delta^2)$.
     The bound of \Cref{thm:total-inner-work-bound} is at most
     \begin{align*}
-        \frac{S\Delta}{\log(1/\alpha)}\bigl(c + \log D(\sigma)\bigr) + \frac{b(2-\alpha^b)}{1-\alpha^b} + \frac{1}{\log(1/\alpha)}\left(\logp\beta_0 + \log\frac{\max\{\norm{R(w_0)}^2,\delta^2\}}{\delta^2}\right),
+        \frac{S\Delta}{\log(1/\alpha)}(c + \log D(\sigma)) + \frac{b(2-\alpha^b)}{1-\alpha^b} + \frac{1}{\log(1/\alpha)}\left(\logp\beta_0 + \log\frac{\max\{\norm{R(w_0)}^2,\delta^2\}}{\delta^2}\right),
     \end{align*}
     The bound of \Cref{thm:deterministic-inner-work} has the same $\delta^{-2}$ term with $c = b\log(1/\alpha)$, and its remaining terms also do not grow with $\delta^{-1}$ faster than $\log(1/\delta)$.
     This identifies the $\delta^{-2}$ coefficient as claimed.
@@ -862,6 +866,9 @@ and set $\gamma = 1$.
 One can check that $(\Ccal\Ccal^* + \gamma \Acal)^{-1}\Ccal\Ccal^*$ is defined everywhere.
 Note that if $0\in\Acal(x_1,x_2,u)$, then $x_1=x_2$ and $0\in\Acal_1 x + \Acal_2 x$.
 Substituting this into \Cref{alg:stopping-time-algorithm} yields \Cref{alg:inexact-drs}.
+We also remark that this is not the same formulation as that of \cite{EcksteinBertsekasDouglasRachfordSplitting}, who show that Douglas-Rachford splitting is an instance of PPM for a certain splitting operator.
+However, the splitting operator is difficult to define and understand.
+This formulation shows that Douglas-Rachford splitting can be viewed as the projection of PPM done in a product space.
 
 \begin{algorithm}
 \caption{The method introduced by Eckstein and Yao in~\cite{EcksteinRelativeError2018} (copied from~\cite[Algorithm 2]{alves2025generalframeworkinexactsplitting})}\label{alg:inexact-drs}
@@ -900,18 +907,19 @@ Substituting this into \Cref{alg:stopping-time-algorithm} yields \Cref{alg:inexa
 Suppose we want to solve
 \begin{align}
     \min_{x,z} \quad &f(x) + g(z) \\
-    \text{s.t.} \quad &x = z
+    \text{s.t.} \quad &x = z \notag
     \label{eq:admm-problem}
 \end{align}
 where $f$ and $g$ are closed, proper, and convex functions, but not necessarily smooth.
 Its optimality condition is $0\in\partial f(x) + \partial g(x)$, i.e.\ \Cref{eq:Douglas-Rachford-inclusion} with $\Acal_1 = \partial f$ and $\Acal_2 = \partial g$, whenever $\partial(f+g) = \partial f + \partial g$ (e.g.\ if $\operatorname{ri}\operatorname{dom} f\cap\operatorname{ri}\operatorname{dom} g\neq\varnothing$).
 \cite{EcksteinRelativeError2018} describe a variant of ADMM which produces iterates as (equations (25)-(27))
+\begin{subequations}\label{eq:admm-iterates}
 \begin{align}
     x_{k+1} &\approx \argmin_{x} f(x) + \ip{p_k}{x} + \frac{c}{2}\norm{x-z_k}^2 \\
     p_{k+1} &= p_k + c(x_{k+1}-z_k) \\
-    z_{k+1} &= \argmin_{z} g(z) - \ip{p_{k+1}}{z} + \frac{c}{2}\norm{z-x_{k+1}}^2\added{.}
-    \added{\label{eq:admm-iterates}}
+    z_{k+1} &= \argmin_{z} g(z) - \ip{p_{k+1}}{z} + \frac{c}{2}\norm{z-x_{k+1}}^2.
 \end{align}
+\end{subequations}
 We reproduce their algorithm within the framework established by \cite{alves2025generalframeworkinexactsplitting}.
 Take $\Acal_1 = \partial f$, $\Acal_2 = \partial g$, and $\tau = 1/c$ in the Douglas--Rachford instance above, that is,
 \begin{align}
@@ -929,13 +937,12 @@ Since $\Ccal^*(h_1,h_2,h_3) = h_1 - h_2 + h_3$, $\Ccal^*$ is surjective.
 Also, $0\in\Acal(x_1,x_2,v)$ if and only if $x_1 = x_2 =: x$ and $v - x\in\frac{1}{c}\partial f(x)$, $x - v\in\frac{1}{c}\partial g(x)$.
 Hence $\zer\Acal\neq\varnothing$ if and only if $0\in\partial f(x)+\partial g(x)$ has a solution.
 
-
 Only the $f$-subproblem is solved inexactly.
 The inner solver returns a pair $(x_{k+1}, a_{k+1})$ with $a_{k+1}\in\partial f(x_{k+1})$; for example, $a_{k+1} = \nabla f(x_{k+1})$ if $f$ is differentiable.
 The $g$-subproblem is solved exactly.
 Writing $\varphi_k(x) := f(x) + \ip{p_k}{x} + \frac{c}{2}\norm{x - z_k}^2$ for the $x$-subproblem, the graph residual of \Cref{alg:stopping-time-algorithm} becomes
 \begin{align}
-    x_{k+1} + \frac{a_{k+1}}{c} - w_k = \frac{1}{c}\bigl(a_{k+1} + p_k + c(x_{k+1} - z_k)\bigr) \in \frac{1}{c}\partial\varphi_k(x_{k+1}).
+    x_{k+1} + \frac{a_{k+1}}{c} - w_k = \frac{1}{c}(a_{k+1} + p_k + c(x_{k+1} - z_k)) \in \frac{1}{c}\partial\varphi_k(x_{k+1}).
     \label{eq:admm-residual}
 \end{align}
 That is, it is a scaled subgradient of the $x$-subproblem objective, which is zero exactly when $x_{k+1}$ solves the subproblem with $a_{k+1} = -p_{k+1}$.
@@ -947,7 +954,7 @@ Substituting into \Cref{alg:stopping-time-algorithm} yields \Cref{alg:inexact-ad
 \STATE \textbf{Initialize:} $z_0, p_0$, penalty $c>0$, inexactness $\sigma\in(0,1)$, inner epoch size $b$, stopping tolerance $\delta$, and $x$ (e.g.\ $x = z_0$)
 \FOR{$k = 0, 1, 2 \ldots$}
   \STATE Produce $(x_{k+1}, a_{k+1})$ with $a_{k+1}\in\partial f(x_{k+1})$ and $x_{k+1}\approx\argmin_x \varphi_k(x)$, warm-started at $(x_k, a_k)$ for $k\geq1$.
-  \STATE Compute $z_{k+1} = \argmin_z g(z) + \ip{a_{k+1}}{z} + \frac{c}{2}\norm{z - x_{k+1}}^2 = \operatorname{prox}_{g/c}\bigl(x_{k+1} - a_{k+1}/c\bigr)$.
+  \STATE Compute $z_{k+1} = \argmin_z g(z) + \ip{a_{k+1}}{z} + \frac{c}{2}\norm{z - x_{k+1}}^2 = \operatorname{prox}_{g/c}\left( x_{k+1} - \frac{a_{k+1}}{c} \right)$.
     \IF {$\norm{x_{k+1} - z_{k+1}} \leq \delta$}
         \STATE Stop and return $(x_{k+1}, z_{k+1}, a_{k+1})$.
     \ELSIF {$\norm{a_{k+1} + p_k + c(x_{k+1} - z_k)} \leq \sigma \norm{a_{k+1} + p_k + c(z_{k+1} - z_k)}$}
@@ -1011,8 +1018,8 @@ Each check (line 4) costs one evaluation of $\operatorname{prox}_{g/c}$; this is
         \item Now, for the second item, $\tilde a\in\partial g(z_{k+1})$ is the second graph condition above, and $a_{k+1}+\tilde a = c(x_{k+1} - z_{k+1}) = c\zeta$.
                 The bounds follow from the terminal test.
         
-        \item Finally, up to an additive constant, $\varphi_k(x) = f(x) + \frac{c}{2}\norm{x - w_k}^2$, so $\varphi_k$ is the proximal subproblem of     \Cref{prop:optimal-sigma-gd} with $\gamma$ replaced by $1/c$.
-            By \Cref{eq:admm-residual}, the residual of the gradient descent iterate $x^l$ is $\frac{1}{c}\nabla\varphi_k(x^l)$, which matches the residual $\gamma\nabla\varphi_k(x^l)$ in the proof of \Cref{prop:optimal-sigma-gd}.
+        \item Finally, up to an additive constant, $\varphi_k(x) = f(x) + \frac{c}{2}\norm{x - w_k}^2$, so $\varphi_k$ is the proximal subproblem of     \Cref{prop:optimal-sigma-gradient-descent-inside-ppm} with $\gamma$ replaced by $1/c$.
+            By \Cref{eq:admm-residual}, the residual of the gradient descent iterate $x^l$ is $\frac{1}{c}\nabla\varphi_k(x^l)$, which matches the residual $\gamma\nabla\varphi_k(x^l)$ in the proof of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}.
             The stepsize $\frac{2}{L+2c} = \frac{2(1/c)}{(1/c)L + 2}$ also matches.
             That proof therefore gives the the third item with $\gamma L$ replaced by $L/c$.
     \end{enumerate}
@@ -1067,12 +1074,195 @@ Substituting this into \Cref{alg:stopping-time-algorithm} yields \Cref{alg:inexa
 \end{algorithmic}
 \end{algorithm}
 
-\section{Numerical Experiments}
-\TODO{}
+The ability to represent Davis-Yin splitting is of particular note, since this implies that the framework of \cite{alves2025generalframeworkinexactsplitting,bredies2021degeneratepreconditionedproximalpoint} encompasses Douglas-Rachford and its variants, as well as forward-backward splitting.
+This means that this framework encompasses ADMM, Chambolle-Pock, and FISTA, among others.
 
+\section{Numerical Experiments}\label{sec:numerical-experiments}
+We numerically examine the strength of our conclusions and how well the results hold up to empirical scrutiny.
+We study the two algorithms listed above: ADMM and PPM, with the goal of examining how inexactness impacts the performance of these algorithms as well as how conservative the theoretical findings are.
+Here, performance refers both to inner and outer iteration complexity, as well as wall-clock time.
+All experiments were run on the author's M5 MacBook Pro and are available at \url{https://github.com/stellatogrp/rand_nla_fom}.
+The code for the experiments was generated with the assistance of Claude.
+
+\subsection{Inexact Proximal Point}
+In this section, we empirically study the algorithm theoretically examined in \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}.
+We test the problem on an instance of linear regression with Huber loss \citep{huber1964huberloss}.
+That is,
+\begin{align}
+    \min_{x\in\R^n} \quad \sum_{i=1}^{n} h_\rho(a_i^\top x - b) \label{eq:huber-loss-problem}\tag{H}
+\end{align}
+where $h_\rho:\R\to\R$ is the Huber loss function with parameter $\rho$:
+\begin{align}
+    h_\rho(x) = \begin{cases}
+        x^2, & |x|\leq \rho \\
+        |x|, & |x| \geq \rho
+    \end{cases}
+\end{align}
+The parameter $\rho$ controls the tradeoff between the $\ell_2$ and $\ell_1$ loss.
+We take set parameter $\rho = \frac{1}{2}$, and note that the $L$-smoothness constant of the objective in \Cref{eq:huber-loss-problem} is $L = \|A\|_2^2$, where $A$ is the design matrix whose rows are $a_i$.
+Its gradient can be easily computed in closed form as $A^\top \Pi_{[-\rho,\rho]^n}(Ax-b)$, where $\Pi_{[-\rho,\rho]^n}$ is projection onto the $n$-box $[-\rho,\rho]^n$.
+
+We construct synthetic data $\left\{ (a_i,b_i) \right\}_{i=1}^m$, with $m = 1500$ and $n = 1000$, where $a_i \sim\mathcal{N}(0,m^{-1}I)$ are i.i.d.
+We sample $\hat{x}\sim\mathcal{N}(0,1)$ and set $b = A \hat{x}$.
+We then uniformly randomly select 10\% of the entries of $b$ (100 entries) to be perturbed by a $\mathrm{Uniform}([-8,-3]\cup[3,8])$ disturbance.
+We generate 100 sets of problem data and run each configuration of algorithm parameters on these 100 instances.
+For a baseline, we compare to the solution time of CVXPY using the Clarabel solver \citep{agrawal2018rewriting,diamond2016cvxpy,goulart2024clarabel}.
+
+The proximal subproblem is to solve
+\begin{align}
+    \prox_\gamma(x) = \argmin_{y\in\R^n} \quad \sum_{i=1}^{n} h_\rho(a_i^\top y - b) + \frac{1}{2\gamma}\|y - x_0\|^2 \tag{prox-huber}\label{eq:prox-huber}
+\end{align}
+We use (unaccelerated) gradient descent with fixed stepsize $\gamma_{GD} = \frac{2\gamma}{\gamma L + 2}$, and the outer stepsize $\gamma = \frac{10}{L}$ to solve \Cref{eq:prox-huber}. 
+We run the algorithm until the gradient is sufficiently small: $\|\nabla f(x_k)\| \leq \delta$, and we set $\delta = 10^{-9}$.
+Since the solution to Huber regression is not known in closed form, this is a practical convergence metric to use.
+We can substitute this setup into \Cref{alg:stopping-time-algorithm} directly, letting $\Ccal = I$ and $\Acal=\nabla f$.
+Since this is precisely the scenario of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, we compare our empirical results against the theoretical guarantees of the algorithm.
+
+Our main focus is to understand the trade-off between the work required for a given subproblem and the speed of convergence of the outer method.
+In this spirit, we sweep over the parameters $\sigma\in\left\{ 0.01, 0.05, 0.2, 0.5, 0.9 \right\}$ (inexactness) and $b\in\left\{ 1,2,5,10,20 \right\}$ (check frequency).
+
+\Cref{fig:ppm-huber-wall-clock-times} shows a comparison of the shifted geometric mean (SGM) of the wall-clock times for the different choices of parameters.
+For this study, choosing the median time or the SGM of the results made no difference in the ordering of configurations.
+We can see that the speed of convergence is often improved by reducing the accuracy required for the subproblem.
+In fact, sufficiently inexact iterations outperform running the same gradient descent algorithm on the original problem \Cref{eq:huber-loss-problem} itself.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/walltime_sgm.pdf}
+    \caption{A comparison of wall-clock times required to solve \Cref{eq:huber-loss-problem}. We also show the spread of the 10th and 90th percentile times.}\label{fig:ppm-huber-wall-clock-times}
+\end{figure}
+
+We also compare the convergence behavior in \Cref{fig:ppm-huber-outer-convergence,fig:ppm-huber-outer-convergence-zoom}.
+We see that despite producing virtually identical suboptimality and stationary residuals, the performance over the \emph{inner} work is vastly different.
+In fact, the exact PPM performs markedly worse than all other configurations in this regard.
+Moreover, the highly inexact choices of parameters, $\sigma=0.5$ and $\sigma=0.9$ outperform vanilla gradient descent in terms of gradient evaluations.
+Even $\sigma=0.2$ is competitive with gradient descent.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/convergence_sigma.pdf}
+    \caption{A comparison of the convergence of \Cref{alg:stopping-time-algorithm} on the Huber regression problem \Cref{eq:huber-loss-problem} for $\sigma\in\left\{ 0.01, 0.05, 0.2, 0.5, 0.9 \right\}$.}\label{fig:ppm-huber-outer-convergence}
+\end{figure}
+
+In the zoomed-in \Cref{fig:ppm-huber-outer-convergence-zoom}, we can still see that the convergence metrics are nearly indisitinguishable, suggesting that there is very little difference on the effect of inexactness on the outer iterations.
+This tracks with the theory, since inexactness introduces a mutliplicative factor of $\frac{1+\sigma}{1-\sigma}$ to the worst-case convergence rate, which equals $10$ for $\sigma = 0.9$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/convergence_sigma_zoom.pdf}
+    \caption{A zoomed-in version of \Cref{fig:ppm-huber-outer-convergence}.}\label{fig:ppm-huber-outer-convergence-zoom}
+\end{figure}
+
+We can also see that the trajectory of the inexact iterates tends to closely follow that of the exact algorithm.
+In \Cref{fig:ppm-huber-trajectories}, one can see that the exact solutions to the subproblems of the inexact PPM (pink circles with white fill), closely match the trajectory of the exact PPM (gray dashed line).
+The inexact method required 47 outer steps ($K_\delta = 47$), but the exact method required only 22 ($K_\delta = 22$).
+However, the inexact PPM used only 141 gradient evaluations, whereas the exact PPM used 1,571 gradient steps, over 10 times the number of gradient evaluations.
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber_2d/trajectory_2d_exact.pdf}
+    \caption{The trajectories of the inexact vs. exact PPM, with the exact solutions to the subproblems shown.}\label{fig:ppm-huber-trajectories}
+\end{figure}
+
+Additionally, we also compare the predicted cost of choosing different values of $b$, the check interval (lines 4-8 of \Cref{alg:stopping-time-algorithm}).
+The relaxed bound refers to that of \Cref{lem:check-frequency-b-star}, while the unrelaxed bound refers to \Cref{rem:b-star-remark}.
+One can see that the unrelaxed bound gives a tighter bound, but only up to a nearly constant factor.
+Moreover, the conservatism of \Cref{lem:check-frequency-b-star} can be seen on the right-side figure, where increasing the interval between checks does not seem to affect the time per outer iteration significantly.
+Of course, the cost of checking varies with a variety of factors, such as hardware types and availability, difficulty of subproblems, implementation details, and so forth, but using the $b^\star$ defined in \Cref{lem:check-frequency-b-star} seems to be a good heuristic.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/bstar_model.pdf}
+    \caption{The predicted cost of different values of $b$, the check interval.}\label{fig:ppm-huber-optimal-b-star-model}
+\end{figure}
+
+\subsection{ADMM}
+In this section, we empirically study the performance of \Cref{alg:inexact-admm}.
+We test the problem on a quadratic program with linear equality constraints.
+That is,
+\begin{align}
+    \min_{x\in\R^n} \quad & \frac{1}{2}x^\top Q x + c^\top x \label{eq:admm-qp}\\
+    \text{s.t.} \quad &Ax = b \notag
+\end{align}
+where $A\in\R^{m\times n}$.
+We take $m = 300$ and $n = 1000$ in these trials, with penalty $\tau = 0.01$.
+Our stopping tolerance is $\delta = 10^{-9}$.
+As before, we compare to the solution time of CVXPY using the Clarabel solver, but we also include a closed-form solution for the $x$-subproblem in \Cref{eq:admm-x-subproblem-numerical-experiments-qp}.
+Since this is a linear system, we compare an iterative solution to using a Cholesky factorization of the matrix $Q$.
+Of course, in large-scale applications, obtaining such a factorization may not be feasible, but this is still implemented in some commerical solvers such as OSQP \citep{osqp-original-paper}.
+
+We sample $Q = V\diag(\lambda)V^\top$, where $\lambda$ is log-spaced in $[\kappa^{-1},1]$, and $\kappa = 100$.
+This also shows that $\|Q\|_2 = 1$ is the $L$-smoothness constant of the objective.
+The constraint matrix $A$ has i.i.d. $\mathcal{N}(0, n^{-1})$ entries.
+We generate ground truth primal and dual solutions $x^\star\in\R^n$ and $\nu^\star\R^m$ with $\mathcal{N}(0, n^{-1})$ and $\mathcal{N}(0, m^{-1})$ entries, respectively.
+The data $c$ and $b$ are computed such that $x^\star,\nu^\star$ solve the KKT system.
+Since $Q\succ 0$ and $A$ is full rank, the solution is unique.
+The subproblems \Cref{eq:admm-iterates} become
+\begin{subequations}\label{eq:admm-iterates-numerical-experiements-qp}
+\begin{align}
+    x_{k+1} &\approx \argmin_{x} \left\{ \frac{1}{2}x^\top Q x + c^\top x + \ip{p_k}{x} + \frac{\tau}{2}\norm{x-z_k}^2 \right\} \label{eq:admm-x-subproblem-numerical-experiments-qp}\\
+    p_{k+1} &= p_k + c(x_{k+1}-z_k) \\
+    z_{k+1} &= \argmin_{z}\left\{  \mathcal{I}_{\left\{ z : Az = b \right\}}(z) - \ip{p_{k+1}}{z} + \frac{\tau}{2}\norm{z-x_{k+1}}^2 \right\}. \label{eq:admm-z-subproblem-numerical-experiments-qp}
+\end{align}
+\end{subequations}
+Substituting this into \Cref{alg:inexact-admm} yields the algorithm found in the code.
+Note that the $z$-subproblem \Cref{eq:admm-z-subproblem-numerical-experiments-qp} is simply projection onto a hyperplane, which can be done to machine precision easily.
+The inexactness arises from the $x$-subproblem, which we internally solve using gradient descent, as suggested in \Cref{prop:admm}.
+
+In \Cref{fig:admm-qp-wall-clock-times}, we can see that the theory is fairly conservative.
+Very inexact iterations appear to have \emph{better} performance than their exact counterparts.
+We attribute this to the ability to move in generally the correct direction, even though the precise step may not be accurate.
+However, all configurations using an iterative method to solve the $x$-subproblem in \Cref{eq:admm-x-subproblem-numerical-experiments-qp} are slower than using the Cholesky factorization of $Q$.
+We do not consider this to be a limitation, since in many applications such a closed-form solution is either not available or not feasible to implement.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/walltime_sgm.pdf}
+    \caption{A comparison of wall-clock times required to solve \Cref{eq:admm-qp}. We also show the spread of the 10th and 90th percentile times.}\label{fig:admm-qp-wall-clock-times}
+\end{figure}
+
+We can also see in \Cref{fig:admm-qp-outer-convergence,fig:admm-qp-outer-convergence-zoom} that the convergence behavior of the outer iterates is comparable across all configurations.
+However, solving the subproblem to extremely high absolute accuracy (in this case, $10^{-12}$) is unnecessary and often detrimental.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/convergence_sigma.pdf}
+    \caption{A comparison of the convergence of \Cref{alg:stopping-time-algorithm} on the Huber regression problem \Cref{eq:admm-qp} for $\sigma\in\left\{ 0.01, 0.05, 0.2, 0.5, 0.9 \right\}$.}\label{fig:admm-qp-outer-convergence}
+\end{figure}
+
+In the zoomed-in \Cref{fig:admm-qp-outer-convergence-zoom}, we can still see that the convergence metrics are nearly indisitinguishable, and in fact the more inexact configurations have \emph{superior} performance to the exact configurations.
+This outperforms the theory, which is generally conservative.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/convergence_sigma_zoom.pdf}
+    \caption{A zoomed-in version of \Cref{fig:ppm-huber-outer-convergence}.}\label{fig:admm-qp-outer-convergence-zoom}
+\end{figure}
+
+As in the previous section, we compare the modelled cost of different choices of $b^\star$ to the actual measured cost.
+We can see in \Cref{fig:admm-qp-optimal-b-star-model} that numerically solving for a more precise $b^\star$ yields a better result, both theoretically and empirically.
+However, this involves nonnegligible setup costs, as seen in the orange bars of \Cref{fig:admm-qp-wall-clock-times}.
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/bstar_model.pdf}
+    \caption{The predicted cost of different values of $b$, the check interval.}\label{fig:admm-qp-optimal-b-star-model}
+\end{figure}
 
 \section{Conclusion}
 \TODO{}
+We analyzed the expected inner work of proximal point methods for solving a monotone inclusion problem in a Hilbert space.
+Equipped with a contractive inner procedure for computing the resolvent, we provide a quantitative bound on the amount of expected inner work required to solve the monotone inclusion problem to a given accuracy.
+Our framework encompasses a broad variety of popular operator splitting algorithms, and we provide principled heuristics for selecting algorithm parameters a priori.
+Numerical experiments validate our findings and suggest that in practice, many algorithms can tolerate significant amounts of inexactness.
+
+Many questions remain open.
+The $\mathbb{E}[K_\delta]$ term in \Cref{thm:total-inner-work-bound} opens the door to considering averaged complexity, rather than the worst-case performance.
+Moreover, the choice of problem parameters is not only very problem-sensitive, but also sensitive to the choice of inner procedure used.
+Also of interest is differentiating which inner solvers are more compatible with certain outer solvers.
+That is, how should an optimizer choose between using ADMM with accelerated gradient descent to solve the subproblems or using Davis-Yin splitting and solving a linear system with an iterative method?
+Another promising direction is an adaptive choice of parameters.
+The analysis of this work assuming that algorithm parameters are fixed at runtime, but in practice this is undesirable.
+Incorporating an analysis of adaptive parameter selection would bring the theory closer to practice.
+
 
 \bibliography{bibliography.bib}
 

@@ -34,7 +34,7 @@ packages = ["rand_nla_fom"]
 package-dir = {"rand_nla_fom" = "src"}
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "numerical_experiments/tests"]
 # `experiments` and `plots` are repository scripts, not installed packages;
 # the repository root has to be importable for the tests that exercise them.
 pythonpath = ["."]
@@ -52,4 +52,4 @@ select = ["E", "F", "I", "UP", "B", "W"]
 "src/drs.py" = ["B023"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["rand_nla_fom", "experiments", "plots"]
+known-first-party = ["rand_nla_fom", "experiments", "plots", "numerical_experiments"]

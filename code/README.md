@@ -1,10 +1,11 @@
 # Solver, experiments, and plots
 
 ```text
-src/            Installable solver package (NumPy only), imported as rand_nla_fom
-experiments/    Study drivers: compute, write CSVs, never plot
-plots/          Figure drivers: read CSVs, never compute
-tests/          Regression tests for the solver and the CSV contract
+src/                    Installable solver package (NumPy only), imported as rand_nla_fom
+experiments/            Study drivers: compute, write CSVs, never plot
+plots/                  Figure drivers: read CSVs, never compute
+tests/                  Regression tests for the solver and the CSV contract
+numerical_experiments/  Self-contained studies for tex/General_inexactness.tex (own README)
 ```
 
 The package sits flat in `src/`; `package-dir` in `pyproject.toml` maps that
