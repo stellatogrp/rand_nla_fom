@@ -25,13 +25,17 @@ import matplotlib.pyplot as plt  # noqa: E402
 from cycler import cycler  # noqa: E402
 
 SURFACE = "#ffffff"
-# Titles, axis labels, and tick labels are solid black; the secondary ink is
-# for legends and in-plot annotations.
+# All text (titles, axis labels, tick labels, legends, annotations) and the
+# axes themselves (spines and tick marks) are solid black.  The secondary ink
+# is reserved for non-text chrome: whiskers, outlines, and the like.  The grid
+# and the contour lines of the trajectory figure stay faint so that they sit
+# behind the data.
 INK = "#000000"
 INK_SECONDARY = "#52514e"
 MUTED = "#898781"
 GRID = "#e1e0d9"
-AXIS = "#c3c2b7"
+AXIS = "#000000"
+CONTOUR = "#c3c2b7"
 # The Okabe-Ito colorblind-safe palette (Okabe & Ito, 2008).  The six chromatic
 # colors below pass the dataviz validator's all-pairs check on white: the
 # worst pair under deuteranopia (purple vs green, dE 7.6) sits in the band
@@ -116,7 +120,7 @@ def apply() -> None:
             "ytick.major.width": 0.6,
             "legend.frameon": False,
             "legend.fontsize": 7,
-            "legend.labelcolor": INK_SECONDARY,
+            "legend.labelcolor": INK,
             "lines.linewidth": 1.5,
             "lines.solid_capstyle": "round",
             "lines.solid_joinstyle": "round",

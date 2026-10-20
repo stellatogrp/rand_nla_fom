@@ -52,8 +52,8 @@ LABELS = {
         exact="exact ADMM (Cholesky)",
         gd=None,
         near="near-exact ADMM (inner tol $10^{-12}$)",
-        residual=r"feasibility $\|Ax_k-b\|$",
-        inner="cumulative inner iterations (gradient steps)",
+        residual=r"Feasibility $\|Ax_k-b\|$",
+        inner="Cumulative inner iterations (gradient steps)",
         checks="projections (checks)",
         title="Inexact ADMM, equality-constrained QP",
     ),
@@ -61,13 +61,13 @@ LABELS = {
         exact=None,
         gd="gradient descent, step ${step}/L$",
         near="near-exact PPM (inner tol $10^{-12}$)",
-        residual=r"stationarity $\|\nabla f(x_k)\|$",
-        inner="cumulative inner iterations (gradient steps)",
+        residual=r"Stationarity $\|\nabla f(x_k)\|$",
+        inner="Cumulative inner iterations (gradient steps)",
         checks="checks",
         title="Inexact PPM, Huber-loss fitting",
     ),
 }
-SUBOPT = r"suboptimality $|f(x_k)-f^\star|$"
+SUBOPT = r"Suboptimality $|f(x_k)-f^\star|$"
 SIGMA = r"\sigma"
 BSTAR = r"b^\star"
 BEXACT = r"b^\star_{\mathrm{ex}}"
@@ -162,6 +162,15 @@ def load(name: str, results_dir: Path) -> Study:
 
 def _fmt(value: float) -> str:
     return f"{value:.3g}"
+
+
+def _capitalize(text: str) -> str:
+    """Upper-case the first letter of ``text`` when it opens with one.
+
+    Labels that open with mathtext, such as ``$\\sigma = 0.1$``, are left as
+    they are.
+    """
+    return text[:1].upper() + text[1:] if text[:1].isalpha() else text
 
 
 def _mode(values: list, default: int = 1) -> int:
@@ -420,7 +429,7 @@ def _vertical(ax, x: float, text: str, linestyle: str = "-") -> None:
         ha="left",
         va="top",
         fontsize=7,
-        color=style.ACCENT,
+        color=style.INK,
     )
 
 
@@ -465,11 +474,11 @@ def convergence(study: Study, sweep: str) -> list[Path]:
         ylabel = None
         if c == 0:
             ylabel = SUBOPT if metric == "suboptimality" else labels["residual"]
-        xlabel = "outer iteration $k$" if axis == "outer" else labels["inner"]
+        xlabel = "Outer iteration $k$" if axis == "outer" else labels["inner"]
         _finish(ax, xlabel if r == 1 else None, ylabel, log_x=(axis == "inner"))
         if r == 0:
             title = (
-                "against outer iterations" if axis == "outer" else "against inner work"
+                "Against outer iterations" if axis == "outer" else "Against inner work"
             )
             ax.set_title(title, loc="left")
     handles = [s.handle() for s in series]
@@ -541,7 +550,7 @@ def convergence_zoom(study: Study, sweep: str) -> list[Path]:
         plateau = _plateau_start(study, series, metric)
         late = (max(0, round(plateau - 0.2 * k_ref)), round(plateau + 0.05 * k_ref))
         for col, (name, (low, high)) in enumerate(
-            (("early iterations", early), ("final approach", late))
+            (("Early iterations", early), ("Final approach", late))
         ):
             ax = axes[row, col]
             lowest, highest = np.inf, -np.inf
@@ -582,7 +591,7 @@ def convergence_zoom(study: Study, sweep: str) -> list[Path]:
             ylabel = None
             if col == 0:
                 ylabel = SUBOPT if metric == "suboptimality" else labels["residual"]
-            _finish(ax, "outer iteration $k$" if row == 1 else None, ylabel)
+            _finish(ax, "Outer iteration $k$" if row == 1 else None, ylabel)
             ax.set_title(f"{name}: $k \\in [{low}, {high}]$", loc="left")
     handles = [s.handle() for s in series]
     which = f"${SIGMA}$ sweep" if sweep == "sigma" else "$b$ sweep"
@@ -641,7 +650,7 @@ def _horizontal(ax, value: float, color: str, text: str) -> None:
         ha="right",
         va="bottom",
         fontsize=6.5,
-        color=style.INK_SECONDARY,
+        color=style.INK,
     )
 
 
@@ -680,7 +689,7 @@ def _recommendation_handles(study: Study, sweep: str) -> tuple[list, list[str]]:
 
 def work(study: Study, sweep: str) -> list[Path]:
     labels = LABELS[study.name]
-    xlabel = f"inexactness ${SIGMA}$" if sweep == "sigma" else "check interval $b$"
+    xlabel = f"Inexactness ${SIGMA}$" if sweep == "sigma" else "Check interval $b$"
     fig, axes = plt.subplots(2, 2, figsize=(7.4, 5.2))
     x, k = _summary_points(study, sweep, "k_delta")
     sigma_values = x[k["sigma_optimal"]]
@@ -689,33 +698,33 @@ def work(study: Study, sweep: str) -> list[Path]:
             axes[0, 0],
             "k_delta",
             None,
-            "accepted updates $K_\\delta$",
+            "Accepted updates $K_\\delta$",
             False,
-            "outer iterations",
+            "Outer iterations",
         ),
         (
             axes[0, 1],
             "total_inner",
             "thm43_bound",
-            "total inner iterations",
+            "Total inner iterations",
             True,
-            "inner work against its bound",
+            "Inner work against its bound",
         ),
         (
             axes[1, 0],
             "total_checks",
             None,
-            f"total {labels['checks']}",
+            f"Total {labels['checks']}",
             True,
-            "checks of the stopping tests",
+            "Checks of the stopping tests",
         ),
         (
             axes[1, 1],
             "runtime_seconds",
             None,
-            "algorithm wall-clock (s)",
+            "Algorithm wall-clock (s)",
             True,
-            "wall-clock time",
+            "Wall-clock time",
         ),
     ]
     for ax, field, bound, ylabel, log_y, title in panels:
@@ -793,8 +802,8 @@ def per_step(study: Study) -> list[Path]:
         shown = int(violations) if np.isfinite(violations) else "–"
         title = s.label.replace(" (Prop. 5.1)", "")
         ax.set_title(f"{title}; violations: {shown}", loc="left")
-        xlabel = "outer iteration $k$" if index // cols == rows_n - 1 else None
-        ylabel = "inner iterations $N_k$" if index % cols == 0 else None
+        xlabel = "Outer iteration $k$" if index // cols == rows_n - 1 else None
+        ylabel = "Inner iterations $N_k$" if index % cols == 0 else None
         _finish(ax, xlabel, ylabel, log_y=False)
     for index in range(count, rows_n * cols):
         axes[index // cols, index % cols].set_visible(False)
@@ -945,11 +954,11 @@ def _walltime_chart(
             va="center",
             ha="left",
             fontsize=6.5,
-            color=style.INK_SECONDARY,
+            color=style.INK,
         )
     ax.set_yticks(y)
-    ax.set_yticklabels(["CVXPY ground truth"] + names)
-    ax.set_xlabel(f"wall-clock seconds per instance ({axis_note})")
+    ax.set_yticklabels(["CVXPY ground truth"] + [_capitalize(n) for n in names])
+    ax.set_xlabel(f"Wall-clock seconds per instance ({axis_note})")
     ax.set_xlim(0, float(max(totals.max(), right.max())) * 1.18)
     ax.grid(True, axis="x")
     ax.grid(False, axis="y")
@@ -1046,9 +1055,9 @@ def bstar_model(study: Study) -> list[Path]:
     )
     _mark_recommended(ax, study, "b", np.array([]))
     _finish(
-        ax, "check interval $b$", "modelled seconds per outer iteration", log_x=True
+        ax, "Check interval $b$", "Modelled seconds per outer iteration", log_x=True
     )
-    ax.set_title("cost model of Lemma 4.2", loc="left")
+    ax.set_title("Cost model of Lemma 4.2", loc="left")
 
     ax = axes[1]
     medians, lows, highs = [], [], []
@@ -1068,9 +1077,9 @@ def bstar_model(study: Study) -> list[Path]:
             _horizontal(ax, float(np.median(values)), color, text)
     _mark_recommended(ax, study, "b", np.array([]))
     _finish(
-        ax, "check interval $b$", "measured seconds per outer iteration", log_x=True
+        ax, "Check interval $b$", "Measured seconds per outer iteration", log_x=True
     )
-    ax.set_title("measured, same $b$ sweep", loc="left")
+    ax.set_title("Measured, same $b$ sweep", loc="left")
 
     handles = [
         Line2D([], [], color=style.BOUND, marker="s", markersize=3, linewidth=1.3),
@@ -1236,8 +1245,8 @@ def _trajectory_figure(
     x0 = np.array([instance["x0_1"], instance["x0_2"]], dtype=float)
     fig, axes = plt.subplots(1, 2, figsize=(7.4, 4.0))
     panels = (
-        ("full", "from the start to the optimum"),
-        ("zoom", "near the optimum (outlined on the left)"),
+        ("full", "From the start to the optimum"),
+        ("zoom", "Near the optimum (outlined on the left)"),
     )
     surfaces: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
     for panel, _ in panels:
@@ -1254,14 +1263,20 @@ def _trajectory_figure(
         x1, x2, values = surfaces[panel]
         levels, labelled = _contour_levels(float(values.max()))
         contour = ax.contour(
-            x1, x2, values, levels=levels, colors=style.AXIS, linewidths=0.6, zorder=0
+            x1,
+            x2,
+            values,
+            levels=levels,
+            colors=style.CONTOUR,
+            linewidths=0.6,
+            zorder=0,
         )
         ax.clabel(
             contour,
             labelled,
             fmt=_power_label,
             fontsize=5.5,
-            colors=style.MUTED,
+            colors=style.INK,
             inline=True,
             inline_spacing=2,
         )
@@ -1452,7 +1467,7 @@ def trajectory_2d_exact(
                 xytext=offset,
                 textcoords="offset points",
                 fontsize=6,
-                color=style.INK_SECONDARY,
+                color=style.INK,
                 zorder=8,
             )
 

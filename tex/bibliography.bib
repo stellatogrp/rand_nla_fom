@@ -1,12 +1,16 @@
-@misc{schmidt2011convergenceratesinexactproximalgradient,
-      title={Convergence Rates of Inexact Proximal-Gradient Methods for Convex Optimization}, 
-      author={Mark Schmidt and Nicolas Le Roux and Francis Bach},
-      year={2011},
-      eprint={1109.2415},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/1109.2415}, 
+@inproceedings{schmidt2011convergenceratesinexactproximalgradient,
+  title = {Convergence Rates of Inexact Proximal-Gradient Methods for Convex Optimization},
+  booktitle = {Advances in Neural Information Processing Systems},
+  author = {Schmidt, Mark and Roux, Nicolas and Bach, Francis},
+  editor = {Shawe-Taylor, J. and Zemel, R. and Bartlett, P. and Pereira, F. and Weinberger, K.},
+  date = {2011},
+  year={2011},
+  volume = {24},
+  publisher = {Curran Associates, Inc.},
+  url = {https://proceedings.neurips.cc/paper_files/paper/2011/file/8f7d807e1f53eff5f9efbe5cb81090fb-Paper.pdf}
 }
+
+
 
 @misc{ferreira2024parallelizationstrategiesrandomizedkaczmarz,
       title={Parallelization Strategies for the Randomized Kaczmarz Algorithm on Large-Scale Dense Systems}, 
@@ -100,16 +104,26 @@ url={https://doi.org/10.1007/BF01581204}
 	title = {Resolvents of Monotone Operators},
 	url = {https://doi.org/10.1007/978-3-319-48311-5_23},
 	year = {2017},
-	bdsk-url-1 = {https://doi.org/10.1007/978-3-319-48311-5_23}}
-@misc{BarrePEPInexactMethods,
-      title={Principled Analyses and Design of First-Order Methods with Inexact Proximal Operators}, 
-      author={Mathieu Barré and Adrien Taylor and Francis Bach},
-      year={2021},
-      eprint={2006.06041},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/2006.06041}, 
+	bdsk-url-1 = {https://doi.org/10.1007/978-3-319-48311-5_23}
 }
+
+@article{BarrePEPInexactMethods,
+  title = {Principled Analyses and Design of First-Order Methods with Inexact Proximal Operators},
+  author = {Barré, Mathieu and Taylor, Adrien B. and Bach, Francis},
+  date = {2023-09-01},
+  year = {2023},
+  journaltitle = {Mathematical Programming},
+  journal = {Mathematical Programming},
+  shortjournal = {Mathematical Programming},
+  volume = {201},
+  number = {1},
+  pages = {185--230},
+  issn = {1436-4646},
+  doi = {10.1007/s10107-022-01903-7},
+  url = {https://doi.org/10.1007/s10107-022-01903-7},
+  abstract = {Proximal operations are among the most common primitives appearing in both practical and theoretical (or high-level) optimization methods. This basic operation typically consists in solving an intermediary (hopefully simpler) optimization problem. In this work, we survey notions of inaccuracies that can be used when solving those intermediary optimization problems. Then, we show that worst-case guarantees for algorithms relying on such inexact proximal operations can be systematically obtained through a generic procedure based on semidefinite programming. This methodology is primarily based on the approach introduced by Drori and Teboulle~(Math Program 145(1–2):451–482, 2014) and on convex interpolation results, and allows producing non-improvable worst-case analyses. In other words, for a given algorithm, the methodology generates both worst-case certificates (i.e., proofs) and problem instances on which they are achieved. Relying on this methodology, we study numerical worst-case performances of a few basic methods relying on inexact proximal operations including accelerated variants, and design a variant with optimized worst-case behavior. We further illustrate how to extend the approach to support strongly convex objectives by studying a simple relatively inexact proximal minimization method.}
+}
+
 
 @inbook{BauschkeConvexAnalysisSubgradients,
 author="Bauschke, Heinz H.
@@ -201,24 +215,36 @@ url={https://doi.org/10.1007/s10107-017-1160-5}
       url={https://arxiv.org/abs/1410.8479}, 
 }
 
-@misc{alves2025generalframeworkinexactsplitting,
-      title={A general framework for inexact splitting algorithms with relative errors and applications to Chambolle-Pock and Davis-Yin methods}, 
-      author={M. Marques Alves and Dirk A. Lorenz and Emanuele Naldi},
-      year={2025},
-      eprint={2407.05893},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/2407.05893}, 
+@article{alves2025generalframeworkinexactsplitting,
+  title = {A General Framework for Inexact Splitting Algorithms with Relative Errors and Applications to {{Chambolle}}–{{Pock}} and {{Davis}}–{{Yin}} Methods},
+  author = {Alves, M. Marques and Lorenz, Dirk A. and Naldi, Emanuele},
+  date = {2026-03-01},
+  year = {2026},
+  journaltitle = {Computational Optimization and Applications},
+  journal = {Computational Optimization and Applications},
+  shortjournal = {Computational Optimization and Applications},
+  volume = {93},
+  number = {2},
+  pages = {729--763},
+  issn = {1573-2894},
+  doi = {10.1007/s10589-025-00740-6},
+  url = {https://doi.org/10.1007/s10589-025-00740-6},
+  abstract = {In this work we apply the recently introduced framework of degenerate preconditioned proximal point algorithms to the hybrid proximal extragradient (HPE) method for maximal monotone inclusions. The latter is a method that allows inexact proximal (or resolvent) steps where the error is controlled by a relative-error criterion. Recently the HPE framework has been extended to the Douglas–Rachford method by Eckstein and Yao. In this paper we further extend the applicability of the HPE framework to splitting methods. To this end we use the framework of degenerate preconditioners that allows to write a large class of splitting methods as preconditioned proximal point algorithms. In this way, we modify many splitting methods such that one or more of the resolvents can be computed inexactly with an error that is controlled by an adaptive criterion. Further, we illustrate the algorithmic framework in the case of Chambolle–Pock’s primal dual hybrid gradient method and the Davis–Yin’s forward Douglas–Rachford method. In both cases, the inexact computation of the resolvent shows clear advantages in computing time and accuracy.}
 }
 
-@misc{svaiter2018weaklyconvergentfullyinexact,
-      title={A weakly convergent fully inexact Douglas-Rachford method with relative error tolerance}, 
-      author={Benar F. Svaiter},
-      year={2018},
-      eprint={1809.02312},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/1809.02312}, 
+
+@article{svaiter2018weaklyconvergentfullyinexact,
+     author = {Benar Fux Svaiter},
+     title = {A weakly convergent fully inexact {Douglas-Rachford} method with relative error tolerance},
+     journal = {ESAIM: Control, Optimisation and Calculus of Variations},
+     year = {2019},
+     publisher = {EDP-Sciences},
+     volume = {25},
+     doi = {10.1051/cocv/2018063},
+     mrnumber = {4023130},
+     zbl = {07194596},
+     language = {en},
+     url = {https://www.numdam.org/articles/10.1051/cocv/2018063/}
 }
 
 
@@ -262,16 +288,19 @@ url={https://doi.org/10.1007/s10107-017-1160-5}
  year = {1976}
 }
 
-
-@misc{applegate2022practicallargescalelinearprogramming-pdlp-paper,
-      title={Practical Large-Scale Linear Programming using Primal-Dual Hybrid Gradient}, 
-      author={David Applegate and Mateo Díaz and Oliver Hinder and Haihao Lu and Miles Lubin and Brendan O'Donoghue and Warren Schudy},
-      year={2022},
-      eprint={2106.04756},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/2106.04756}, 
+@inproceedings{applegate2022practicallargescalelinearprogramming-pdlp-paper,
+  title = {Practical Large-Scale Linear Programming Using Primal-Dual Hybrid Gradient},
+  booktitle = {Advances in Neural Information Processing Systems},
+  author = {Applegate, David and Diaz, Mateo and Hinder, Oliver and Lu, Haihao and Lubin, Miles and ODonoghue, Brendan and Schudy, Warren},
+  editor = {Ranzato, M. and Beygelzimer, A. and Dauphin, Y. and Liang, P.S. and Vaughan, J. Wortman},
+  date = {2021},
+  year={2022},
+  volume = {34},
+  pages = {20243--20257},
+  publisher = {Curran Associates, Inc.},
+  url = {https://proceedings.neurips.cc/paper_files/paper/2021/file/a8fbbd3b11424ce032ba813493d95ad7-Paper.pdf}
 }
+
 
 @article{FISTA-original-paper,
 	abstract = { Abstract. We consider the class of iterative shrinkage-thresholding algorithms (ISTA) for solving linear inverse problems arising in signal/image processing. This class of methods, which can be viewed as an extension of the classical gradient algorithm, is attractive due to its simplicity and thus is adequate for solving large-scale problems even with dense matrix data. However, such methods are also known to converge quite slowly. In this paper we present a new fast iterative shrinkage-thresholding algorithm (FISTA) which preserves the computational simplicity of ISTA but with a global rate of convergence which is proven to be significantly better, both theoretically and practically. Initial promising numerical results for wavelet-based image deblurring demonstrate the capabilities of FISTA which is shown to be faster than ISTA by several orders of magnitude. },
@@ -443,26 +472,29 @@ eprint = {
       abstract = { In this paper we describe a systematic procedure to analyze the convergence of degenerate preconditioned proximal point algorithms. We establish weak convergence results under mild assumptions that can be easily employed in the context of splitting methods for monotone inclusion and convex minimization problems. Moreover, we show that the degeneracy of the preconditioner allows for a reduction of the variables involved in the iteration updates. We show the strength of the proposed framework in the context of splitting algorithms, providing new simplified proofs of convergence and highlighting the link between existing schemes, such as Chambolle--Pock, forward Douglas--Rachford, and Peaceman--Rachford, that we study from a preconditioned proximal point perspective. The proposed framework allows us to devise new flexible schemes and provides new ways to generalize existing splitting schemes to the case of the sum of many terms. As an example, we present a new sequential generalization of forward Douglas--Rachford along with numerical experiments that demonstrates its interest in the context of nonsmooth convex optimization. }
 }
 
-
-
-@misc{alves2017iterationcomplexityinexactdouglasrachford,
-      title={Iteration complexity of an inexact Douglas-Rachford method and of a Douglas-Rachford-Tseng's F-B four-operator splitting method for solving monotone inclusions}, 
-      author={M. Marques Alves and M. Geremia},
-      year={2017},
-      eprint={1711.11551},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/1711.11551}, 
+@article{alves2017iterationcomplexityinexactdouglasrachford,
+  title = {Iteration Complexity of an Inexact {{Douglas-Rachford}} Method and of a {{Douglas-Rachford-Tseng}}’s {{F-B}} Four-Operator Splitting Method for Solving Monotone Inclusions},
+  author = {Alves, M. Marques and Geremia, Marina},
+  date = {2019-09-01},
+  year = {2019},
+  journaltitle = {Numerical Algorithms},
+  journal = {Numerical Algorithms},
+  shortjournal = {Numerical Algorithms},
+  volume = {82},
+  number = {1},
+  pages = {263--295},
+  issn = {1572-9265},
+  doi = {10.1007/s11075-018-0604-1},
+  url = {https://doi.org/10.1007/s11075-018-0604-1},
+  abstract = {In this paper, we propose and study the iteration complexity of an inexact Douglas-Rachford splitting (DRS) method and a Douglas-Rachford-Tseng’s forward-backward (F-B) splitting method for solving two-operator and four-operator monotone inclusions, respectively. The former method (although based on a slightly different mechanism of iteration) is motivated by the recent work of J. Eckstein and W. Yao, in which an inexact DRS method is derived from a special instance of the hybrid proximal extragradient (HPE) method of Solodov and Svaiter, while the latter one combines the proposed inexact DRS method (used as an outer iteration) with a Tseng’s F-B splitting-type method (used as an inner iteration) for solving the corresponding subproblems. We prove iteration complexity bounds for both algorithms in the pointwise (non-ergodic) as well as in the ergodic sense by showing that they admit two different iterations: one that can be embedded into the HPE method, for which the iteration complexity is known since the work of Monteiro and Svaiter, and another one which demands a separate analysis. Finally, we perform simple numerical experiments to show the performance of the proposed methods when compared with other existing algorithms.}
 }
 
-@misc{machart2012optimalcomputationaltradeoffinexact,
-      title={Optimal Computational Trade-Off of Inexact Proximal Methods}, 
-      author={Pierre Machart and Sandrine Anthoine and Luca Baldassarre},
-      year={2012},
-      eprint={1210.5034},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/1210.5034}, 
+@inproceedings{machart2012optimalcomputationaltradeoffinexact,
+  title={Optimal Computational Trade-Off of Inexact Proximal Methods (short version)},
+  author={Pierre Machart and Luca Baldassarre and Sandrine Anthoine},
+  booktitle={Neural Information Processing Systems},
+  year={2012},
+  url={https://api.semanticscholar.org/CorpusID:263263515}
 }
 
 @article{LinMairal2018CatalystAcceleration,
@@ -476,11 +508,20 @@ eprint = {
   url     = {http://jmlr.org/papers/v18/17-748.html}
 }
 
-@inproceedings{Martinet1970RegularisationDV,
-  title={R'egularisation d''in'equations variationnelles par approximations successives},
-  author={Bernard Martinet},
-  year={1970},
-  url={https://api.semanticscholar.org/CorpusID:116604660}
+@article{Martinet1970RegularisationDV,
+     author = {Bernard Martinet},
+     title = {R\'egularisation d'in\'equations variationnelles par approximations successives},
+     journal = {Revue fran\c{c}aise d'informatique et de recherche op\'erationnelle. S\'erie rouge},
+     pages = {154--158},
+     year = {1970},
+     publisher = {Dunod},
+     address = {Paris},
+     volume = {4},
+     number = {R3},
+     mrnumber = {298899},
+     zbl = {0215.21103},
+     language = {fr},
+     url = {https://www.numdam.org/item/M2AN_1970__4_3_154_0/}
 }
 
 @Inbook{Bauschke2017FinerPropertiesOfMonotoneOperators,
@@ -510,4 +551,38 @@ abstract = {This paper contains a new approach toward a theory of robust estimat
 year = {1964},
 doi = {10.1214/aoms/1177703732},
 URL = {https://doi.org/10.1214/aoms/1177703732}
+}
+
+@article{chambollePockFirstOrderPrimalDualAlgorithm2011,
+  title = {A {{First-Order Primal-Dual Algorithm}} for {{Convex Problems}} with~{{Applications}} to {{Imaging}}},
+  author = {Chambolle, Antonin and Pock, Thomas},
+  date = {2011-05-01},
+  year = {2011},
+  journaltitle = {Journal of Mathematical Imaging and Vision},
+  journal = {Journal of Mathematical Imaging and Vision},
+  shortjournal = {Journal of Mathematical Imaging and Vision},
+  volume = {40},
+  number = {1},
+  pages = {120--145},
+  issn = {1573-7683},
+  doi = {10.1007/s10851-010-0251-1},
+  url = {https://doi.org/10.1007/s10851-010-0251-1},
+  abstract = {In this paper we study a first-order primal-dual algorithm for non-smooth convex optimization problems with known saddle-point structure. We prove convergence to a saddle-point with rate O(1/N) in finite dimensions for the complete class of problems. We further show accelerations of the proposed algorithm to yield improved rates on problems with some degree of smoothness. In particular we show that we can achieve O(1/N2) convergence on problems, where the primal or the dual objective is uniformly convex, and we can show linear convergence, i.e. O(ωN) for some ω∈(0,1), on smooth problems. The wide applicability of the proposed algorithm is demonstrated on several imaging problems such as image denoising, image deconvolution, image inpainting, motion estimation and multi-label image segmentation.}
+}
+
+@article{davisThreeOperatorSplittingScheme2017,
+  title = {A {{Three-Operator Splitting Scheme}} and Its {{Optimization Applications}}},
+  author = {Davis, Damek and Yin, Wotao},
+  date = {2017-12-01},
+  year = {2017},
+  journaltitle = {Set-Valued and Variational Analysis},
+  journal = {Set-Valued and Variational Analysis},
+  shortjournal = {Set-Valued and Variational Analysis},
+  volume = {25},
+  number = {4},
+  pages = {829--858},
+  issn = {1877-0541},
+  doi = {10.1007/s11228-017-0421-z},
+  url = {https://doi.org/10.1007/s11228-017-0421-z},
+  abstract = {Operator-splitting methods convert optimization and inclusion problems into fixed-point equations; when applied to convex optimization and monotone inclusion problems, the equations given by operator-splitting methods are often easy to solve by standard techniques. The hard part of this conversion, then, is to design nicely behaved fixed-point equations. In this paper, we design a new, and thus far, the only nicely behaved fixed-point equation for solving monotone inclusions with three operators; the equation employs resolvent and forward operators, one at a time, in succession. We show that our new equation extends the Douglas-Rachford and forward-backward equations; we prove that standard methods for solving the equation converge; and we give two accelerated methods for solving the equation.}
 }
