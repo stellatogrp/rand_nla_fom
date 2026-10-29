@@ -8,7 +8,9 @@ __pycache__/
 
 # Generated CSVs and figures: always rebuilt from code/experiments and
 # code/plots, never edited by hand.
-results/
+results/**
+!results/**/
+!results/numerical_experiments/**/*.pdf
 
 # LaTeX build products
 tex/*.aux

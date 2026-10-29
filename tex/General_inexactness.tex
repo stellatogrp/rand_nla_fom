@@ -163,6 +163,8 @@ The variables $u$, $w$, $y$, and $z$ are always used in a way that matches their
 The reader should always assume that we are trying to find $u$, $w$, $y$, and $z$, such that $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$.
 The symbol $\gamma$ is always used to refer to the proximal parameter, also referred to as the stepsize.
 Similarly, $\sigma$ will always be used to refer to the inexactness parameter of \Cref{alg:stopping-time-algorithm}, and $s$ is the stride, the number of inner iterations between inexactness checks.
+We follow the convention that superscript indices refer to inner iterations and subscript indices refer to outer iterations
+
 For convenience, we include a table outlining commonly used symbols and their meaning.
 {\small
 \renewcommand{\arraystretch}{1.14}
@@ -178,21 +180,21 @@ Symbol & Meaning (continued) \\
 \endhead
 \bottomrule
 \endfoot
-$\Acal,\ \Ccal$ & Original monotone operator $\Acal:\Hcal\rightrightarrows\Hcal$ and preconditioner factor $\Ccal:\Dcal\to\Hcal$. The original preconditioner is $\Ccal\Ccal^*$. \\
+$\Acal$, $\Ccal$ & Original monotone operator $\Acal:\Hcal\rightrightarrows\Hcal$ and preconditioner factor $\Ccal:\Dcal\to\Hcal$. The original preconditioner is $\Ccal\Ccal^*$. \\
 $\Bcal$ & The monotone operator used to write \Cref{alg:stopping-time-algorithm} as a proximal point method. \\
-$J,R$ & The resolvent $J = (I+\gamma \Bcal)^{-1}$ and its fixed point residual $R = I - J$. \\
+$J$, $R$ & The resolvent $J = (I+\gamma \Bcal)^{-1}$ and its fixed point residual $R = I - J$. \\
 $s$ & The stride: the integer number of inner iterations between inexactness checks. \\
 $\sigma$ & Inexactness tolerance parameter. \\
 $\gamma$ & Stepsize or proximal parameter. \\
 $\delta$ & Stopping tolerance. \\
 $\alpha$ & Contraction parameter of the inner solver. \\
 $C_0$ & Initialization constant of the inner solver. \\
-$G_\sigma, H_\sigma$ & The warm-start constants of \Cref{lem:warm-start-bounds}. \\
+$G_\sigma$, $H_\sigma$ & The warm-start constants of \Cref{lem:warm-start-bounds}. \\
 $D$ & Constant factor relating to inexactness, $D := \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}$. \\
-$u,w,y,z$ & Iterates of the proximal point method with $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$. Sometimes written with super- or subscripts to specify inner or outer iterations. \\
+$u$, $w$, $y$, $z$ & Iterates of the proximal point method with $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$. Sometimes written with super- or subscripts to specify inner or outer iterations. \\
 $K_\delta$ & Stopping time of the algorithm. The outer iteration at which $\norm{z_{k}} \leq \delta$. Equivalently, the number of accepted updates before stopping. \\
 $K_\delta^+$ & Upper bound on the above. \\
-$\prob_k,\Expect_k$ & The conditional probability and expectation at the start of outer iteration $k$, given all randomness generated before the $k$th inner solve begins. \\
+$\prob_k$, $\Expect_k$ & The conditional probability and expectation at the start of outer iteration $k$, given all randomness generated before the $k$th inner solve begins. \\
 $N_k$ & Number of inner iterations performed during outer iteration $k$. \\
 \end{longtable}
 }
@@ -214,8 +216,9 @@ Define the operator $\Bcal$ by its graph as
 % To connect this with the discussion above, suppose $\Ccal\Ccal^* = M \succ 0$ and $A$ is single-valued.
 % Then, in item 2 of \Cref{lem:B-properties}, we can see that $Cu = Mv + \gamma Cz$
 % To get more intuition behind the definitions, see \citet{alves2025generalframeworkinexactsplitting}.
-Since $\Ccal^*$ is surjective (\Cref{assumption:well-defined-resolvents}), the resolvent $(I+\gamma \Bcal)^{-1}$ is defined on the entire space $\Dcal$ (\Cref{lem:B-properties}).
-Note that $\Bcal$ itself need not have full domain, since $\dom \Bcal \subseteq \Ccal^*\dom\Acal$.
+Since $\Ccal^*$ is surjective (\Cref{assumption:well-defined-resolvents}), the resolvent $J := (I+\gamma \Bcal)^{-1}$ is defined on the entire space $\Dcal$ (\Cref{lem:B-properties}).
+Note that $\Bcal$ itself need not have full domain.
+In particular $\dom \Bcal \subseteq \Ccal^*\dom\Acal$, with strict inclusion a possibility.
 One way of viewing this definition is that $\Bcal$ is a projection of $\Acal$ onto a lower-dimensional space.
 \Cref{prop:admm} shows that this perspective enables us to view the iterates of ADMM as the projections of a higher-dimensional PPM.
 \begin{lemma}\label{lem:B-properties}
@@ -249,14 +252,14 @@ Maximality follows from \Cref{assumption:well-defined-resolvents}: by item 2, $\
 In the case where $\mathcal{A}$ is not necessarily monotone, it may still hold that $\Bcal$ is maximal monotone.
 We make this assumption explicit.
 \begin{assumption}\label{assumption:well-defined-b-operator}
-    We assume that $\Bcal$ is a maximal monotone operator.
+    We assume that $\Bcal$ defined in \Cref{def:b-definition} is a maximal monotone operator.
     We also assume that the map $\Ccal:\Dcal\to\Hcal$ is a bounded linear map between Hilbert spaces with $\Ccal^*$ surjective.
 \end{assumption}
 Note that \Cref{assumption:well-defined-resolvents} is strictly stronger than \Cref{assumption:well-defined-b-operator}.
 \Cref{prop:davis-yin} shows an example where \Cref{assumption:well-defined-b-operator} holds but \Cref{assumption:well-defined-resolvents} fails.
 
 \section{The Degenerate Preconditioned Proximal Point Method}
-The idea behind \citet[Theorem 1]{alves2025generalframeworkinexactsplitting} is that we would like to compute the resolvent $J = (I+\gamma \Bcal)^{-1}$, but this may be difficult.
+The idea behind \citet[Theorem 1]{alves2025generalframeworkinexactsplitting} is that we would like to compute the resolvent $J := (I+\gamma \Bcal)^{-1}$, but this may be difficult.
 Instead, we define a relative error criterion such that the computed iterates lie in the graph of $\Bcal$ and satisfy error bounds on how far from the true update they can be (\Cref{lem:exact-inexact-graph-pair-inequalities}).
 
 To do this, we consider a modified version of the algorithm of \citet{alves2025generalframeworkinexactsplitting} (\Cref{alg:stopping-time-algorithm}), where we introduce a stopping rule for the inner loop.
@@ -285,7 +288,7 @@ The stopping rule is critical for the analysis of stopping times.
 \end{algorithm}
 
 The following proposition shows that at stopping, the returned iterates provide a certificate of distance to optimality.
-Equivalents of the results in this section can be found in \citet{rockafellar1976monotoneoperatorsandppm,bredies2021degeneratepreconditionedproximalpoint,alves2025generalframeworkinexactsplitting} (among others), but we present them again here for clarity.
+Equivalents of the results in this section can be found in \citet{rockafellar1976monotoneoperatorsandppm,bredies2021degeneratepreconditionedproximalpoint,alves2025generalframeworkinexactsplitting} (among others), but we present modifications here for our purposes.
 \begin{proposition}\label{prop:certificate}
     Every output from the $\norm{z}\leq\delta$ terminal test of \Cref{alg:stopping-time-algorithm} satisfies
     \begin{equation}\label{eq:original-certificate}
@@ -341,7 +344,7 @@ In this section, we present a quantitative estimate on the convergence of \Cref{
 We will show that the inexactness affects convergence only through a multiplicative factor, which allows the rest of the analysis to follow.
 The next lemma is needed to show the convergence of \Cref{alg:stopping-time-algorithm}.
 \begin{lemma}\label{lem:exact-inexact-graph-pair-inequalities}
-    The maps $J = (I+\gamma \Bcal)^{-1}$ and $R = I - J$ (the fixed point residual) are firmly nonexpansive.
+    The maps $J := (I+\gamma \Bcal)^{-1}$ and $R := I - J$ (the fixed point residual) are firmly nonexpansive.
     If $(y,z)\in\gra{\Bcal}$ is a candidate update pair (as in line 3 of \Cref{alg:stopping-time-algorithm} with $y = \Ccal^* u$) at $w$, then
     \begin{align}
         y &= J(\gamma z + y),\label{eq:resolvent-identity-y} \\
@@ -413,7 +416,7 @@ The next lemma is needed to show the convergence of \Cref{alg:stopping-time-algo
     \end{align}
     which is the bound \Cref{eq:fixed-point-update-vs-resolvent-bound}.
 
-    Lastly, if $w^\star\in\zer \Bcal$, then $(I+\gamma \Bcal)^{-1}w^\star = w^\star$.
+    Lastly, if $w^\star\in\zer \Bcal$, then $J w^\star = w^\star$.
     Thus, $R(w^\star) = 0$, so by the nonexpansiveness of $R$,
     \begin{align}
         \norm{R(w)} = \norm{R(w) - R(w^\star)} \leq \norm{w-w^\star}.
@@ -559,11 +562,12 @@ We begin with some definitions to establish the setting of the problem.
     where $0<\alpha < 1$ and $C_0\geq 1$ are constants that do not depend on $k$ or $l$.
     Here the superscripts represent \emph{inner} iterations (those in the loop of lines 4--10 in \Cref{alg:stopping-time-algorithm}).
 \end{assumption}
-This may seem like a strong assumption, since it asks for an inner procedure whose residual contracts linearly\footnote{The term ``linear convergence'' is often referred to as ``geometric convergence'' outside of optimization contexts.}.
+This may seem like a strong assumption, since it asks for an inner procedure whose residual contracts linearly.\footnote{The term ``linear convergence'' is often referred to as ``geometric convergence'' outside of optimization contexts.}
 It is, however, mild.
-When $\Acal = \partial f$ for a closed, proper, and convex function $f$, the resolvent is the proximal operator of $f$ and the subproblem $\min_x f(x) + \frac{1}{2\gamma}\norm{x - w_k}^2$ is $\frac{1}{\gamma}$-strongly convex, so any linearly convergent method for strongly convex problems qualifies.
-For smooth $f$, gradient descent does, with the constants of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, and \Cref{prop:admm} gives the constants for the $x$-subproblem of ADMM.
-In the quadratic example above, where $f(x)=\frac{1}{2}x^\top Q x + d^\top x$ and the subproblem requires solving the system $(\gamma Q + I) x^+ = x-\gamma d$, the generalized minimal residual method (GMRES) contracts the residual linearly, with the constants used in \Cref{sec:numerical-experiments-admm}.
+When $\Acal = \partial f$ for a closed, proper, and convex function $f$, the resolvent is the proximal operator of $f$.
+Thus, the subproblem $\min_x f(x) + \frac{1}{2\gamma}\norm{x - w_k}^2$ is $\frac{1}{\gamma}$-strongly convex, so any linearly convergent method for strongly convex problems qualifies.
+For smooth $f$, gradient descent is one such inner procedure, with the constants of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, and \Cref{prop:admm} giving the constants for the $x$-subproblem of ADMM.
+In the quadratic example above, where $f(x)=\frac{1}{2}x^\top Q x + d^\top x$ and the subproblem is to solve the linear system $(\gamma Q + I) x^+ = x-\gamma d$, the generalized minimal residual method (GMRES) contracts the residual linearly, with the constants used in \Cref{sec:numerical-experiments-admm}.
 A method that does not converge linearly on a strongly convex subproblem would be a poor choice of inner solver.
 
 \begin{theorem}\label{thm:stopping-time-concentration}
@@ -790,6 +794,7 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
     Under the assumptions of \Cref{thm:error-bound-outer-convergence-guarantee}, $\Expect[K_\delta] = O(\log (1/\delta))$, so the amount of total inner work is $O(\log(1/\delta))$.
     This highlights the advantage of having a bound in terms of $\Expect[K_\delta]$, as we did not need to redo any of the outer convergence analysis.
     An interesting related question is to see if this can be used to formulate an average-case inner work complexity, rather than the worst-case complexity presented here.
+    We leave this direction for future work.
 \end{remark}
 
 \begin{theorem}[A deterministic bound]\label{thm:deterministic-inner-work}
@@ -862,7 +867,7 @@ This shows why merely declaring the outer point to be a fixed point, or invoking
 \subsection{Selection of Parameters}
 We now use \Cref{thm:total-inner-work-bound} to choose the stride $s$, given the costs of an inner iteration and of a check.
 The choice of $\sigma$ depends on the inner solver and is examined for specific methods in \Cref{prop:optimal-sigma-gradient-descent-inside-ppm,prop:admm}.
-\begin{lemma}\label{lem:check-frequency-b-star}
+\begin{lemma}\label{lem:check-frequency-s-star}
     Suppose the cost of testing is $c_{\mathrm{test}}$, the cost of each inner iteration is $c_{\mathrm{in}}$, the cost of each outer iteration is $c_{\mathrm{out}}$, and the cost of initialization is $c_{\mathrm{init}}$.
     Given an upper bound $K_{\mathrm{up}} \geq \Expect[K_\delta]$, under the assumptions of \Cref{thm:total-inner-work-bound}, we can bound the total cost $M$ as
     \begin{align}
@@ -910,7 +915,7 @@ Nevertheless, we hope this provides a more principled heuristic for implementati
 
 \subsection{Proximal Point Method}
 As a prescriptive example, let us consider the case of inexact proximal point on a smooth convex function.
-The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \frac{1}{\gamma}) + \frac{1}{\gamma}} = \frac{2\gamma}{\gamma L + 2}$, where $\gamma_{\mathrm{GD}}$ is the inner stepsize of the gradient method applied to the proximal subproblem $\min_x f(x) + \frac{1}{2\gamma}\norm{x - w}^2$, which is $(L+\frac{1}{\gamma})$-smooth and $(\frac{1}{\gamma})$-strongly convex.
+The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \frac{1}{\gamma}) + \frac{1}{\gamma}} = \frac{2\gamma}{\gamma L + 2}$, where $\gamma_{\mathrm{GD}}$ is the inner stepsize of the gradient method applied to the proximal subproblem $\min_x \left\{ f(x) + \frac{1}{2\gamma}\norm{x - w}^2 \right\}$, which is $(L+\frac{1}{\gamma})$-smooth and $(\frac{1}{\gamma})$-strongly convex.
 \begin{proposition}\label{prop:optimal-sigma-gradient-descent-inside-ppm}
     Consider the case where $\Ccal = I$ and $\Acal = \nabla f$ where $f$ is convex and $L$-smooth.
     At outer iteration $k$, suppose the inner procedure is gradient descent with stepsize $\gamma_{\mathrm{GD}} = \frac{2\gamma}{\gamma L + 2}$ on the proximal subproblem $\argmin_{x}\varphi_k(x)$, where $\varphi_k(x) := f(x) + \frac{1}{2\gamma}\norm{x - w_k}^2$, warm-started at the previously accepted $u$, and uses the graph pair $(u^l, z^l) = (x^l, \nabla f(x^l))$.
@@ -989,7 +994,7 @@ The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \f
     Substituting into \Cref{eq:optimal-sigma} gives $\frac{1}{\sigma^\star} > \frac{3}{2} + \chi + \log C_0$.
 \end{proof}
 \begin{remark}
-    The inner iterations of this problem are of the form $x_{k}^{l+1} = x_{k}^l - \gamma_{\mathrm{GD}}(\nabla f(x_k^l) + \frac{1}{\gamma}(x_k^l - x_k^0))$.
+    The inner iterations of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm} are of the form $x_{k}^{l+1} = x_{k}^l - \gamma_{\mathrm{GD}}(\nabla f(x_k^l) + \frac{1}{\gamma}(x_k^l - w_k))$.
     That is, all future iterates are in the span of past iterates and gradients.
     Any such method needs $\sum_{k=0}^{K_\delta}N_k \gtrsim \delta^{-1/2}$.
     This follows\footnote{Namely, using \Cref{thm:convergence-guarantee} to conclude that gradients and iterates are bounded by initialization constants.} from analyzing ``the worst function in the world'' \citep[Section 2.1.2]{nesterov2004introductory}.
@@ -1057,7 +1062,7 @@ Suppose we want to solve
     \end{array}
 \end{equation}
 where $x$ and $z$ are the optimization variables, and $f$ and $g$ are closed, proper, and convex functions, but not necessarily smooth.
-Its optimality condition is $0\in\partial f(x) + \partial g(x)$, i.e., the inclusion \Cref{eq:Douglas-Rachford-inclusion} with $\Acal_1 = \partial f$ and $\Acal_2 = \partial g$, whenever $\partial(f+g) = \partial f + \partial g$.
+Its optimality condition is $0\in\partial f(x) + \partial g(x)$, i.e., the inclusion \Cref{eq:Douglas-Rachford-inclusion} with $\Acal_1 = \partial f$ and $\Acal_2 = \partial g$, whenever $\partial(f+g) = \partial f + \partial g$.\footnote{Note that we always have $\partial f(x) + \partial g(x)\subseteq \partial (f+g)(x)$ \citep[Proposition 16.6]{bauschkeConvexAnalysisMonotone2017}.}
 \citet{EcksteinRelativeError2018} describe a variant of ADMM which produces iterates as
 \begin{subequations}\label{eq:admm-iterates}
 \begin{align}
@@ -1116,8 +1121,10 @@ We formally prove this in \Cref{prop:admm}.
 \end{algorithm}
 
 When the $x$-subproblem is solved exactly, $a_k = -p_{k+1}$, and lines 4 and 8 reduce to the ADMM iterates \Cref{eq:admm-iterates}.
-Each check (line 4) costs one evaluation of $\prox_{g/c}$.
-This is the test cost $c_{\mathrm{test}}$ in the parameter selection analysis of \Cref{lem:check-frequency-b-star}.
+Each check (lines 5 and 7 of \Cref{alg:inexact-admm}) costs one evaluation of $\prox_{g/c}$.
+The check uses the same output for both the stopping test and the relative error test.
+This is the test cost $c_{\mathrm{test}}$ in the optimal stride selection analysis of \Cref{lem:check-frequency-s-star}.
+The cost of $c_{\mathrm{test}}$ relative to the cost of one inner iteration $c_{\mathrm{in}}$ depends on the hardware and implementation details, but typically $c_{\mathrm{test}} \gg c_{\mathrm{in}}$ in practice.
 
 \begin{proposition}\label{prop:admm}
     Let $\Acal$ and $\Ccal$ be the associated inexact PPM operators for ADMM \Cref{eq:admm-operators}, and suppose $w_0 = z_0 - \frac{p_0}{c}$.
@@ -1186,7 +1193,7 @@ We can extend the Douglas--Rachford result to the more general Davis--Yin case \
 \begin{align}
     \text{find } x \text{ such that } 0 \in\Acal_1 x + \Acal_2 x + \Acal_3 x, \label{eq:Davis--Yin-inclusion}
 \end{align}
-where $\mathcal{A}_1$ and $\mathcal{A}_2$ are maximal monotone operators and $\Acal_3$ is $L_3^{-1}$-cocoercive\footnote{That is, $\ip{\Acal_3 x - \Acal_3 x'}{x - x'}\geq L_3^{-1}\norm{\Acal_3 x - \Acal_3 x'}^2$ for all $x$ and $x'$ (for example $\Acal_3 = \nabla h$ with $h$ convex and $L_3$-smooth).}.
+where $\mathcal{A}_1$ and $\mathcal{A}_2$ are maximal monotone operators and $\Acal_3$ is $L_3^{-1}$-cocoercive.\footnote{That is, $\ip{\Acal_3 x - \Acal_3 x'}{x - x'}\geq L_3^{-1}\norm{\Acal_3 x - \Acal_3 x'}^2$ for all $x$ and $x'$ (for example $\Acal_3 = \nabla h$ with $h$ convex and $L_3$-smooth).}
 Let $\tau\in(0,2/L_3)$ be the Davis--Yin stepsize and let
 \begin{align}
     0 < \theta \leq 1 - \frac{\tau L_3}{4}
@@ -1428,16 +1435,16 @@ However, the inexact PPM with $\sigma = 0.9$ used only 142 gradient evaluations,
 \end{figure}
 
 Additionally, we compare the predicted cost of choosing different values of the stride $s$ (lines 4--10 of \Cref{alg:stopping-time-algorithm}).
-The relaxed bound refers to that of \Cref{lem:check-frequency-b-star}, while the unrelaxed bound refers to \Cref{rem:b-star-remark}.
+The relaxed bound refers to that of \Cref{lem:check-frequency-s-star}, while the unrelaxed bound refers to \Cref{rem:b-star-remark}.
 The unrelaxed bound gives a tighter bound, but only up to a nearly constant factor.
-Moreover, the conservatism of \Cref{lem:check-frequency-b-star} can be seen in \Cref{fig:ppm-huber-optimal-b-star-model}, where increasing the stride does not seem to affect the time per outer iteration significantly.
-The cost of checking depends on factors such as hardware types and availability, difficulty of subproblems, implementation details, and so forth, but using the $s^\star$ defined in \Cref{lem:check-frequency-b-star} seems to be a good heuristic.
+Moreover, the conservatism of \Cref{lem:check-frequency-s-star} can be seen in \Cref{fig:ppm-huber-optimal-b-star-model}, where increasing the stride does not seem to affect the time per outer iteration significantly.
+The cost of checking depends on factors such as hardware types and availability, difficulty of subproblems, implementation details, and so forth, but using the $s^\star$ defined in \Cref{lem:check-frequency-s-star} seems to be a good heuristic.
 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/bstar_model.pdf}
     \caption{Choosing the stride on the Huber instances.
-    Left, the modeled seconds per outer iteration as a function of $s$ from \Cref{lem:check-frequency-b-star} (relaxed bound) and from \Cref{rem:b-star-remark} (unrelaxed bound), with their integer minimizers marked; right, the measured seconds per outer iteration of the $s$ sweep at $\sigma = 0.1$ (median over the 100 instances; whiskers from the 10th to the 90th percentile), with the level of the near-exact method as a horizontal line.
+    Left, the modeled seconds per outer iteration as a function of $s$ from \Cref{lem:check-frequency-s-star} (relaxed bound) and from \Cref{rem:b-star-remark} (unrelaxed bound), with their integer minimizers marked; right, the measured seconds per outer iteration of the $s$ sweep at $\sigma = 0.1$ (median over the 100 instances; whiskers from the 10th to the 90th percentile), with the level of the near-exact method as a horizontal line.
     The relaxation shifts the model by a nearly constant factor, and the measured time is almost flat in $s$.}\label{fig:ppm-huber-optimal-b-star-model}
 \end{figure}
 
@@ -1523,7 +1530,7 @@ The setup costs of computing $s^\star$ or $\sigma^\star$ are included as the mid
     \centering
     \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/bstar_model.pdf}
     \caption{Choosing the stride on the quadratic programs.
-    Left, the modeled seconds per outer iteration as a function of $s$ from \Cref{lem:check-frequency-b-star} (relaxed bound) and from \Cref{rem:b-star-remark} (unrelaxed bound), with their integer minimizers marked; right, the measured seconds per outer iteration of the $s$ sweep at $\sigma = 0.1$ (median over the 100 instances; whiskers from the 10th to the 90th percentile), with the levels of exact ADMM and of the near-exact method as horizontal lines.
+    Left, the modeled seconds per outer iteration as a function of $s$ from \Cref{lem:check-frequency-s-star} (relaxed bound) and from \Cref{rem:b-star-remark} (unrelaxed bound), with their integer minimizers marked; right, the measured seconds per outer iteration of the $s$ sweep at $\sigma = 0.1$ (median over the 100 instances; whiskers from the 10th to the 90th percentile), with the levels of exact ADMM and of the near-exact method as horizontal lines.
     The minimizer of the unrelaxed bound is the better choice, both in the model and in the measurement.}\label{fig:admm-qp-optimal-b-star-model}
 \end{figure}
 
