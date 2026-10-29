@@ -219,15 +219,18 @@ def _moments(values: list[float]) -> dict:
     array = np.array([v for v in values if not _is_nan(v)], dtype=float)
     if array.size == 0:
         return dict(mean=nan, sd=nan, median=nan, p10=nan, p90=nan, min=nan, max=nan)
-    return dict(
-        mean=float(array.mean()),
-        sd=float(array.std(ddof=1)) if array.size > 1 else 0.0,
-        median=float(np.median(array)),
-        p10=float(np.percentile(array, 10)),
-        p90=float(np.percentile(array, 90)),
-        min=float(array.min()),
-        max=float(array.max()),
-    )
+    # Infinite values (the theorem bounds at sigma = 1) give infinite moments
+    # and a nan standard deviation; the arithmetic on them is deliberate.
+    with np.errstate(invalid="ignore"):
+        return dict(
+            mean=float(array.mean()),
+            sd=float(array.std(ddof=1)) if array.size > 1 else 0.0,
+            median=float(np.median(array)),
+            p10=float(np.percentile(array, 10)),
+            p90=float(np.percentile(array, 90)),
+            min=float(array.min()),
+            max=float(array.max()),
+        )
 
 
 def aggregate_summary(directory: Path) -> list[dict]:
@@ -243,6 +246,7 @@ def aggregate_summary(directory: Path) -> list[dict]:
     ):
         rows = groups[key]
         method, sweep, sigma, b = key
+        stops = [str(r.get("stopped_by", "")) for r in rows]
         entry = dict(
             method=method,
             sweep=sweep,
@@ -258,6 +262,9 @@ def aggregate_summary(directory: Path) -> list[dict]:
             in_grid=any(bool(r.get("in_grid", True)) for r in rows),
             n_runs=len(rows),
             n_converged=sum(bool(r.get("converged")) for r in rows),
+            n_max_total_inner=stops.count("max_total_inner"),
+            n_time_limit=stops.count("time_limit"),
+            n_max_outer=stops.count("max_outer"),
         )
         for name in SCALARS:
             values = [r.get(name, nan) for r in rows]

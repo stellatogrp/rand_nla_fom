@@ -31,7 +31,7 @@ uv run python -m experiments.run_experiments standard --plot
 ```
 
 See [`code/README.md`](code/README.md) for the method summary, the study
-catalogue, and the CSV contract between experiments and plots.
+catalog, and the CSV contract between experiments and plots.
 
 ## Checks
 

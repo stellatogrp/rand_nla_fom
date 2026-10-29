@@ -72,7 +72,7 @@ uv run python -m experiments.theta_sweep --help            # its flags
 ```
 
 `--plot` draws the study's figures from the CSVs it just wrote; `all` runs
-the broad studies in sequence.  The full catalogue is `standard`, `lp`,
+the broad studies in sequence.  The full catalog is `standard`, `lp`,
 `inequality-qp`, `gamma-sweep`, `sigma-sweep`, `theta-sweep`, `lasso`, and
 the focused `solver-sweep`, `solver-sweep-randomized`, and
 `inequality-gamma-sweep`.  Plotting is otherwise a separate step, so a

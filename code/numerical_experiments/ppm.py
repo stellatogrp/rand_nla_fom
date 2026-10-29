@@ -11,6 +11,13 @@ accept if ``||e|| <= sigma ||x - w_k||``, otherwise take ``b`` more steps.
 ``exact_tolerance`` replaces the relative test by the absolute test
 ``||e|| <= exact_tolerance``, which is the near-exact baseline.
 
+Every inexact run has a hard stop besides the cap ``max_outer`` on outer
+iterations: ``max_total_inner`` gradient steps in total, or ``time_limit``
+seconds of wall-clock, checked at every inner check.  The theory guarantees
+termination only for ``sigma < 1`` and the sweep includes ``sigma = 1``.  A
+run that hits a stop is recorded with ``converged = False`` and the reason in
+``Trace.stopped_by``.
+
 :func:`gradient_descent` is the classical baseline: plain gradient descent
 on ``f`` with a constant stepsize (``1/L`` by default) and the same stopping
 test ``||grad f(x)|| <= delta``, so that one of its iterations costs one
@@ -21,11 +28,18 @@ from __future__ import annotations
 
 import math
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
 
 Array = np.ndarray
+
+# The hard stop of every inexact run: total gradient steps and wall-clock
+# seconds.  Both are about ten times the heaviest converging run observed,
+# the near-exact baseline of the Huber study (1.1e5 steps, 34 s).
+MAX_TOTAL_INNER = 1_000_000
+TIME_LIMIT = 300.0
 
 
 @dataclass
@@ -43,7 +57,12 @@ class Trace:
     accepted_by: list[str] = field(default_factory=list)
     feasible_iterates: list[Array] = field(default_factory=list)
     converged: bool = False
+    # Why the run ended: "converged", "max_outer", "max_total_inner",
+    # "time_limit", or "max_iterations" (gradient descent).
+    stopped_by: str = ""
     seconds: float = float("nan")
+    # One at the start plus one per inner step, for the proximal runs and for
+    # gradient descent alike: the unit in which the Huber figures report inner work.
     gradient_evaluations: int = 0
     gamma: float = 1.0
     # The iteration number of each entry when the record is thinned (gradient
@@ -58,6 +77,20 @@ class Trace:
         return len(self.inner) - 1
 
 
+def stop_reason(
+    total_inner: int,
+    max_total_inner: int | None,
+    started: float,
+    time_limit: float | None,
+) -> str:
+    """The hard-stop rule: the budget that is exhausted, or ``""`` if none is."""
+    if max_total_inner is not None and total_inner >= max_total_inner:
+        return "max_total_inner"
+    if time_limit is not None and time.perf_counter() - started >= time_limit:
+        return "time_limit"
+    return ""
+
+
 def inexact_ppm(
     problem,
     gamma: float,
@@ -70,8 +103,18 @@ def inexact_ppm(
     w0: Array | None = None,
     max_outer: int = 50_000,
     max_inner: int = 2_000_000,
+    max_total_inner: int | None = MAX_TOTAL_INNER,
+    time_limit: float | None = TIME_LIMIT,
+    inner_step: Callable[[Array, Array, Array], Array] | None = None,
 ) -> Trace:
-    """Run Algorithm 1 for ``min f`` with gradient descent as the inner solver."""
+    """Run Algorithm 1 for ``min f`` with gradient descent as the inner solver.
+
+    ``problem.gradient`` is the operator applied at ``x``: ``grad f`` for a
+    function, or any monotone map (the torsion operator).  ``inner_step``,
+    if given, replaces the gradient step: it maps ``(x, w, e)`` to the next
+    inner iterate, ``e`` being the resolvent residual at ``x`` (Richardson
+    iteration for the torsion operator).
+    """
     n = problem.n
     w = np.zeros(n) if w0 is None else np.array(w0, dtype=float)
     x = w.copy()
@@ -80,6 +123,8 @@ def inexact_ppm(
     started = time.perf_counter()
     g = problem.gradient(x)
     evaluations = 1
+    total_inner = 0
+    stopped = ""
     k = 0
     while True:
         e = gamma * g + (x - w)
@@ -101,13 +146,21 @@ def inexact_ppm(
             if passed:
                 accepted_by = "relative"
                 break
+            stopped = stop_reason(total_inner, max_total_inner, started, time_limit)
+            if stopped:
+                accepted_by = stopped
+                break
             if inner >= max_inner:
                 raise RuntimeError(f"inner loop exceeded {max_inner} iterations")
             for _ in range(b):
-                x = x - coefficient * e
+                if inner_step is None:
+                    x = x - coefficient * e
+                else:
+                    x = inner_step(x, w, e)
                 g = problem.gradient(x)
                 e = gamma * g + (x - w)
             inner += b
+            total_inner += b
             evaluations += b
         trace.elapsed.append(time.perf_counter() - started)
         trace.iterates.append(x.copy())
@@ -120,10 +173,15 @@ def inexact_ppm(
         trace.accepted_by.append(accepted_by)
         if accepted_by == "terminal":
             trace.converged = True
+            trace.stopped_by = "converged"
+            break
+        if stopped:
+            trace.stopped_by = stopped
             break
         w = w - gamma * g
         k += 1
         if k >= max_outer:
+            trace.stopped_by = "max_outer"
             break
     trace.seconds = time.perf_counter() - started
     trace.gradient_evaluations = evaluations
@@ -185,8 +243,10 @@ def gradient_descent(
                 )
         if done:
             trace.converged = True
+            trace.stopped_by = "converged"
             break
         if capped:
+            trace.stopped_by = "max_iterations"
             break
         x = x - stepsize * g
         g = problem.gradient(x)

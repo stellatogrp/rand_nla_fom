@@ -132,7 +132,7 @@ class EqualityQP:
         )
 
 
-def make_qp(seed: int, n: int = 1000, m: int = 300, kappa: float = 100.0) -> EqualityQP:
+def make_qp(seed: int, n: int = 2000, m: int = 600, kappa: float = 1e4) -> EqualityQP:
     """Draw an equality QP with ``kappa(Q) = kappa`` and a planted KKT point."""
     rng = np.random.default_rng(seed)
     basis, _ = np.linalg.qr(rng.standard_normal((n, n)))
@@ -215,8 +215,8 @@ class HuberFit:
 
 def make_huber(
     seed: int,
-    n: int = 1000,
-    m: int = 1500,
+    n: int = 2000,
+    m: int = 3000,
     threshold: float = 0.5,
     noise: float = 0.1,
     outlier_fraction: float = 0.1,
@@ -239,7 +239,13 @@ class AffineProjector:
     def __init__(self, A: Array, b: Array):
         self.A = A
         self.b = b
-        self.factor = scipy.linalg.cho_factor(A @ A.T, lower=True)
+        # numpy's Cholesky rather than scipy.linalg.cho_factor: with lower=True SciPy
+        # calls Accelerate's dpotrf with uplo='U', which writes out of bounds from
+        # order 1449 (heap corruption, crashes later in unrelated code); see
+        # "Known issue" in README.md.  The lower factor with the flag
+        # ``True`` is what scipy.linalg.cho_solve expects; Fortran order spares
+        # LAPACK a copy of the factor on every solve.
+        self.factor = np.asfortranarray(np.linalg.cholesky(A @ A.T)), True
 
     def __call__(self, v: Array) -> Array:
         residual = self.A @ v - self.b

@@ -19,12 +19,13 @@ inexact one at every ``sigma`` of the main study's sweep and at ``sigma*``
 ``instance.csv``
     the instance constants, the optimum, and the start;
 ``runs.csv``
-    one row per run: outer iterations, gradient steps, time;
+    one row per run: outer iterations, gradient steps and evaluations, time;
 ``trajectories.csv``
     one row per run and iterate: coordinates, ``f - f*``, gradient norm,
-    and for the proximal runs the centre ``w_k`` of the subproblem the
-    iterate came from, its exact solution ``J(w_k)`` (gradient descent to
-    machine precision), and the distance between the two;
+    (``z_norm``), and for the proximal runs the center ``w_k`` of the
+    subproblem the iterate came from, its exact solution ``J(w_k)``
+    (gradient descent to machine precision), and the distance between the
+    two;
 ``contours.csv``
     ``f - f*`` on a grid over the full view and over the zoom window.
 """
@@ -38,7 +39,13 @@ import numpy as np
 
 from . import theory
 from ._io import write_rows
-from .ppm import accurate_resolvent, gradient_descent, inexact_ppm
+from .ppm import (
+    MAX_TOTAL_INNER,
+    TIME_LIMIT,
+    accurate_resolvent,
+    gradient_descent,
+    inexact_ppm,
+)
 from .problems import make_huber
 from .study import DEFAULT_RESULTS_DIR, DELTA, NEAR_EXACT_TOLERANCE, SIGMAS
 
@@ -76,6 +83,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=1.0,
         help="stepsize of the gradient descent baseline, in units of 1/L",
+    )
+    parser.add_argument(
+        "--max-total-inner",
+        type=int,
+        default=MAX_TOTAL_INNER,
+        help="hard stop: total gradient steps of one proximal run",
+    )
+    parser.add_argument(
+        "--time-limit",
+        type=float,
+        default=TIME_LIMIT,
+        help="hard stop: wall-clock seconds of one proximal run",
     )
     parser.add_argument(
         "--grid", type=int, default=201, help="contour grid points per axis"
@@ -202,7 +221,7 @@ def run(args: argparse.Namespace) -> Path:
                 dense=10**9,  # record every iteration
             )
             points = list(trace.iterates)
-            centres = [None] * len(points)
+            centers = [None] * len(points)
             cumulative = np.cumsum(trace.inner)
         else:
             trace = inexact_ppm(
@@ -215,9 +234,11 @@ def run(args: argparse.Namespace) -> Path:
                 exact_tolerance=(
                     args.near_exact_tolerance if method == "near_exact" else None
                 ),
+                max_total_inner=args.max_total_inner,
+                time_limit=None if method == "near_exact" else args.time_limit,
             )
             points = [x0] + list(trace.iterates)
-            centres = [None] + list(trace.w)
+            centers = [None] + list(trace.w)
             cumulative = np.concatenate([[0], np.cumsum(trace.inner)])
         identity = dict(
             method=method,
@@ -230,13 +251,14 @@ def run(args: argparse.Namespace) -> Path:
             dict(
                 **identity,
                 converged=trace.converged,
+                stopped_by=trace.stopped_by,
                 k_delta=trace.k_delta,
                 total_inner=int(sum(trace.inner)),
                 gradient_evaluations=trace.gradient_evaluations,
                 runtime_seconds=trace.seconds,
             )
         )
-        for k, (x, w, n) in enumerate(zip(points, centres, cumulative, strict=True)):
+        for k, (x, w, n) in enumerate(zip(points, centers, cumulative, strict=True)):
             value, g = problem.value_and_gradient(x)
             row = dict(
                 **identity,
@@ -244,7 +266,7 @@ def run(args: argparse.Namespace) -> Path:
                 x1=float(x[0]),
                 x2=float(x[1]),
                 f_minus_fstar=value - truth.value,
-                grad_norm=float(np.linalg.norm(g)),
+                z_norm=float(np.linalg.norm(g)),
                 cumulative_inner=int(n),
                 w1=nan,
                 w2=nan,
@@ -264,7 +286,7 @@ def run(args: argparse.Namespace) -> Path:
             trajectories.append(row)
 
     # The full view holds every iterate and the optimum; the zoom window is
-    # centred on the optimum.  Both are square so that the geometry is true.
+    # centered on the optimum.  Both are square so that the geometry is true.
     visited = np.array(
         [[t["x1"], t["x2"]] for t in trajectories]
         + [[t["exact1"], t["exact2"]] for t in trajectories if t["w1"] == t["w1"]]
@@ -272,9 +294,9 @@ def run(args: argparse.Namespace) -> Path:
     )
     low, high = visited.min(axis=0), visited.max(axis=0)
     span = float((high - low).max()) * 1.3
-    centre = (low + high) / 2
+    center = (low + high) / 2
     windows = dict(
-        full=(centre - span / 2, centre + span / 2),
+        full=(center - span / 2, center + span / 2),
         zoom=(truth.x - args.zoom * span, truth.x + args.zoom * span),
     )
     contours: list[dict] = []
@@ -338,9 +360,9 @@ def main() -> None:
     directory = Path(args.results_dir) / args.name
     if not args.plot_only:
         directory = run(args)
-    from .plots import trajectory_2d, trajectory_2d_exact
+    from .plots import trajectory_figures
 
-    for path in trajectory_2d(directory) + trajectory_2d_exact(directory):
+    for path in trajectory_figures(directory):
         print(path)
 
 

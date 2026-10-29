@@ -4,11 +4,17 @@ One task is one problem instance: draw it, solve it with CVXPY, compute the
 setup quantities and the paper's recommended parameters, then run every
 configuration (the exact ADMM or plain gradient descent baseline, the
 near-exact baseline, the ``sigma`` sweep with ``sigma*`` of Proposition 5.1,
-and the ``b`` sweep with ``b*`` of Lemma 4.2) and reduce each run to one
+and the stride sweep, ``b`` here and ``s`` in the paper, with ``b*`` of
+Lemma 4.2) and reduce each run to one
 row of ``results.csv`` and one row per outer iteration of
 ``histories.csv``.  Instance-level quantities go to
 ``parameters.csv``.  Instances run on a process pool with one BLAS thread
 each and are checkpointed as they finish, so an interrupted study resumes.
+Every inexact run has a hard stop (``--max-total-inner`` inner steps or
+``--time-limit`` seconds; the near-exact baseline has the step cap only),
+since the theory guarantees termination only for ``sigma < 1`` and the sweep
+includes ``sigma = 1``; ``results.csv`` records
+why each run ended in ``stopped_by``.
 """
 
 from __future__ import annotations
@@ -17,6 +23,8 @@ import argparse
 import math
 import os
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures.process import BrokenProcessPool
 from multiprocessing import get_context
 from pathlib import Path
 
@@ -36,13 +44,17 @@ import numpy as np  # noqa: E402
 from . import theory  # noqa: E402
 from ._io import append_rows, read_rows  # noqa: E402
 from .admm import (  # noqa: E402
+    Gmres,
     exact_admm,
     exact_residual,
+    exact_residuals,
     factor_subproblem,
     inexact_admm,
 )
 from .aggregate import aggregate_study  # noqa: E402
 from .ppm import (  # noqa: E402
+    MAX_TOTAL_INNER,
+    TIME_LIMIT,
     Trace,
     accurate_resolvent,
     gradient_descent,
@@ -60,13 +72,16 @@ STUDIES = {
     "admm_qp": "inexact versus exact ADMM on an equality-constrained convex QP",
     "ppm_huber": "inexact proximal point on Huber-loss fitting versus gradient descent",
 }
-SIGMAS = (0.01, 0.05, 0.2, 0.5, 0.9)
+SIGMAS = (0.01, 0.05, 0.2, 0.5, 0.9, 1.0)
 BS = (1, 2, 5, 10, 20)
 DELTA = 1e-9
 NEAR_EXACT_TOLERANCE = 1e-12
 # Distance-based theorem checks are evaluated only while ||gamma z_k|| is at
 # least this large, so that the accuracy of the CVXPY solution cannot bias them.
 CHECK_THRESHOLD = 1e-3
+# Krylov dimension at which the costs of a GMRES step and of a check are
+# timed for ``b*`` (ADMM): about the inner iterations of one outer iteration.
+CALIBRATION_DEPTH = 10
 RESULTS = "results.csv"
 HISTORIES = "histories.csv"
 PARAMETERS = "parameters.csv"
@@ -83,11 +98,11 @@ def build_parser(study: str) -> argparse.ArgumentParser:
     parser.add_argument(
         "--seed", type=int, default=0, help="seed of the first instance"
     )
-    parser.add_argument("--n", type=int, default=1000, help="decision variables")
+    parser.add_argument("--n", type=int, default=2000, help="decision variables")
     if study == "admm_qp":
-        parser.add_argument("--m", type=int, default=300, help="equality constraints")
+        parser.add_argument("--m", type=int, default=600, help="equality constraints")
         parser.add_argument(
-            "--kappa", type=float, default=100.0, help="condition number of Q"
+            "--kappa", type=float, default=1e4, help="condition number of Q"
         )
         parser.add_argument(
             "--ratio",
@@ -96,7 +111,7 @@ def build_parser(study: str) -> argparse.ArgumentParser:
             help="L / c: the penalty is c = L / ratio",
         )
     else:
-        parser.add_argument("--m", type=int, default=1500, help="observations")
+        parser.add_argument("--m", type=int, default=3000, help="observations")
         parser.add_argument(
             "--threshold", type=float, default=0.5, help="Huber threshold M"
         )
@@ -120,12 +135,21 @@ def build_parser(study: str) -> argparse.ArgumentParser:
         )
     parser.add_argument("--delta", type=float, default=DELTA, help="stopping tolerance")
     parser.add_argument("--sigmas", type=float, nargs="+", default=list(SIGMAS))
-    parser.add_argument("--bs", type=int, nargs="+", default=list(BS))
     parser.add_argument(
-        "--sigma-sweep-b", type=int, default=1, help="b used in the sigma sweep"
+        "--bs",
+        type=int,
+        nargs="+",
+        default=list(BS),
+        help="stride grid (s in the paper)",
     )
     parser.add_argument(
-        "--b-sweep-sigma", type=float, default=0.1, help="sigma used in the b sweep"
+        "--sigma-sweep-b", type=int, default=1, help="stride b used in the sigma sweep"
+    )
+    parser.add_argument(
+        "--b-sweep-sigma",
+        type=float,
+        default=0.1,
+        help="sigma used in the stride sweep",
     )
     parser.add_argument(
         "--near-exact-tolerance",
@@ -135,6 +159,18 @@ def build_parser(study: str) -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-outer", type=int, default=50_000)
     parser.add_argument(
+        "--max-total-inner",
+        type=int,
+        default=MAX_TOTAL_INNER,
+        help="hard stop: total inner steps (gradient or GMRES) of one inexact run",
+    )
+    parser.add_argument(
+        "--time-limit",
+        type=float,
+        default=TIME_LIMIT,
+        help="hard stop: wall-clock seconds of one inexact run",
+    )
+    parser.add_argument(
         "--workers", type=int, default=max(1, min(12, os.cpu_count() or 1))
     )
     parser.add_argument("--results-dir", type=Path, default=DEFAULT_RESULTS_DIR)
@@ -143,6 +179,12 @@ def build_parser(study: str) -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--no-aggregate", action="store_true", help="skip curves/summary"
+    )
+    parser.add_argument(
+        "--max-restarts",
+        type=int,
+        default=10,
+        help="times the worker pool is rebuilt after a worker dies",
     )
     return parser
 
@@ -165,6 +207,8 @@ def _calibrate(
     rng = np.random.default_rng(12345)
     v = rng.standard_normal(problem.n)
     w = rng.standard_normal(problem.n)
+    if study == "admm_qp":
+        return _calibrate_gmres(problem, projector, v, w, repetitions)
     inner, check = [], []
     for _ in range(repetitions + 3):
         started = time.perf_counter()
@@ -172,13 +216,39 @@ def _calibrate(
         e = g + (v - w)
         inner.append(time.perf_counter() - started)
         started = time.perf_counter()
-        if study == "admm_qp":
-            z = projector(v - g)
-            float(np.linalg.norm(v - z))
-            float(np.linalg.norm(z + g - w))
-        else:
-            float(np.linalg.norm(g))
-            float(np.linalg.norm(v - w))
+        float(np.linalg.norm(g))
+        float(np.linalg.norm(v - w))
+        float(np.linalg.norm(e))
+        check.append(time.perf_counter() - started)
+    return float(np.median(inner[3:])), float(np.median(check[3:]))
+
+
+def _calibrate_gmres(
+    problem, projector, v, w, repetitions: int, depth: int = CALIBRATION_DEPTH
+) -> tuple[float, float]:
+    """The costs for ADMM with GMRES inside, at Krylov dimension ``depth``.
+
+    An inner iteration is one Arnoldi step; a check forms the GMRES iterate,
+    evaluates the gradient there, projects, and takes the norms of the tests.
+    The orthogonalization grows with the Krylov dimension, so both are timed
+    at a representative one.
+    """
+    solver = Gmres(problem.Q, 1.0, restart=depth + 1)
+    inner, check = [], []
+    for _ in range(repetitions + 3):
+        solver.start(v, w)
+        for _ in range(depth - 1):
+            solver.step()
+        started = time.perf_counter()
+        solver.step()
+        inner.append(time.perf_counter() - started)
+        started = time.perf_counter()
+        x = solver.solution()
+        g = problem.gradient(x)
+        e = x + g - w
+        z = projector(x - g)
+        float(np.linalg.norm(x - z))
+        float(np.linalg.norm(z + g - w))
         float(np.linalg.norm(e))
         check.append(time.perf_counter() - started)
     return float(np.median(inner[3:])), float(np.median(check[3:]))
@@ -235,9 +305,29 @@ def _configurations(
     return configs
 
 
+def _time_limit(method: str, settings: dict) -> float | None:
+    """The wall-clock stop of one run: none for the near-exact baseline.
+
+    The time limit guards the inexact runs, whose termination the theory
+    guarantees only for ``sigma < 1``; the near-exact baseline always
+    terminates, and capping its time would understate its cost.  The cap on
+    total inner steps still applies to it.
+    """
+    if method == "near_exact":
+        return None
+    return settings.get("time_limit", TIME_LIMIT)
+
+
 def run_instance(task: tuple[str, int, dict]) -> dict:
     """Draw one instance, solve it, run every configuration, and reduce to rows."""
     study, seed, settings = task
+    # Test hook: the first attempt at ``crash_seed`` kills its worker outright,
+    # as a segmentation fault would; a marker file makes the retry succeed.
+    if settings.get("crash_seed") == seed:
+        marker = Path(settings["results_dir"]) / f".crashed-{seed}"
+        if not marker.exists():
+            marker.touch()
+            os._exit(1)
     delta = float(settings["delta"])
     started = time.perf_counter()
     if study == "admm_qp":
@@ -271,7 +361,10 @@ def run_instance(task: tuple[str, int, dict]) -> dict:
         gamma = settings["ratio"] / smoothness
         ratio = gamma * smoothness
         w_star = truth.x
-    alpha, c0 = theory.inner_constants(ratio)
+    if study == "admm_qp":
+        alpha, c0 = theory.gmres_constants(ratio)
+    else:
+        alpha, c0 = theory.inner_constants(ratio)
     dist0 = float(np.linalg.norm(w_star))
 
     # The paper's parameter recommendations, timed as a practical user would
@@ -311,7 +404,7 @@ def run_instance(task: tuple[str, int, dict]) -> dict:
     b_star_oracle = theory.b_star(
         c_test,
         c_in,
-        theory.n_prime(k_plus, sigma_b, c0, alpha, 0.0, r0_norm, delta),
+        theory.n_prime(k_plus, sigma_b, c0, alpha, 0.0, r0_norm, gamma * delta),
         k_plus,
         alpha,
     )
@@ -386,7 +479,6 @@ def run_instance(task: tuple[str, int, dict]) -> dict:
                 trace = inexact_admm(
                     problem,
                     c,
-                    smoothness,
                     projector,
                     config["sigma"],
                     config["b"],
@@ -397,6 +489,8 @@ def run_instance(task: tuple[str, int, dict]) -> dict:
                         else None
                     ),
                     max_outer=settings["max_outer"],
+                    max_total_inner=settings.get("max_total_inner", MAX_TOTAL_INNER),
+                    time_limit=_time_limit(config["method"], settings),
                 )
             else:
                 trace = inexact_ppm(
@@ -412,12 +506,16 @@ def run_instance(task: tuple[str, int, dict]) -> dict:
                         else None
                     ),
                     max_outer=settings["max_outer"],
+                    max_total_inner=settings.get("max_total_inner", MAX_TOTAL_INNER),
+                    time_limit=_time_limit(config["method"], settings),
                 )
         except RuntimeError as failure:
             error = str(failure)
         identity = dict(study=study, seed=seed, **config)
         if trace is None:
-            results.append(dict(**identity, converged=False, error=error))
+            results.append(
+                dict(**identity, converged=False, stopped_by="error", error=error)
+            )
             continue
         row, rows = _reduce(
             study,
@@ -463,6 +561,8 @@ def _reduce(
     alpha, c0, delta = parameters["alpha"], parameters["c0"], parameters["delta"]
     gamma = trace.gamma
     c = parameters["c"]
+    # The bounds see the terminal test through ||gamma z|| <= gamma delta.
+    gamma_delta = gamma * delta
     k_delta = trace.k_delta
     count = len(trace.inner)
     # Gradient descent records a thinned history; every other method has one
@@ -488,9 +588,7 @@ def _reduce(
             np.array([problem.objective(z) for z in feasible]) - truth.value
         )
         feasibility = np.array([problem.feasibility(x) for x in iterates])
-        residual_exact = np.array(
-            [exact_residual(problem, c, factor, projector, w) for w in ws]
-        )
+        residual_exact = exact_residuals(problem, c, factor, projector, ws)
     else:
         suboptimality_z = np.full(count, nan)
         feasibility = np.full(count, nan)
@@ -507,10 +605,12 @@ def _reduce(
     if method == "inexact":
         for k in range(count):
             lower = (1.0 - sigma) * y_minus_w[k] if relative[k] else 0.0
-            beta_surrogate[k] = theory.beta(sigma, c0, e0[k], lower, delta)
+            beta_surrogate[k] = theory.beta(sigma, c0, e0[k], lower, gamma_delta)
             bound_surrogate[k] = theory.per_step_bound(beta_surrogate[k], alpha, b)
             if study == "admm_qp":
-                beta_exact[k] = theory.beta(sigma, c0, e0[k], residual_exact[k], delta)
+                beta_exact[k] = theory.beta(
+                    sigma, c0, e0[k], residual_exact[k], gamma_delta
+                )
                 bound_exact[k] = theory.per_step_bound(beta_exact[k], alpha, b)
 
     sigma_eff = 0.0 if method == "exact" else sigma
@@ -521,6 +621,7 @@ def _reduce(
     row = dict(
         **identity,
         converged=trace.converged,
+        stopped_by=trace.stopped_by,
         k_delta=k_delta,
         outer_iterations=k_delta + 1,
         total_inner=total_inner,
@@ -537,15 +638,23 @@ def _reduce(
         sum_gamma_z_sq=sum_gamma_z_sq,
     )
 
-    # Theorem 3.1 and Lemma 3.2 need the relative test (or exact pairs).
+    # Theorem 3.1 and Lemma 3.2 need the relative test (or exact pairs).  Both
+    # are vacuous at sigma = 1, which the theorems do not cover: the bound is
+    # infinite and the predicted decrease is zero, so the ratios are left nan.
     if method in ("exact", "inexact"):
-        thm31_bound = (1.0 + sigma_eff) / (1.0 - sigma_eff) * parameters["dist0"] ** 2
+        thm31_bound = (
+            (1.0 + sigma_eff) / (1.0 - sigma_eff) * parameters["dist0"] ** 2
+            if sigma_eff < 1.0
+            else math.inf
+        )
         row["thm31_bound"] = thm31_bound
-        row["thm31_ratio"] = sum_gamma_z_sq / thm31_bound if thm31_bound > 0 else nan
+        row["thm31_ratio"] = (
+            sum_gamma_z_sq / thm31_bound if 0.0 < thm31_bound < math.inf else nan
+        )
         qualifying = np.arange(k_delta)[gamma_z[:k_delta] >= CHECK_THRESHOLD]
         if method == "inexact":
             qualifying = qualifying[relative[qualifying]]
-        if qualifying.size:
+        if qualifying.size and sigma_eff < 1.0:
             decrease = dist[qualifying] ** 2 - dist[qualifying + 1] ** 2
             predicted = (1.0 - sigma_eff) / (1.0 + sigma_eff) * gamma_z[qualifying] ** 2
             ratios = decrease / predicted
@@ -559,14 +668,15 @@ def _reduce(
             thm31_bound=nan, thm31_ratio=nan, lemma32_min_ratio=nan, lemma32_checked=0
         )
 
-    # Total inner-work bounds (Theorems 4.2 and 4.3) with the observed K_delta.
+    # Total inner-work bounds (Theorems 4.2 and 4.3) with the observed K_delta;
+    # both are infinite at sigma = 1 and their ratios are then left nan.
     if method == "inexact":
-        beta0 = theory.beta(sigma, c0, e0[0], parameters["r0_norm"], delta)
+        beta0 = theory.beta(sigma, c0, e0[0], parameters["r0_norm"], gamma_delta)
         thm43 = theory.total_bound_deterministic(
-            beta0, k_delta, sigma, c0, alpha, b, parameters["r0_norm"], delta
+            beta0, k_delta, sigma, c0, alpha, b, parameters["r0_norm"], gamma_delta
         )
         thm42 = theory.total_bound_expected(
-            beta0, k_delta, sigma, c0, alpha, b, parameters["r0_norm"], delta
+            beta0, k_delta, sigma, c0, alpha, b, parameters["r0_norm"], gamma_delta
         )
         with np.errstate(divide="ignore", invalid="ignore"):
             step_ratio = np.where(
@@ -577,9 +687,9 @@ def _reduce(
         row.update(
             beta0=beta0,
             thm43_bound=thm43,
-            thm43_ratio=total_inner / thm43,
+            thm43_ratio=total_inner / thm43 if math.isfinite(thm43) else nan,
             thm42_bound=thm42,
-            thm42_ratio=total_inner / thm42,
+            thm42_ratio=total_inner / thm42 if math.isfinite(thm42) else nan,
             per_step_violations=int((inner > bound_surrogate).sum()),
             per_step_max_ratio=float(step_ratio.max()),
             per_step_violations_exact=(
@@ -598,16 +708,17 @@ def _reduce(
             per_step_violations_exact=nan,
         )
 
-    # Theorem 3.2: an empirical error-bound constant (exact residuals only).
+    # Theorem 3.2: an empirical error-bound constant Lambda (exact residuals
+    # only), stored as ``kappa_empirical``.
     if study == "admm_qp" and method in ("exact", "inexact"):
         qualifying = np.arange(k_delta)[gamma_z[:k_delta] >= CHECK_THRESHOLD]
         if qualifying.size:
-            kappa = float((dist[qualifying] / residual_exact[qualifying]).max())
-            kappa = max(kappa, 1.0)
-            rate_bound = 1.0 - (1.0 - sigma_eff) / (kappa**2 * (1.0 + sigma_eff))
+            error_bound = float((dist[qualifying] / residual_exact[qualifying]).max())
+            error_bound = max(error_bound, 1.0)
+            rate_bound = 1.0 - (1.0 - sigma_eff) / (error_bound**2 * (1.0 + sigma_eff))
             contraction = dist[qualifying + 1] ** 2 / dist[qualifying] ** 2
             row.update(
-                kappa_empirical=kappa,
+                kappa_empirical=error_bound,
                 rate_bound=rate_bound,
                 rate_observed_max=float(contraction.max()),
                 rate_observed_median=float(np.median(contraction)),
@@ -698,29 +809,56 @@ def run_study(study: str, args: argparse.Namespace) -> Path:
     if args.force:
         for path in (results_path, histories_path, parameters_path):
             path.unlink(missing_ok=True)
-    done = {int(row["seed"]) for row in read_rows(parameters_path)}
-    seeds = [args.seed + i for i in range(args.instances) if args.seed + i not in done]
+    wanted = [args.seed + i for i in range(args.instances)]
+
+    def pending() -> list[int]:
+        done = {int(row["seed"]) for row in read_rows(parameters_path)}
+        return [seed for seed in wanted if seed not in done]
+
+    seeds = pending()
     print(
-        f"[{study}] {len(done)} instances already done, "
+        f"[{study}] {len(wanted) - len(seeds)} instances already done, "
         f"{len(seeds)} to run on {args.workers} workers"
     )
-    tasks = [(study, seed, settings) for seed in seeds]
     started = time.perf_counter()
-    if tasks:
-        context = get_context("spawn")
-        with context.Pool(args.workers) as pool:
-            for index, outcome in enumerate(
-                pool.imap_unordered(run_instance, tasks), start=1
-            ):
-                append_rows(parameters_path, [outcome["parameters"]])
-                append_rows(results_path, _homogeneous(outcome["results"]))
-                append_rows(histories_path, outcome["histories"])
-                elapsed = time.perf_counter() - started
-                print(
-                    f"[{study}] instance {outcome['parameters']['seed']} done "
-                    f"({index}/{len(tasks)}, {elapsed:.0f}s elapsed)",
-                    flush=True,
-                )
+    finished = 0
+    total = len(seeds)
+    restarts = 0
+    # A worker that dies (a segmentation fault in a spawned interpreter has been
+    # seen under load) breaks the pool and loses the instances it held; the
+    # pool is then rebuilt on the instances not yet checkpointed, instead of
+    # waiting forever as multiprocessing.Pool does.
+    while seeds:
+        tasks = [(study, seed, settings) for seed in seeds]
+        try:
+            with ProcessPoolExecutor(
+                args.workers, mp_context=get_context("spawn")
+            ) as pool:
+                futures = [pool.submit(run_instance, task) for task in tasks]
+                for future in as_completed(futures):
+                    outcome = future.result()
+                    append_rows(parameters_path, [outcome["parameters"]])
+                    append_rows(results_path, _homogeneous(outcome["results"]))
+                    append_rows(histories_path, outcome["histories"])
+                    finished += 1
+                    elapsed = time.perf_counter() - started
+                    print(
+                        f"[{study}] instance {outcome['parameters']['seed']} done "
+                        f"({finished}/{total}, {elapsed:.0f}s elapsed)",
+                        flush=True,
+                    )
+        except BrokenProcessPool:
+            restarts += 1
+            if restarts > args.max_restarts:
+                raise SystemExit(
+                    f"[{study}] a worker died {restarts} times; rerun to resume"
+                ) from None
+            print(
+                f"[{study}] a worker died; restarting the pool on the "
+                f"remaining instances (restart {restarts}/{args.max_restarts})",
+                flush=True,
+            )
+        seeds = pending()
     if not args.no_aggregate:
         aggregate_study(directory)
     return directory

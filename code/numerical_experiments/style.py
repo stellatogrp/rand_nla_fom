@@ -1,7 +1,8 @@
 """Matplotlib setup: a colorblind-safe palette and the recessive chart chrome.
 
-Curves use the Okabe-Ito palette, validated with the dataviz checks: five
-fixed hues for the swept parameter, vermillion for the paper's recommended
+Curves use the Okabe-Ito palette, validated with the dataviz checks: six
+fixed hues for the swept parameter (five Okabe-Ito hues and Paul Tol's
+wine), vermillion for the paper's recommended
 value, black for the exact baseline, and the muted text token for the
 near-exact context series.  Every series also has its own marker shape, so
 identity never rests on hue alone.
@@ -52,15 +53,22 @@ OKABE_ITO = dict(
     black="#000000",
     yellow="#F0E442",
 )
-# Fixed order for the swept parameter (never cycled past five values).
+# Paul Tol's "wine" (muted scheme) extends the sweep to a sixth value, the
+# boundary case sigma = 1.  With the five Okabe-Ito hues and vermillion it
+# passes the dataviz validator's all-pairs check on white: lightness band,
+# chroma floor, normal-vision floor (worst pair dE 15.6), and the worst CVD
+# pair is still purple vs green.
+TOL_WINE = "#882255"
+# Fixed order for the swept parameter (never cycled past six values).
 SWEEP_COLORS = (
     OKABE_ITO["blue"],
     OKABE_ITO["sky"],
     OKABE_ITO["green"],
     OKABE_ITO["orange"],
     OKABE_ITO["purple"],
+    TOL_WINE,
 )
-SWEEP_MARKERS = ("o", "s", "^", "D", "v")
+SWEEP_MARKERS = ("o", "s", "^", "D", "v", "p")
 ACCENT = OKABE_ITO["vermillion"]
 ACCENT_MARKER = "P"
 MEASURED = OKABE_ITO["blue"]
@@ -72,6 +80,20 @@ CONTEXT = MUTED
 CONTEXT_MARKER = "d"
 SEGMENTS = (OKABE_ITO["blue"], OKABE_ITO["vermillion"], OKABE_ITO["green"])
 BAND_ALPHA = 0.12
+
+# Figure geometry, in inches.  The paper is set at 11pt with 1in margins, so
+# the text width is 6.5in; figures are drawn at that width and included with
+# ``width=\textwidth``, so their fonts are not rescaled.  Heights stay well
+# under half of the 9in text height so that a figure and its caption share a
+# page with text instead of being pushed to a float page.
+TEXT_WIDTH = 6.5
+GRID_SIZE = (TEXT_WIDTH, 4.0)  # 2 x 2 panels (convergence, work)
+ZOOM_SIZE = (TEXT_WIDTH, 3.8)  # 2 x 2 panels of medians only; room for the row labels
+MODEL_SIZE = (TEXT_WIDTH, 2.7)  # 1 x 2 panels (cost model)
+TRAJECTORY_SIZE = (TEXT_WIDTH, 3.4)  # 1 x 2 equal-aspect panels
+RATIO_SIZE = (4.4, 3.0)  # single panel, included at 0.7 of the text width
+BAR_ROW = 0.22  # height per bar of the wall-clock charts ...
+BAR_BASE = 1.5  # ... plus room for the legend and the axis
 
 
 def sweep_colors(count: int) -> list[str]:
