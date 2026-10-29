@@ -91,21 +91,21 @@ url={https://doi.org/10.1007/BF01581204}
 	volume = {204},
 	year = {2025},
 	bdsk-url-1 = {https://doi.org/10.1007/s10957-024-02600-5}}
-
-@inbook{BauschkeConvexAnalysisResolventsOfMonotoneOperators,
-	abstract = {Two quite useful single-valued Lipschitz continuous operators are associated with a monotone operator, namely its resolvent and its Yosida approximation. This chapter is devoted to the investigation of these operators. It exemplifies the tight interplay between firmly nonexpansive mappings and monotone operators. Indeed, firmly nonexpansive operators with full domain can be identified with maximally monotone operators via resolvents and the Minty parameterization.},
-	address = {Cham},
-	author = {Bauschke, Heinz H. and Combettes, Patrick L.},
-	booktitle = {Convex Analysis and Monotone Operator Theory in Hilbert Spaces},
-	doi = {10.1007/978-3-319-48311-5_23},
-	isbn = {978-3-319-48311-5},
-	pages = {393--412},
-	publisher = {Springer International Publishing},
-	title = {Resolvents of Monotone Operators},
-	url = {https://doi.org/10.1007/978-3-319-48311-5_23},
-	year = {2017},
-	bdsk-url-1 = {https://doi.org/10.1007/978-3-319-48311-5_23}
+  
+@book{bauschkeConvexAnalysisMonotone2017,
+  title = {Convex {{Analysis}} and {{Monotone Operator Theory}} in {{Hilbert Spaces}}},
+  author = {Bauschke, Heinz H. and Combettes, Patrick L.},
+  date = {2017},
+  series = {{{CMS Books}} in {{Mathematics}}},
+  publisher = {Springer International Publishing},
+  location = {Cham},
+  doi = {10.1007/978-3-319-48311-5},
+  url = {http://link.springer.com/10.1007/978-3-319-48311-5},
+  urldate = {2020-09-19},
+  isbn = {978-3-319-48311-5},
+  langid = {english},
 }
+
 
 @article{BarrePEPInexactMethods,
   title = {Principled Analyses and Design of First-Order Methods with Inexact Proximal Operators},
@@ -122,22 +122,6 @@ url={https://doi.org/10.1007/BF01581204}
   doi = {10.1007/s10107-022-01903-7},
   url = {https://doi.org/10.1007/s10107-022-01903-7},
   abstract = {Proximal operations are among the most common primitives appearing in both practical and theoretical (or high-level) optimization methods. This basic operation typically consists in solving an intermediary (hopefully simpler) optimization problem. In this work, we survey notions of inaccuracies that can be used when solving those intermediary optimization problems. Then, we show that worst-case guarantees for algorithms relying on such inexact proximal operations can be systematically obtained through a generic procedure based on semidefinite programming. This methodology is primarily based on the approach introduced by Drori and Teboulle~(Math Program 145(1–2):451–482, 2014) and on convex interpolation results, and allows producing non-improvable worst-case analyses. In other words, for a given algorithm, the methodology generates both worst-case certificates (i.e., proofs) and problem instances on which they are achieved. Relying on this methodology, we study numerical worst-case performances of a few basic methods relying on inexact proximal operations including accelerated variants, and design a variant with optimized worst-case behavior. We further illustrate how to extend the approach to support strongly convex objectives by studying a simple relatively inexact proximal minimization method.}
-}
-
-
-@inbook{BauschkeConvexAnalysisSubgradients,
-author="Bauschke, Heinz H.
-and Combettes, Patrick L.",
-title="Subdifferentiability of Convex Functions",
-bookTitle="Convex Analysis and Monotone Operator Theory in Hilbert Spaces",
-year="2017",
-publisher="Springer International Publishing",
-address="Cham",
-pages="263--287",
-abstract="The subdifferential is a fundamental tool in the analysis of nondifferentiable convex functions. In this chapter we discuss the properties of subdifferentials and the interplay between the subdifferential and the Legendre transform. Moreover, we establish the Br{\o}ndsted--Rockafellar theorem, which asserts that the graph of the subdifferential operator is dense in the domain of the separable sum of the function and its conjugate.",
-isbn="978-3-319-48311-5",
-doi="10.1007/978-3-319-48311-5_16",
-url="https://doi.org/10.1007/978-3-319-48311-5_16"
 }
 
 @misc{liang2015convergenceratesinexactnonexpansive,
@@ -277,7 +261,7 @@ url={https://doi.org/10.1007/s10107-017-1160-5}
  ISSN = {0364765X, 15265471},
  URL = {http://www.jstor.org/stable/3689277},
  abstract = {The theory of the proximal point algorithm for maximal monotone operators is applied to three algorithms for solving convex programs, one of which has not previously been formulated. Rate-of-convergence results for the "method of multipliers," of the strong sort already known, are derived in a generalized form relevant also to problems beyond the compass of the standard second-order conditions for optimality. The new algorithm, the "proximal method of multipliers," is shown to have much the same convergence properties, but with some potential advantages.},
- author = {R. T. Rockafellar},
+ author = {Rockafellar, R. Tyrrell},
  journal = {Mathematics of Operations Research},
  number = {2},
  pages = {97--116},
@@ -294,7 +278,7 @@ url={https://doi.org/10.1007/s10107-017-1160-5}
   author = {Applegate, David and Diaz, Mateo and Hinder, Oliver and Lu, Haihao and Lubin, Miles and ODonoghue, Brendan and Schudy, Warren},
   editor = {Ranzato, M. and Beygelzimer, A. and Dauphin, Y. and Liang, P.S. and Vaughan, J. Wortman},
   date = {2021},
-  year={2022},
+  year={2021},
   volume = {34},
   pages = {20243--20257},
   publisher = {Curran Associates, Inc.},
@@ -585,4 +569,57 @@ URL = {https://doi.org/10.1214/aoms/1177703732}
   doi = {10.1007/s11228-017-0421-z},
   url = {https://doi.org/10.1007/s11228-017-0421-z},
   abstract = {Operator-splitting methods convert optimization and inclusion problems into fixed-point equations; when applied to convex optimization and monotone inclusion problems, the equations given by operator-splitting methods are often easy to solve by standard techniques. The hard part of this conversion, then, is to design nicely behaved fixed-point equations. In this paper, we design a new, and thus far, the only nicely behaved fixed-point equation for solving monotone inclusions with three operators; the equation employs resolvent and forward operators, one at a time, in succession. We show that our new equation extends the Douglas-Rachford and forward-backward equations; we prove that standard methods for solving the equation converge; and we give two accelerated methods for solving the equation.}
+}
+
+
+
+
+
+
+
+@article{saad1986GMRES,
+author = {Saad, Youcef and Schultz, Martin H.},
+title = {GMRES: A Generalized Minimal Residual Algorithm for Solving Nonsymmetric Linear Systems},
+journal = {SIAM Journal on Scientific and Statistical Computing},
+volume = {7},
+number = {3},
+pages = {856-869},
+year = {1986},
+doi = {10.1137/0907058},
+
+URL = { 
+    
+        https://doi.org/10.1137/0907058
+    
+    
+
+},
+eprint = { 
+    
+        https://doi.org/10.1137/0907058
+    
+    
+
+}
+,
+    abstract = { We present an iterative method for solving linear systems, which has the property of minimizing at every step the norm of the residual vector over a Krylov subspace. The algorithm is derived from the Arnoldi process for constructing an \$l\_2 \$-orthogonal basis of Krylov subspaces. It can be considered as a generalization of Paige and Saunders’ MINRES algorithm and is theoretically equivalent to the Generalized Conjugate Residual (GCR) method and to ORTHODIR. The new algorithm presents several advantages over GCR and ORTHODIR. }
+}
+
+
+
+
+
+
+
+
+@book{Trefethen1997NumericalLinearAlgebra,
+author = {Trefethen, Lloyd N. and Bau, III, David},
+title = {Numerical Linear Algebra},
+publisher = {Society for Industrial and Applied Mathematics},
+year = {1997},
+doi = {10.1137/1.9780898719574},
+address = {Philadelphia, PA},
+edition   = {},
+URL = {https://epubs.siam.org/doi/abs/10.1137/1.9780898719574},
+eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898719574}
 }

@@ -21,6 +21,33 @@ tex/*.out
 tex/*.synctex.gz
 tex/*.toc
 tex/*.pdf
+# biber / biblatex
+tex/*.bcf
+tex/*.run.xml
+tex/*.bbl-SAVE-ERROR
+tex/*-blx.bib
+# lists, indices, glossaries, beamer, and other auxiliaries
+tex/*.lof
+tex/*.lot
+tex/*.loa
+tex/*.thm
+tex/*.idx
+tex/*.ind
+tex/*.ilg
+tex/*.glo
+tex/*.gls
+tex/*.glg
+tex/*.acn
+tex/*.acr
+tex/*.alg
+tex/*.ist
+tex/*.nav
+tex/*.snm
+tex/*.vrb
+tex/*.dvi
+tex/*.xdv
+tex/*.auxlock
+tex/*.synctex(busy)
 
 .DS_Store
 
