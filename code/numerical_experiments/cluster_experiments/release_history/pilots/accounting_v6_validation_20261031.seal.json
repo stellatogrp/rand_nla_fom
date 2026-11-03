@@ -1,0 +1,7 @@
+{
+  "release": "accounting_v6",
+  "archive_sha256": "34a55536721151db6eb16d78def9f539bc749da09bc87f88450079eab82a22f4",
+  "manifest_sha256": "82774ec9ba8e3262b6252d888b5ccf190f827b4562ed13262f645828d9bb6b32",
+  "tasks": 12,
+  "data_scope": "seeded synthetic validation; not benchmark conclusions"
+}

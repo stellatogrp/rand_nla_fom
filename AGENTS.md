@@ -12,3 +12,4 @@ This paper studies the integration of tools from randomized numerical linear alg
 - Save results as CSV; plotting lives in `code/plots/` and reads the CSVs.
 - Run `uv run ruff check . && uv run ruff format .` and `uv run pytest` before committing.
 - Do not fabricate numbers, citations, or proof steps. Mark anything unverified as TODO.
+- Use US English.

@@ -1,0 +1,16 @@
+{
+  "fast_tasks": 2079,
+  "fast_batch_size": 8,
+  "fast_batches": 260,
+  "fast_pilot": 660,
+  "screening_tasks": 174,
+  "screening_pilot": 72,
+  "regression_pilots": 16,
+  "regression_pilot": 0,
+  "priority": [
+    "qp_tune_and_kaczmarz_screen",
+    "independent_real_data_pilots",
+    "steps_then_held_out_evaluation"
+  ],
+  "source_scope": "Current prepared NysADMM-family artifacts; native labels; independent setup"
+}

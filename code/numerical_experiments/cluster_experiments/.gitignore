@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+data/
+manifests/
+results/
+slurm/.discovery*
+# Binary source archives (git already versions the source) and generated
+# validation manifests; their seal JSONs, which record the hashes, stay tracked.
+release_history/snapshots/
+release_history/pilots/*.csv

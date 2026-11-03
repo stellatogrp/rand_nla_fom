@@ -64,15 +64,20 @@
 \makeatother
 \input{definitions.tex}
 
-\newcommand{\Acal}{\mathcal{A}}
-\newcommand{\Bcal}{\mathcal{B}}
-\newcommand{\Ccal}{\mathcal{C}}
+\newcommand{\Acal}{{A}}
+\newcommand{\Bcal}{{B}}
+\newcommand{\Ccal}{{C}}
 \newcommand{\Fcal}{\mathcal{F}}
 \newcommand{\Dcal}{\mathcal{D}}
 \newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Mcal}{{M}}
 \DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
 
-\DeclarePairedDelimiterX{\ip}[2]{\langle}{\rangle}{#1,#2}
+\DeclarePairedDelimiterX{\ipx}[2]{\langle}{\rangle}{#1,#2}
+% \ip{a}{b} sizes its angle brackets with \left and \right; \ip*{a}{b} keeps them fixed.
+\makeatletter
+\newcommand{\ip}{\@ifstar{\ipx}{\ipx*}}
+\makeatother
 
 % lowercase names
 \crefname{equation}{}{}
@@ -90,7 +95,7 @@
     We consider a monotone inclusion problem in a Hilbert space.
     Under mild assumptions, it is known that the proximal point method converges to a zero of the operator, even with inexact computations of the resolvent.
     We extend this analysis to get an explicit $O(1/k)$ nonasymptotic convergence rate of the squared fixed point residual and an asymptotic $o(1/k)$ convergence rate, as well as a linear convergence rate in the presence of an error bound.
-    Assuming access to a linearly convergent iterative procedure to compute the resolvent, we show that the method requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\mathcal{A}u) \leq\varepsilon$ for a general monotone inclusion problem.
+    Assuming access to a linearly convergent iterative procedure to compute the resolvent, we show that the method requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\Acal u) \leq\varepsilon$ for a general monotone inclusion problem.
     We validate our theoretical findings on numerical experiments and show that many popular algorithms are special cases of our framework and benefit from inexact computations.
 \end{abstract}
 \section{Introduction}
@@ -99,106 +104,130 @@ In this paper we consider the problem of a maximal monotone inclusion on a real 
     \text{find } x \text{ such that } 0 \in\Acal x, \label{eq:monotone-inclusion}
 \end{align}
 where $\Acal:\Hcal\rightrightarrows\Hcal$ is a maximal monotone operator.
-A popular method for solving this problem is the proximal point method (PPM): for a stepsize $\gamma$, we try to solve the backward inclusion $x_k \in (I + \gamma\mathcal{A})x_{k+1}$.
-PPM has a long history, going back to the original work of \citet{Martinet1970RegularisationDV}, but it is better known in the English-speaking world through Rockafellar's pioneering work on the subject \citep{rockafellar-ppm-paper,rockafellar1976monotoneoperatorsandppm}.
-The operator $(I + \gamma\mathcal{A})^{-1}$ is known as the \emph{resolvent} of $\mathcal{A}$.
-By Minty's theorem, it is single-valued and defined everywhere whenever $\Acal$ is maximal monotone \citep[Theorem 21.1]{bauschkeConvexAnalysisMonotone2017}. 
-It is known that PPM includes general classes of operator splitting methods, such as Douglas--Rachford, Chambolle--Pock, and Davis--Yin splitting \citep{EcksteinBertsekasDouglasRachfordSplitting,chambollePockFirstOrderPrimalDualAlgorithm2011,davisThreeOperatorSplittingScheme2017}.
-The intuition is that by regularizing via $\gamma$ and solving the inclusion problem, a previously difficult problem may be decomposed into a sequence of simpler operations that are easier to implement.
-This broad idea finds many applications in convex optimization, with notable success stories such as the iterative shrinkage-thresholding algorithm (ISTA), its accelerated variant (FISTA), and the primal-dual hybrid gradient method for linear programming (PDLP) and its variants \citep{ISTA-original-paper,FISTA-original-paper,applegate2022practicallargescalelinearprogramming-pdlp-paper}.
-For an introduction to the theory of monotone operators and their application in optimization, see \citet{Ryu_Yin_OptimizationMonotoneOperators}.
+Any convex optimization problem can be viewed as a monotone inclusion problem \Cref{eq:monotone-inclusion} by examining the first-order optimality condition.
+More broadly, convex-concave minimax problems admit a monotone inclusion formulation.
+% Maximal monotone inclusion is a strictly larger class of problems than finding zeros of subgradients, as there are monotone operators which are not the subgradient of any convex function (\Cref{sec:numerical-experiments-rotation} shows one such example).
+These problems arise in a variety of fields, such as image processing, communications, PDEs, fluid dynamics, and finance \citep{Glowinski2017SplittingMethods}.
 
-It is a curious and important fact in algorithm design that the resolvent computation need not be done exactly.
-\citet{rockafellar-ppm-paper} first showed that it suffices to compute a sequence of iterates whose errors form a summable sequence.
-\citet{EcksteinBertsekasDouglasRachfordSplitting} extended the result to show that Douglas--Rachford is an instance of PPM and therefore it suffices to compute iterates whose approximation errors are summable.
-This type of criterion is known as an \emph{absolute} error condition, since it controls the absolute error between the estimated update and the true resolvent.
+A popular method for solving the monotone inclusion \Cref{eq:monotone-inclusion} is the proximal point method (PPM): for a stepsize $\gamma$, each iteration solves the backward inclusion $x_k \in (I + \gamma\Acal)x_{k+1}$.
+However, solving the inclusion subproblem in these algorithms can be difficult and makes each iteration expensive.
+\citet{rockafellar-ppm-paper} showed that if the sum of all approximation errors is bounded, then PPM still converges asymptotically to a solution of the problem \Cref{eq:monotone-inclusion}.
+This type of criterion is known as an \emph{absolute} error condition, since it controls the absolute error between the estimated and the true subproblem solution.
 However, there are several practical issues with such a condition.
 First, checking the error condition requires knowledge of the true update, which is generally not computable.
 Second, the choice of such a sequence adds an infinite number of parameters for the user to tune, making practical implementations difficult.
-Moreover, the theory does not provide meaningful guidance on the design of such a sequence, nor does it provide guidance on how the degree of error affects the convergence of the algorithm and the complexity of intermediate computation.
+Moreover, the convergence analysis does not provide meaningful guidance on the design of such a sequence, nor does it provide guidance on how the degree of error affects the convergence of the algorithm and the complexity of intermediate computation.
 
 To obviate this difficulty, we would like the error condition to have two properties.
 First, it should be easy to compute, and not require knowledge of the true update.
 Second, it should not depend on an external sequence of errors, but rather be a function of the current state of the algorithm in some way: a \emph{relative} error condition.
-% To obviate this difficulty, it would be nice to have a \emph{relative} error criterion: one where the tolerance is a function of the current state of the algorithm (e.g., the fixed point residual of the iterates).
-% This would provide meaningful guidance on the difficulty of solving a particular subproblem, as well as making tuning the algorithm parameters significantly easier.
-\citet{EcksteinRelativeError2018} provide an affirmative answer to the question of designing a relative error criterion for Douglas--Rachford and the alternating direction method of multipliers (ADMM), and their result was extended by \citet{svaiter2018weaklyconvergentfullyinexact,BarrePEPInexactMethods}.
 
-More recently, \citet{bredies2021degeneratepreconditionedproximalpoint} showed that many existing operator splitting methods, such as Chambolle--Pock, Douglas--Rachford, Peaceman--Rachford, and Davis--Yin, are instances of \emph{degenerate preconditioned} proximal point methods.
-That is, we precondition the monotone inclusion problem \Cref{eq:monotone-inclusion} by replacing the scalar stepsize $\gamma$ with a matrix $\mathcal{M}\succeq 0$ and evaluating $(I + \mathcal{M}^{-1}\Acal)^{-1} = (\mathcal{M} + \Acal)^{-1}\mathcal{M}$.
-Under mild assumptions, even when $\mathcal{M}$ is not invertible, the operator $(\mathcal{M} + \Acal)^{-1}\mathcal{M}$ still exists and can be computed.
-These ideas can be generalized to relatively inexact resolvent evaluations with a broader class of preconditioners, such as in \citet{alves2025generalframeworkinexactsplitting}.
+Relaxing the inclusion to allow for error in solving the subproblem makes these algorithms much more efficient in practice.
+However, the inexactness in solving the subproblem reduces the effectiveness of each iteration of PPM.
+Thus, there is a tradeoff between exactness and convergence speed (as measured by outer iterations).
+It is not clear how to tune the parameters of the outer algorithm and the subproblem procedure to balance this tradeoff.
 
-However, an analysis of the \emph{inner} complexity, the complexity of computing $x_{k+1}\approx (I + \mathcal{M}^{-1}\Acal)^{-1}x_k$, and its relationship to the convergence of PPM is more delicate. %has been missing in the literature.
-\citet{machart2012optimalcomputationaltradeoffinexact} consider the complexity of inexact proximal gradient methods, but they only consider the case of absolute errors, with the standard summability conditions.
-Moreover, they only consider a specific instance of an algorithm, whereas our setting is general enough to cover many more operator splitting methods.
-\citet{LinMairal2018CatalystAcceleration} consider a model of global complexity, factoring in inner and outer complexity, but their error criterion is not generally computable, requiring knowledge of the exact solution to the subproblem or access to the dual function.
-\citet{alves2017iterationcomplexityinexactdouglasrachford} provide analysis in a similar setting but only show asymptotic guarantees of inner complexity.
+\subsection{Contribution}
+We introduce a unified framework to analyze the per-inner iteration work of inexact PPM and provide guidelines on selecting algorithm parameters to balance the inner and outer iteration complexity.
+Our setting is general enough to include many popular classes of operating splitting algorithms, such as DRS, DYS, and others.
+We also allow for any method of solving the inner subproblem, as long as it has linear convergence in expectation.
+We provide an explicit bound on the total inner iterations required to find a point with $\dist(0,\Acal u)\leq\delta$ in both the deterministic and stochastic cases.
+Additionally, we provide high-probability bounds in the randomized case for the total complexity.
+By incorporating warm-starts from previous iterations into the current iteration, we improve the naive worst-case bound of $O(\delta^{-2}\log(1/\delta))$ bound for total inner iteration complexity to $O(\delta^{-2})$ for a general monotone inclusion problem \Cref{eq:monotone-inclusion}.
 
 Our contributions are as follows:
 \begin{enumerate}
-    \item We modify \citet[Algorithm 1]{alves2025generalframeworkinexactsplitting} to analyze a practical stopping criterion and provide bounds on the error at stopping (\Cref{prop:certificate}).
-    \item We improve the analysis of \citet{alves2025generalframeworkinexactsplitting} to get an explicit convergence rate as well as linear convergence in the presence of an error bound (\Cref{thm:convergence-guarantee,thm:error-bound-outer-convergence-guarantee}).
-    \item We analyze the total inner work done over the course of the algorithm and show that the method requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\mathcal{A}u) \leq\varepsilon$ for a general monotone inclusion problem (\Cref{thm:total-inner-work-bound}).
-    \item We analyze our results on some model choices of algorithms, such as PPM and ADMM, and infer some principled guidelines on selecting algorithm parameters (\Cref{prop:optimal-sigma-gradient-descent-inside-ppm,prop:admm}).
-    \item We compare our theoretical results against empirical studies and find that the theorems are often conservative.
-    In fact, most instances benefited from decreased accuracy (\Cref{sec:numerical-experiments}).
+    \item We construct a general framework for analyzing degenerate preconditioned proximal point methods and provide bounds on the error at stopping (\Cref{prop:certificate}).
+    We improve the analysis of \citet{alves2025generalframeworkinexactsplitting} to get an explicit convergence rate as well as linear convergence in the presence of an error bound (\Cref{thm:convergence-guarantee,thm:error-bound-outer-convergence-guarantee}).
+    \item We analyze the total inner work done over the course of the algorithm and show that the method requires $O(\varepsilon^{-2})$ inner steps to find a point with $\dist(0,\Acal u) \leq\varepsilon$ for a general monotone inclusion problem (\Cref{thm:total-inner-work-bound}).
+    We also provide high-probability bounds on the total inner work required for such an algorithm (\Cref{thm:total-inner-work-concentration}).
+    \item We analyze our results on some model choices of algorithms, such as PPM and ADMM, and infer some principled guidelines on selecting algorithm parameters (\Cref{prop:optimal-sigma-gradient-descent-inside-ppm,prop:admm,prop:optimal-sigma-accelerated-gradient-inside-ppm}).
+    \item \TODO{update when done} We compare our theoretical results against empirical studies and find that the theorems are often conservative.
+    In fact, most instances benefited from decreased accuracy (\Cref{sec:numerical-experiments}). 
 \end{enumerate}
 
-\subsection{Setting and Notation}
-We assume we have access to a linear map $\Ccal:\Dcal\to\Hcal$ between Hilbert spaces $\Dcal$ and $\Hcal$, which we refer to as a \emph{degenerate preconditioner}.
-More precisely, the preconditioner is $\mathcal{M} = \Ccal\Ccal^*$, but through an abuse of terminology we will conflate the two objects.
-For an operator $\mathcal{S}$, we define the zero set $\zer \mathcal{S} := \{u \mid 0 \in \mathcal{S} u\}$, the fixed point set $\fix\mathcal{S} := \left\{ u \mid u\in\mathcal{S}u \right\}$, and the graph $\gra \mathcal{S} := \left\{ (u,z) \mid z \in \mathcal{S}u \right\}$.
-We define the resolvent of an operator $\mathcal{S}$ as $J_{\mathcal{S}} := (I + \gamma\mathcal{S})^{-1}$, and its fixed point residual operator as $R_{\mathcal{S}} := I - J_{\mathcal{S}}$.
-Note that $\fix J_{\mathcal{S}} = \zer R_{\mathcal{S}} = \zer\mathcal{S}$.
-In general, we will not use $R$ or $J$ to refer to operators other than $\Bcal$ defined in \Cref{def:b-definition}, so we drop the subscript and use the standing assumption that the underlying operator referred to is $\Bcal$.
+\subsection{Prior Work}
+\paragraph{Operator Splitting Methods.}
+\citet{Martinet1970RegularisationDV} originally proposed PPM for solving variational inequalities, and \citet{rockafellar-ppm-paper,rockafellar1976monotoneoperatorsandppm} greatly advanced theoretical understanding of the method, as well as its relation to other optimization algorithms.
+\citet{EcksteinBertsekasDouglasRachfordSplitting} showed that DRS is an instance of PPM applied to a certain splitting operator, showing the connection between PPM and operator splitting algorithms.
+Operator splitting finds many applications in convex optimization, with notable success stories such as the iterative shrinkage-thresholding algorithm (ISTA), its accelerated variant (FISTA), and the primal-dual hybrid gradient method for linear programming (PDLP) and its variants \citep{ISTA-original-paper,FISTA-original-paper,applegate2022practicallargescalelinearprogramming-pdlp-paper}.
+\citet{liao2026errorboundsplcondition} show that under sufficient growth conditions, PPM can even be used for nonconvex optimization as well.
 
-An unspecified norm $\norm{x}$ refers to either the standard Euclidean norm or the induced norm of the ambient Hilbert space $\Hcal$.
-Which norm is being referred to will be clear from context.
-We denote the adjoint operator with a $*$, i.e., $\ip{\Ccal u}{v} = \ip{u}{\Ccal^* v}$.
-For Euclidean space, this coincides with the transpose of a matrix, which we denote with $\top$.
-We use $\log_+ := \max\{0,\log\}$ to denote the positive part of the logarithm.
+\paragraph{Inexact PPM.}
+One of the challenges in practical implementations of PPM is to solve the backward inclusion subproblem.
+For example, in the convex optimization setting, this takes the form of solving a strongly convex subproblem.
+Although first-order methods have theoretically strong guarantees on these problems, solving the problem exactly, or even to high precision, is undesirable.
+\citet{rockafellar-ppm-paper} showed that it suffices to compute a sequence of iterates whose errors form a summable sequence.
+\citet{EcksteinRelativeError2018} provide an affirmative answer to the question of designing a relative error criterion for Douglas--Rachford and the alternating direction method of multipliers (ADMM), and their result was extended by \citet{svaiter2018weaklyconvergentfullyinexact,BarrePEPInexactMethods}.
 
-The variables $u$, $w$, $y$, and $z$ are always used in a way that matches their use in \Cref{alg:stopping-time-algorithm}.
-The reader should always assume that we are trying to find $u$, $w$, $y$, and $z$, such that $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$.
-The symbol $\gamma$ is always used to refer to the proximal parameter, also referred to as the stepsize.
-Similarly, $\sigma$ will always be used to refer to the inexactness parameter of \Cref{alg:stopping-time-algorithm}, and $s$ is the stride, the number of inner iterations between inexactness checks.
-We follow the convention that superscript indices refer to inner iterations and subscript indices refer to outer iterations
+More recently, \citet{bredies2021degeneratepreconditionedproximalpoint} showed that many existing operator splitting methods, such as Chambolle--Pock, Douglas--Rachford, Peaceman--Rachford, and Davis--Yin, are instances of \emph{degenerate preconditioned} proximal point methods.
+That is, we precondition the monotone inclusion problem \Cref{eq:monotone-inclusion} by replacing the scalar stepsize $\gamma$ with a matrix $ \Mcal \succeq 0$ and evaluating $(I +  \Mcal ^{-1}\Acal)^{-1} = ( \Mcal  + \Acal)^{-1} \Mcal $.
+Under mild assumptions, even when $ \Mcal $ is not invertible, the operator $( \Mcal  + \Acal)^{-1} \Mcal $ still exists and can be computed.
+These ideas can be generalized to relatively inexact resolvent evaluations with a broader class of preconditioners, such as in \citet{alves2025generalframeworkinexactsplitting}.
 
-For convenience, we include a table outlining commonly used symbols and their meaning.
-{\small
-\renewcommand{\arraystretch}{1.14}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.23\textwidth}
-                        >{\raggedright\arraybackslash}p{0.73\textwidth}@{}}
-\toprule
-Symbol & Meaning \\
-\midrule
-\endfirsthead
-\toprule
-Symbol & Meaning (continued) \\
-\midrule
-\endhead
-\bottomrule
-\endfoot
-$\Acal$, $\Ccal$ & Original monotone operator $\Acal:\Hcal\rightrightarrows\Hcal$ and preconditioner factor $\Ccal:\Dcal\to\Hcal$. The original preconditioner is $\Ccal\Ccal^*$. \\
-$\Bcal$ & The monotone operator used to write \Cref{alg:stopping-time-algorithm} as a proximal point method. \\
-$J$, $R$ & The resolvent $J = (I+\gamma \Bcal)^{-1}$ and its fixed point residual $R = I - J$. \\
-$s$ & The stride: the integer number of inner iterations between inexactness checks. \\
-$\sigma$ & Inexactness tolerance parameter. \\
-$\gamma$ & Stepsize or proximal parameter. \\
-$\delta$ & Stopping tolerance. \\
-$\alpha$ & Contraction parameter of the inner solver. \\
-$C_0$ & Initialization constant of the inner solver. \\
-$G_\sigma$, $H_\sigma$ & The warm-start constants of \Cref{lem:warm-start-bounds}. \\
-$D$ & Constant factor relating to inexactness, $D := \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}$. \\
-$u$, $w$, $y$, $z$ & Iterates of the proximal point method with $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$. Sometimes written with super- or subscripts to specify inner or outer iterations. \\
-$K_\delta$ & Stopping time of the algorithm. The outer iteration at which $\norm{z_{k}} \leq \delta$. Equivalently, the number of accepted updates before stopping. \\
-$K_\delta^+$ & Upper bound on the above. \\
-$\prob_k$, $\Expect_k$ & The conditional probability and expectation at the start of outer iteration $k$, given all randomness generated before the $k$th inner solve begins. \\
-$N_k$ & Number of inner iterations performed during outer iteration $k$. \\
-\end{longtable}
-}
+\paragraph{Integrated Complexity Analysis}
+Analyzing the total complexity of the method, which would include the overall number of inner iterations required to solve the inclusion problem, is more delicate.
+\citet{machart2012optimalcomputationaltradeoffinexact} consider the complexity of inexact proximal gradient methods, but they only consider the case of absolute errors, with the standard summability conditions.
+Moreover, they only consider a specific instance of PPM, whereas our setting is general enough to cover many more operator splitting methods.
+\citet{LinMairal2018CatalystAcceleration} consider a model of global complexity, factoring in inner and outer complexity, but their error criterion is not generally computable, requiring knowledge of the exact solution to the subproblem or access to the dual function.
+\citet[Theorems 4.3 and 4.4]{alves2017iterationcomplexityinexactdouglasrachford} provide analysis in a similar setting but only show asymptotic guarantees of inner complexity.
+Moreover, they do not consider the effect of warm-starting, resulting in an overall complexity of $O(\delta^{-2}\log(1/\delta))$, compared to our $O(\delta{-2})$ result.
+\citet{liInexactProximalAugmented2021} consider similar types of inner procedures, but they focus on one particular instance of the augmented Lagrangian method and show worse total complexity guarantees.
+% \subsection{Setting and Notation}
+% We assume we have access to a linear map $\Ccal:\Dcal\to\Hcal$ between Hilbert spaces $\Dcal$ and $\Hcal$, which we refer to as a \emph{degenerate preconditioner}.
+% More precisely, the preconditioner is $ \Mcal  = \Ccal\Ccal^*$, but through an abuse of terminology we will conflate the two objects.
+% For an operator $\mathcal{S}$, we define the zero set $\zer \mathcal{S} := \{u \mid 0 \in \mathcal{S} u\}$, the fixed point set $\fix\mathcal{S} := \left\{ u \mid u\in\mathcal{S}u \right\}$, and the graph $\gra \mathcal{S} := \left\{ (u,z) \mid z \in \mathcal{S}u \right\}$.
+% We define the resolvent of an operator $\mathcal{S}$ as $J_{\mathcal{S}} := (I + \gamma\mathcal{S})^{-1}$, and its fixed point residual operator as $R_{\mathcal{S}} := I - J_{\mathcal{S}}$.
+% Note that $\fix J_{\mathcal{S}} = \zer R_{\mathcal{S}} = \zer\mathcal{S}$.
+% In general, we will not use $R$ or $J$ to refer to operators other than $\Bcal$ defined in \Cref{def:b-definition}, so we drop the subscript and use the standing assumption that the underlying operator referred to is $\Bcal$.
 
+% An unspecified norm $\norm{x}$ refers to either the standard Euclidean norm or the induced norm of the ambient Hilbert space $\Hcal$.
+% Which norm is being referred to will be clear from context.
+% We denote the adjoint operator with a $*$, i.e., $\ip{\Ccal u}{v} = \ip{u}{\Ccal^* v}$.
+% For Euclidean space, this coincides with the transpose of a matrix, which we denote with $\top$.
+% We use $\log_+ := \max\{0,\log\}$ to denote the positive part of the logarithm.
+
+% The variables $u$, $w$, $y$, and $z$ are always used in a way that matches their use in \Cref{alg:stopping-time-algorithm}.
+% The reader should always assume that we are trying to find $u$, $w$, $y$, and $z$, such that $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$.
+% The symbol $\gamma$ is always used to refer to the proximal parameter, also referred to as the stepsize.
+% Similarly, $\sigma$ will always be used to refer to the inexactness parameter of \Cref{alg:stopping-time-algorithm}, and $s$ is the stride, the number of inner iterations between inexactness checks.
+% We follow the convention that superscript indices refer to inner iterations and subscript indices refer to outer iterations
+
+% For convenience, we include a table outlining commonly used symbols and their meaning.
+% {\small
+% \renewcommand{\arraystretch}{1.14}
+% \begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.23\textwidth}
+%                         >{\raggedright\arraybackslash}p{0.73\textwidth}@{}}
+% \toprule
+% Symbol & Meaning \\
+% \midrule
+% \endfirsthead
+% \toprule
+% Symbol & Meaning (continued) \\
+% \midrule
+% \endhead
+% \bottomrule
+% \endfoot
+% $\Acal$, $\Ccal$ & Original monotone operator $\Acal:\Hcal\rightrightarrows\Hcal$ and preconditioner factor $\Ccal:\Dcal\to\Hcal$. The original preconditioner is $\Ccal\Ccal^*$. \\
+% $\Bcal$ & The monotone operator used to write \Cref{alg:stopping-time-algorithm} as a proximal point method. \\
+% $J$, $R$ & The resolvent $J = (I+\gamma \Bcal)^{-1}$ and its fixed point residual $R = I - J$. \\
+% $s$ & The stride: the integer number of inner iterations between inexactness checks. \\
+% $\sigma$ & Inexactness tolerance parameter. \\
+% $\gamma$ & Stepsize or proximal parameter. \\
+% $\delta$ & Stopping tolerance. \\
+% $\alpha$ & Contraction parameter of the inner solver. \\
+% $C_0$ & Initialization constant of the inner solver. \\
+% $G_\sigma$, $H_\sigma$ & The warm-start constants of \Cref{lem:warm-start-bounds}. \\
+% $D$ & Constant factor relating to inexactness, $D := \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}$. \\
+% $u$, $w$, $y$, $z$ & Iterates of the proximal point method with $\Ccal z \in \Acal u$, $\gamma z + \Ccal^* u \approx w$, and $y = \Ccal^* u$. Sometimes written with super- or subscripts to specify inner or outer iterations. \\
+% $K_\delta$ & Stopping time of the algorithm. The outer iteration at which $\norm{z_{k}} \leq \delta$. Equivalently, the number of accepted updates before stopping. \\
+% $K_\delta^+$ & Upper bound on the above. \\
+% $\prob_k$, $\Expect_k$ & The conditional probability and expectation at the start of outer iteration $k$, given all randomness generated before the $k$th inner solve begins. \\
+% $N_k$ & Number of inner iterations performed during outer iteration $k$. \\
+% \end{longtable}
+% }
+
+\section{The Degenerate Preconditioned Proximal Point Method}
 We make the following assumption to ensure that all the operations we take in this paper are well-defined.
 \begin{assumption}\label{assumption:well-defined-resolvents}
     We assume that $\Acal$ is a maximal monotone operator $\Acal: \Hcal \rightrightarrows \Hcal$ on the Hilbert space $\Hcal$ with at least one zero: $\zer \Acal \neq\varnothing$.
@@ -211,14 +240,9 @@ Define the operator $\Bcal$ by its graph as
     \gra{\Bcal} = \{ (\Ccal^* u, z) \mid \Ccal z\in\Acal u\}.
 \end{equation}
 \end{definition}
-% For simplicity, assume that $\Acal u = \nabla f(u)$, where $f$ is a smooth convex function, and assume $\Ccal = I$ for simplicity.
-% Then, the operator $\Bcal = \Acal = \nabla f$, and the analysis below reduces to that of the proximal point method on a smooth convex function.
-% To connect this with the discussion above, suppose $\Ccal\Ccal^* = M \succ 0$ and $A$ is single-valued.
-% Then, in item 2 of \Cref{lem:B-properties}, we can see that $Cu = Mv + \gamma Cz$
-% To get more intuition behind the definitions, see \citet{alves2025generalframeworkinexactsplitting}.
 Since $\Ccal^*$ is surjective (\Cref{assumption:well-defined-resolvents}), the resolvent $J := (I+\gamma \Bcal)^{-1}$ is defined on the entire space $\Dcal$ (\Cref{lem:B-properties}).
 Note that $\Bcal$ itself need not have full domain.
-In particular $\dom \Bcal \subseteq \Ccal^*\dom\Acal$, with strict inclusion a possibility.
+In particular, $\dom \Bcal \subseteq \Ccal^*\dom\Acal$, with strict inclusion a possibility.
 One way of viewing this definition is that $\Bcal$ is a projection of $\Acal$ onto a lower-dimensional space.
 \Cref{prop:admm} shows that this perspective enables us to view the iterates of ADMM as the projections of a higher-dimensional PPM.
 \begin{lemma}\label{lem:B-properties}
@@ -249,23 +273,16 @@ since $\Ccal z_i\in\Acal u_i$ and $\Acal$ is monotone.
 Maximality follows from \Cref{assumption:well-defined-resolvents}: by item 2, $\range(I+\gamma \Bcal) = \Dcal$, so $\Bcal$ is maximal by Minty's theorem \citep[Theorem 21.1]{bauschkeConvexAnalysisMonotone2017}.
 \end{proof}
 
-In the case where $\mathcal{A}$ is not necessarily monotone, it may still hold that $\Bcal$ is maximal monotone.
+In the case where $\Acal$ is not necessarily monotone, it may still hold that $\Bcal$ is maximal monotone.
 We make this assumption explicit.
 \begin{assumption}\label{assumption:well-defined-b-operator}
-    We assume that $\Bcal$ defined in \Cref{def:b-definition} is a maximal monotone operator.
+    We assume that $\Bcal$ defined in \Cref{def:b-definition} is a maximal monotone operator with at least one zero: $\zer\Bcal\neq\varnothing$.
     We also assume that the map $\Ccal:\Dcal\to\Hcal$ is a bounded linear map between Hilbert spaces with $\Ccal^*$ surjective.
 \end{assumption}
 Note that \Cref{assumption:well-defined-resolvents} is strictly stronger than \Cref{assumption:well-defined-b-operator}.
 \Cref{prop:davis-yin} shows an example where \Cref{assumption:well-defined-b-operator} holds but \Cref{assumption:well-defined-resolvents} fails.
 
-\section{The Degenerate Preconditioned Proximal Point Method}
-The idea behind \citet[Theorem 1]{alves2025generalframeworkinexactsplitting} is that we would like to compute the resolvent $J := (I+\gamma \Bcal)^{-1}$, but this may be difficult.
-Instead, we define a relative error criterion such that the computed iterates lie in the graph of $\Bcal$ and satisfy error bounds on how far from the true update they can be (\Cref{lem:exact-inexact-graph-pair-inequalities}).
-
-To do this, we consider a modified version of the algorithm of \citet{alves2025generalframeworkinexactsplitting} (\Cref{alg:stopping-time-algorithm}), where we introduce a stopping rule for the inner loop.
-The stopping rule is critical for the analysis of stopping times.
-\Cref{prop:certificate} shows that the point returned by the terminal test is an approximate solution with an approximate optimality certificate, and \Cref{thm:convergence-guarantee} shows that the algorithm terminates after finitely many accepted updates.
-
+Using these assumptions, we can now introduce \Cref{alg:stopping-time-algorithm}, whose convergence properties we will analyze in this section.
 \begin{algorithm}
 \caption{Modified version of the algorithm from~\citet{alves2025generalframeworkinexactsplitting}.}\label{alg:stopping-time-algorithm}
 \begin{algorithmic}[1]
@@ -284,11 +301,10 @@ The stopping rule is critical for the analysis of stopping times.
         \STATE Improve the pair $(u_{k}, z_{k}) \in \Hcal \times \Dcal$ with $\Ccal z_{k} \in \Acal u_{k}$ via the iterative procedure $s$ times and go to line 4.
     \ENDIF
 \ENDFOR
+% \RETURN $(u_k, z_k,w_k)$.
 \end{algorithmic}
 \end{algorithm}
-
 The following proposition shows that at stopping, the returned iterates provide a certificate of distance to optimality.
-Equivalents of the results in this section can be found in \citet{rockafellar1976monotoneoperatorsandppm,bredies2021degeneratepreconditionedproximalpoint,alves2025generalframeworkinexactsplitting} (among others), but we present modifications here for our purposes.
 \begin{proposition}\label{prop:certificate}
     Every output from the $\norm{z}\leq\delta$ terminal test of \Cref{alg:stopping-time-algorithm} satisfies
     \begin{equation}\label{eq:original-certificate}
@@ -319,8 +335,8 @@ Equivalents of the results in this section can be found in \citet{rockafellar197
     Then,
     \begin{align}
         \Ccal^* x = (I+\gamma \Bcal)^{-1}\Ccal^* u &\iff  \Ccal^* u \in \Ccal^*x + \gamma \Bcal \Ccal^*x \\
-        &\iff  \Ccal^* u = \Ccal^*x + \gamma \xi, \Ccal \xi \in \Acal x \\
-        &\iff  \frac{\Ccal^* (u - x)}{\gamma} = \xi, \Ccal \xi \in \Acal x.
+        &\iff  \Ccal^* u = \Ccal^*x + \gamma \xi, \quad \Ccal \xi \in \Acal x \\
+        &\iff  \frac{\Ccal^* (u - x)}{\gamma} = \xi, \quad \Ccal \xi \in \Acal x.
     \end{align}
     Thus, we can write 
     \begin{align}
@@ -344,7 +360,7 @@ In this section, we present a quantitative estimate on the convergence of \Cref{
 We will show that the inexactness affects convergence only through a multiplicative factor, which allows the rest of the analysis to follow.
 The next lemma is needed to show the convergence of \Cref{alg:stopping-time-algorithm}.
 \begin{lemma}\label{lem:exact-inexact-graph-pair-inequalities}
-    The maps $J := (I+\gamma \Bcal)^{-1}$ and $R := I - J$ (the fixed point residual) are firmly nonexpansive.
+    The resolvent $J$ and its fixed-point residual $R := I - J$ are firmly nonexpansive.
     If $(y,z)\in\gra{\Bcal}$ is a candidate update pair (as in line 3 of \Cref{alg:stopping-time-algorithm} with $y = \Ccal^* u$) at $w$, then
     \begin{align}
         y &= J(\gamma z + y),\label{eq:resolvent-identity-y} \\
@@ -423,6 +439,7 @@ The next lemma is needed to show the convergence of \Cref{alg:stopping-time-algo
     \end{align}
     Taking infimums shows the desired result.
 \end{proof}
+Similar results to \Cref{prop:certificate,lem:exact-inexact-graph-pair-inequalities} can be found in \citet[Propositions 1, 2, and 3]{rockafellar1976monotoneoperatorsandppm}, \citet[Lemma 2.6]{bredies2021degeneratepreconditionedproximalpoint}, and \citet[Proposition 2.3]{alves2025generalframeworkinexactsplitting} (among others), but we present additional identities and estimates here for our purposes.
 
 \begin{lemma}\label{lem:one-step-decrease-inequality}
     For an accepted pair with $w^+ = w - \gamma z$ and any $w^\star\in\zer \Bcal$, 
@@ -474,6 +491,7 @@ We remark that this matches well-known results on the $o(k^{-1})$ convergence ra
     \begin{align}
         K_{\delta} \leq \left\lfloor \frac{(1+\sigma)\dist{(w_0,\zer \Bcal)}^2}{\gamma^2\delta^2(1-\sigma)} \right\rfloor =: K_{\delta}^+.
     \end{align}
+    Moreover, if $K_\delta > 0$, then $K_\delta < K_\delta^+$.
 \end{theorem}
 \begin{proof}
     The first two claims follow immediately from the telescoping identity of \Cref{lem:one-step-decrease-inequality} and \Cref{prop:certificate}.
@@ -574,7 +592,7 @@ A method that does not converge linearly on a strongly convex subproblem would b
     Under \Cref{assumption:well-defined-b-operator,assumption:inner-work-contraction}, if $\sigma\in(0,1)$, we have the following bounds on the conditional expectation of the inner work of \Cref{alg:stopping-time-algorithm} at outer iteration $k$, for every integer $l\geq0$:
     \begin{align}
         \prob_k(N_k > sl ) &\leq \min\{1,\beta_k\alpha^{sl}\}, \\
-        \Expect_k[N_k] &\leq \frac{\logp\beta_k}{\log(1/\alpha)} + \frac{s}{1-\alpha^s},
+        \Expect_k[N_k] &\leq \frac{ (\log\beta_k)_+ }{\log(1/\alpha)} + \frac{s}{1-\alpha^s},
     \end{align}
     where
     \begin{align}
@@ -604,11 +622,11 @@ A method that does not converge linearly on a strongly convex subproblem would b
     The expectation bound holds since $N_k$ takes values $0,s,2s,\dots$ and thus
     \begin{align}
         \Expect_{k}[N_k] = \sum_{l=0}^{\infty}\prob_k(N_k > l) &\leq s\sum_{l=0}^{\infty}\min\{1,\beta_k\alpha^{sl}\} \label{eq:sum-bound-stopping-time} \\
-        &= s\left\lceil\frac{\logp\beta_k}{s\log(1/\alpha)}\right\rceil + s\beta_k\sum_{l=\left\lceil\frac{\logp\beta_k}{s\log(1/\alpha)}\right\rceil}^{\infty}\alpha^{sl} \\
-        &= s\left\lceil\frac{\logp\beta_k}{s\log(1/\alpha)}\right\rceil + s\beta_k\frac{\alpha^{s\cdot\left\lceil\frac{\logp\beta_k}{s\log(1/\alpha)}\right\rceil}}{1-\alpha^s} \\
-        &\leq \frac{\logp\beta_k}{\log(1/\alpha)} + \frac{s}{1-\alpha^s}.
+        &= s\left\lceil\frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}\right\rceil + s\beta_k\sum_{l=\left\lceil\frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}\right\rceil}^{\infty}\alpha^{sl} \\
+        &= s\left\lceil\frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}\right\rceil + s\beta_k\frac{\alpha^{s\cdot\left\lceil\frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}\right\rceil}}{1-\alpha^s} \\
+        &\leq \frac{ (\log\beta_k)_+ }{\log(1/\alpha)} + \frac{s}{1-\alpha^s}.
     \end{align}
-    For the last step, let $l^\star := \frac{\logp\beta_k}{s\log(1/\alpha)}$ and note that $\lceil l^\star\rceil - l^\star\in[0,1)$.
+    For the last step, let $l^\star := \frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}$ and note that $\lceil l^\star\rceil - l^\star\in[0,1)$.
     If $\beta_k\geq1$, then $\beta_k\alpha^{sl^\star} = 1$, so $\beta_k\alpha^{s\lceil l^\star\rceil} = \alpha^{s(\lceil l^\star\rceil - l^\star)}$ and the previous line equals $s\left(l^\star + (\lceil l^\star\rceil - l^\star) + \frac{\alpha^{s(\lceil l^\star\rceil - l^\star)}}{1-\alpha^s}\right)$.
     The function $x\mapsto x + \frac{\alpha^{sx}}{1-\alpha^s}$ is convex on $[0,1]$ and equals $\frac{1}{1-\alpha^s}$ at both endpoints, so it is at most $\frac{1}{1-\alpha^s}$ on $[0,1)$.
     If $\beta_k<1$, then $l^\star = 0$ and the sum equals $\frac{\beta_k}{1-\alpha^s}\leq\frac{1}{1-\alpha^s}$.
@@ -642,79 +660,16 @@ The following lemma bounds the drift of the solution due to this choice of warm-
     The function $\sigma\mapsto G_\sigma$ is continuous and increasing, and $G_\sigma\geq H_\sigma$.
     Moreover, both constants $H_\sigma$ and $G_\sigma$ in \Cref{eq:warm-start-and-residual-drift-bounds} are tight.
 \end{lemma}
-\begin{proof}
-    From the update rule of \Cref{alg:stopping-time-algorithm},
-    \begin{align}
-        \gamma z_k + \Ccal^* u_k - w_{k+1} &= \gamma z_k + y_k - (w_{k} - \gamma z_k) \\
-        &= e_k + \gamma z_k.
-    \end{align}
-    Write $r := \norm{R(w_k)}$, $e_J := y_k - J(w_k)$, $e_R := \gamma z_k - R(w_k)$, and $\varepsilon := \norm{e_k}$, so that $e_k = e_J + e_R$, $\gamma z_k = R(w_k) + e_R$, $y_k - w_k = e_J - R(w_k)$, and
-    \begin{align}
-        \gamma z_k + \Ccal^* u_k - w_{k+1} &= e_k + \gamma z_k \\
-        &= R(w_k) + e_J + 2e_R.
-    \end{align}
-    We use three facts.
-    First, \Cref{eq:graph-error-component-bound} in \Cref{lem:exact-inexact-graph-pair-inequalities} gives $\norm{e_J}^2 + \norm{e_R}^2\leq\varepsilon^2$.
-    In particular, $\ip{e_J}{e_R}\geq0$, so $\norm{e_R}\leq\varepsilon$ and $\norm{e_R - e_J}^2 = \varepsilon^2 - 4\ip{e_J}{e_R}\leq\varepsilon^2$.
-    Second, the relative test gives $\norm{R(w_k) - e_J} = \norm{y_k - w_k}\geq\frac{\varepsilon}{\sigma}$.
-    Third, by the bound $\norm{\gamma z + y - w} \leq \frac{\sigma}{1-\sigma}\norm{R(w)}$ \Cref{eq:fixed-point-vs-error-bound} in \Cref{lem:exact-inexact-graph-pair-inequalities}, $\varepsilon\leq\frac{\sigma r}{1-\sigma}$.
-
-    If $\varepsilon\leq\sigma r$, then
-    \begin{align}
-        \norm{R(w_k) + e_J + 2e_R}\leq r + \norm{e_J + e_R} + \norm{e_R}\leq r + 2\varepsilon\leq(1+2\sigma)r\leq G_\sigma r.
-    \end{align}
-    Suppose now $\varepsilon\geq\sigma r$.
-    Expanding, and using $\norm{R(w_k) + e_J}^2 = 2r^2 + 2\norm{e_J}^2 - \norm{R(w_k) - e_J}^2$ and $4\ip{e_J}{e_R} + 4\norm{e_R}^2 = 4\varepsilon^2 - 4\norm{e_J}^2 - 4\ip{e_J}{e_R}$,
-    \begin{align}
-        \norm{R(w_k) + e_J + 2e_R}^2 &= \norm{R(w_k) + e_J}^2 + 4\ip{R(w_k)}{e_R} + 4\ip{e_J}{e_R} + 4\norm{e_R}^2 \\
-        &= 2r^2 - 2\norm{e_J}^2 - \norm{R(w_k) - e_J}^2 + 4\varepsilon^2 + 4\ip{R(w_k)}{e_R} - 4\ip{e_J}{e_R}.
-    \end{align}
-    Since $\ip{e_J}{e_R}\geq0$, we have $\norm{R(w_k) - e_J}^2\geq\frac{\varepsilon^2}{\sigma^2}$, and 
-    \begin{align}
-        \ip{R(w_k)}{e_R} = \ip{R(w_k)}{e_J} + \ip{R(w_k)}{e_R - e_J}\leq\ip{R(w_k)}{e_J} + r\varepsilon.
-    \end{align}
-    Moreover,
-    \begin{align}
-        2\ip{R(w_k)}{e_J} = r^2 + \norm{e_J}^2 - \norm{R(w_k) - e_J}^2\leq r^2 + \norm{e_J}^2 - \frac{\varepsilon^2}{\sigma^2}.
-    \end{align}
-    Therefore
-    \begin{align}
-        \norm{R(w_k) + e_J + 2e_R}^2\leq4r^2 + 4r\varepsilon + \left(4 - \frac{3}{\sigma^2}\right)\varepsilon^2 =: \Phi(\varepsilon),
-        \label{eq:warm-start-quadratic}
-    \end{align}
-    a quadratic in $\varepsilon$ alone.
-    Maximizing $\Phi$ over $\varepsilon\in[\sigma r,\frac{\sigma r}{1-\sigma}]$ yields \Cref{eq:warm-start-constant}.
-
-    We now move on to $H_\sigma$.
-    Note that $w_{k+1} = w_k - \gamma z_k = J(w_k) - e_R$.
-    Since $R$ is firmly nonexpansive (\Cref{lem:exact-inexact-graph-pair-inequalities}) and $w_{k+1} - w_k = -\gamma z_k = -(R(w_k) + e_R)$,
-    \begin{align}
-        \norm{R(w_{k+1}) - R(w_k)}^2&\leq\ip{R(w_{k+1}) - R(w_k)}{w_{k+1} - w_k} = -\ip{R(w_{k+1}) - R(w_k)}{R(w_k) + e_R}.
-    \end{align}
-    As a consequence,
-    \begin{align}
-        \norm{R(w_{k+1})}^2\leq\ip{R(w_{k+1})}{R(w_k) - e_R} + \ip{R(w_k)}{e_R}.
-    \end{align}
-    The fact that $\ip{R(w_{k+1})}{R(w_k) - e_R}\leq\frac{1}{2}\norm{R(w_{k+1})}^2 + \frac{1}{2}\norm{R(w_k) - e_R}^2$ and using $\frac{1}{2}\norm{R(w_k) - e_R}^2 + \ip{R(w_k)}{e_R} = \frac{1}{2}\left(r^2 + \norm{e_R}^2\right)$ gives
-    \begin{align}
-        \norm{R(w_{k+1})}^2\leq r^2 + \norm{e_R}^2 = \norm{R(w_k)}^2 + \norm{\gamma z_k - R(w_k)}^2. \label{eq:drift-quadrature}
-    \end{align}
-    The first two facts give $\norm{e_R}^2\leq\varepsilon^2 - \norm{e_J}^2\leq\sigma^2\norm{R(w_k) - e_J}^2 - \norm{e_J}^2\leq\sigma^2(\norm{e_J}+r)^2 - \norm{e_J}^2$, a concave quadratic in $\norm{e_J}$ whose maximum, attained at $\norm{e_J} = \frac{\sigma^2 r}{1-\sigma^2}$, equals $\frac{\sigma^2 r^2}{1-\sigma^2}$.
-    Hence $\norm{e_R}\leq\frac{\sigma r}{\sqrt{1-\sigma^2}}$ and $\norm{R(w_{k+1})}^2\leq r^2 + \frac{\sigma^2r^2}{1-\sigma^2} = \frac{r^2}{1-\sigma^2} = H_\sigma^2r^2$.
-
-    The proof of the tightness of the constants can be found in \Cref{rem:warm-start-sharp}.
-\end{proof}
+The proof can be found in \Cref{sec:proof-of-warm-start-bounds-lemma}.
 
 \begin{corollary}\label{cor:beta-bound}
     Conditionally, for $k\geq1$ on the event $\{K_\delta\geq k\}$,
     \begin{align}
-        \beta_k &= \frac{(1+\sigma)^2C_0 \Expect_k[{\norm{\gamma z_{k-1} + y_{k-1} - w_{k}}^2}]}{\sigma^2\max\{\norm{R(w_k)}^2, \gamma^2\delta^2\}} \\
-        &\leq \frac{(1+\sigma)^2 C_0 G_\sigma^2\norm{R(w_{k-1})}^2}{\sigma^2\max\{\norm{R(w_k)}^2, \gamma^2\delta^2\}} \\
-        &= \frac{D\norm{R(w_{k-1})}^2}{\max\{\norm{R(w_k)}^2, \gamma^2\delta^2\}},
+        \beta_k &\leq \frac{D_\sigma\norm{R(w_{k-1})}^2}{\max\{\norm{R(w_k)}^2, \gamma^2\delta^2\}},
     \end{align}
     where
     \begin{align}
-        D := \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}. \label{eq:D-definition}
+        D_\sigma := \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}. \label{eq:D-definition}
     \end{align}
 \end{corollary}
 
@@ -724,15 +679,16 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
     Let $D = \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}$ as in \Cref{cor:beta-bound}, and let $\beta_0$ be the quantity of \Cref{thm:stopping-time-concentration} for the (cold-started) first inner solve.
     Then
     \begin{align}
-        \Expect\left[ \sum_{k=0}^{K_\delta}N_k \right] &\leq \Expect[K_{\delta}]\left(  \frac{s}{1-\alpha^s} + \frac{\log D}{\log(1/\alpha)} \right) \notag\\
-        &\quad + \frac{1}{\log(1/\alpha)}\left( \frac{s\log(1/\alpha)}{1-\alpha^s} + \logp\beta_0 + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2} \right).
+        \Expect\left[ \sum_{k=0}^{K_\delta}N_k \right] &\leq \Expect[K_{\delta}]\left(  \frac{s}{1-\alpha^s} + \frac{ \log D_{\sigma} }{\log(1/\alpha)} \right) \notag\\
+        &\quad + \frac{1}{\log(1/\alpha)}\left( \frac{s\log(1/\alpha)}{1-\alpha^s} +  (\log\beta_0)_+  + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2} \right).
         \label{eq:total-inner-work-bound}
     \end{align}
+    As a consequence, $\Expect\left[ \sum_{k=0}^{K_\delta}N_k \right] = O(\delta^{-2})$.
 \end{theorem}
 \begin{proof}
     Let $r_k := \max\{\norm{R(w_k)},\gamma\delta\}$, $c_1 := \frac{s}{1-\alpha^s}$, and
     \begin{align}
-        T_k := c_1 + \frac{\logp\beta_k}{\log(1/\alpha)}.
+        T_k := c_1 + \frac{ (\log\beta_k)_+ }{\log(1/\alpha)}.
     \end{align}
     By \Cref{thm:stopping-time-concentration}, $\Expect_k[N_k]\leq T_k$ on $\{K_\delta\geq k\}$, and $T_k$ is $\Fcal_k$-measurable.
 
@@ -741,23 +697,23 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
     By \Cref{lem:warm-start-bounds} and the fact that $H_\sigma\geq1$, $r_k\leq H_\sigma r_{k-1}$.
     Thus,
     \begin{align}
-        \log D + \log\frac{r_{k-1}^2}{r_k^2} \geq \log\frac{D}{H_\sigma^2} \geq 0,
+         \log D_{\sigma}  + \log\frac{r_{k-1}^2}{r_k^2} \geq \log\frac{D}{H_\sigma^2} \geq 0,
     \end{align}
     since $D = \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}\geq G_\sigma^2\geq H_\sigma^2$.
     Here $C_0\geq1$, $\frac{1+\sigma}{\sigma}>1$, and $G_\sigma\geq H_\sigma$ by \Cref{lem:warm-start-bounds}.
-    Therefore, the maximum with $0$ in the $\logp$ term can be dropped:
+    Therefore, the maximum with $0$ in the $\left( \log \right)_+$ term can be dropped:
     \begin{align}
-        \logp\beta_k \leq \max\left\{0,\log D + \log\frac{r_{k-1}^2}{r_k^2}\right\} = \log D + \log\frac{r_{k-1}^2}{r_k^2}.
+         (\log\beta_k)_+  \leq \max\left\{0, \log D_{\sigma}  + \log\frac{r_{k-1}^2}{r_k^2}\right\} =  \log D_{\sigma}  + \log\frac{r_{k-1}^2}{r_k^2}.
     \end{align}
     Summing and telescoping, for every $K\leq K_\delta$,
     \begin{align}
-        \sum_{k=1}^{K}\logp\beta_k \leq K\log D + \log\frac{r_0^2}{r_K^2} \leq K\log D + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2},
+        \sum_{k=1}^{K} (\log\beta_k)_+  \leq K \log D_{\sigma}  + \log\frac{r_0^2}{r_K^2} \leq K \log D_{\sigma}  + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2},
         \label{eq:telescoped-beta-bound}
     \end{align}
     using $r_K\geq\gamma\delta$ to eliminate the maximum in the denominator.
     Taking $K = K_\delta$ gives the almost sure bound
     \begin{align}
-        \sum_{k=0}^{K_\delta}T_k \leq (K_\delta+1)c_1 + \frac{1}{\log(1/\alpha)}\left(\logp\beta_0 + K_\delta\log D + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}\right).
+        \sum_{k=0}^{K_\delta}T_k \leq (K_\delta+1)c_1 + \frac{1}{\log(1/\alpha)}\left( (\log\beta_0)_+  + K_\delta \log D_{\sigma}  + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}\right).
     \end{align}
     By Tonelli's theorem and the tower property,
     \begin{align}
@@ -765,37 +721,147 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
     \end{align}
     Taking expectations in the almost sure bound yields the theorem.
     All quantities are finite because $K_\delta\leq K_\delta^+$ almost surely (\Cref{thm:convergence-guarantee}).
+
+    Lastly, by \Cref{thm:convergence-guarantee}, $K_\delta \leq K_\delta^+ = O(\delta^{-2})$.
+    Thus, $\Expect\left[\sum_{k=0}^{K_\delta}N_k\right] = O(\delta^{-2})$.
 \end{proof}
 
 \begin{remark}
-    The choice of warm start is flexible.
-    The main ingredient in the proof is a bound on the initialization in terms of the previous fixed point residual and a bound on the next fixed point residual in terms of the current.
-    That is, it suffices to find constants $G$ and $H$ such that 
-    \begin{subequations}
+    The $\log(\delta^{-1})$ term cannot in general be omitted from a bound in terms of the actual number of outer updates.
+    \Cref{prop:necessary-logarithm} gives a fixed smooth convex instance with $K_\delta=1$ whose total inner work has exactly the logarithmic leading term in \Cref{eq:total-inner-work-bound}.
+    Separately, \Cref{prop:quadratic-accuracy-lower-bound} gives a family attaining $\Theta(\delta^{-2})$ total inner work with fixed algorithm parameters and bounded initialization quantities.
+\end{remark}
+
+The choice of warm start is flexible.
+The main ingredient in the proof is a bound on the initialization in terms of the previous fixed point residual and a bound on the next fixed point residual in terms of the current.
+That is, it suffices to find constants $G$ and $H$ such that 
+\begin{subequations}
+    \begin{align}
+        \Expect_{k+1}[\norm{\gamma z^0 + \Ccal^* u^0 - w_{k+1}}^2] &\leq G^2\norm{R(w_k)}^2, \quad \text{(warm-start bound)}\\
+        \norm{R(w_{k+1})} &\leq H\norm{R(w_k)}, \quad \text{(residual drift bound)}
+    \end{align}
+\end{subequations}
+where $H\geq 1$.
+The proof of \Cref{thm:total-inner-work-bound} can be repeated with $D_\sigma$ replaced by $\max\left\{ \frac{(1+\sigma)^2C_0G^2}{\sigma^2}, H^2 \right\}$.
+The maximum with $H^2$ is what allows the $\max\{0,\cdot\}$ in $( \log )_+$ to be dropped.
+\Cref{lem:warm-start-bounds} gives $G = G_\sigma$ and $H = H_\sigma$ from \Cref{eq:warm-start-and-residual-drift-bounds}, for which the maximum is $D_\sigma$.
+In fact, the proof of \Cref{thm:total-inner-work-bound} used few properties of the outer algorithm in which it was implemented.
+The main ingredients of the proof are estimates on the drift of the inner subproblem from iteration to iteration.
+It is an interesting question to see if it is possible to apply this strategy to other well-known algorithms which assume some kind of (possibly inexact) subproblem oracle.
+
+
+\Cref{thm:stopping-time-concentration} also yields exponential concentration of the total inner work.
+The proof uses the exponential supermartingale method described by \citet{Howard2020TimeUniformChernoffBounds}.
+\begin{theorem}[Concentration of total inner work]\label{thm:total-inner-work-concentration}
+    We define the upper bound function $\mathcal{T}_\delta$ of \Cref{thm:total-inner-work-bound} as
+    \begin{align}
+        \mathcal{T}_\delta(m) &:= m\left(  \frac{s}{1-\alpha^s} + \frac{ \log D_{\sigma} }{\log(1/\alpha)} \right) \\
+        &\quad + \frac{1}{\log(1/\alpha)}\left( \frac{s\log(1/\alpha)}{1-\alpha^s} +  (\log\beta_0)_+  + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2} \right),
+    \end{align}
+    with $(\log 0)_+:=0$.
+    Under the assumptions of \Cref{thm:total-inner-work-bound}, for every $\eta\in(0,1)$,
+    \begin{align}
+        \prob\left(\sum_{k=0}^{K_\delta}N_k>\mathcal{T}_\delta(K_\delta)+\frac{\sqrt{2(K_\delta^+ + 1)  \log(1/\eta) }+ \log(1/\eta) }{\log(1/\alpha)}\right)
+            &\leq\eta, \label{eq:total-work-bernstein}\\
+        \prob\left(\sum_{k=0}^{K_\delta}N_k>\mathcal{T}_\delta(K_\delta) +\frac{K_\delta+1 + 4\log(1/\eta) }{2\log(1/\alpha)}\right)
+            &\leq\eta. \label{eq:total-work-realized-count}
+    \end{align}
+\end{theorem}
+\begin{proof}
+    We first strengthen \Cref{thm:stopping-time-concentration} to an exponential moment bound.
+    Fix outer iteration $k$ and $0<\theta<\log(1/\alpha)$.
+    We define
+    \begin{align}
+        l_k=\frac{ (\log\beta_k)_+ }{s\log(1/\alpha)}, \qquad
+        A_\theta=\frac{\exp(s\theta)-1}{1-\alpha^s\exp(s\theta)}.
+    \end{align}
+    Since $\beta_k\leq\exp( s l_k \log(1/\alpha))$ and $N_k$ takes values in $\{0,s,2s,\dots\}$, summing its conditional tails gives
+    \begin{align}
+        \Expect_k[\exp(\theta N_k)]
+        &=1+(\exp(s\theta)-1)
+            \sum_{j=0}^{\infty}\exp(s\theta j)\prob_k(N_k>sj)\\
+        &\leq\exp(s\theta l_k)\left(1+A_\theta  \alpha^{s\lceil l_k\rceil-l_k}\right).
+    \end{align}
+    The function $d\mapsto\exp(s\theta d)(1+A_\theta \alpha^{sd})$ is a sum of two exponentials and is convex on $[0,1]$.
+    Its values at both endpoints equal $\frac{(1- \alpha^s )\exp(s\theta)}{1- \alpha^s \exp(s\theta)}$.
+    Consequently,
+    \begin{align}
+        \Expect_k[\exp(\theta(N_k- s l_k ))] \leq \frac{(1- \alpha^s )\exp(s\theta)}{1- \alpha^s \exp(s\theta)}.
+    \end{align}
+    Let us define
+    \begin{align}
+        \Gamma(\theta):=\log \left( \frac{(1- \alpha^s )\exp(s\theta)}{1- \alpha^s \exp(s\theta)} \right) - \frac{s\theta}{1-\alpha^s}.
+        % 0 = \frac{\partial}{\partial\theta}\left( \log \left( \frac{(1- \alpha^s )\exp(s\theta)}{1- \alpha^s \exp(s\theta)} \right) - \frac{s\theta}{1-\alpha^s} \right)\Bigg\mid_{\theta=0} = \frac{\partial^2}{\partial^2\theta}\left( \log \left( \frac{(1- \alpha^s )\exp(s\theta)}{1- \alpha^s \exp(s\theta)} \right) - \frac{s\theta}{1-\alpha^s} \right)\mid_{\theta=0}.
+    \end{align}
+    Then $\Gamma(0)=\Gamma'(0)=0$, and
+    \begin{align}
+        \Gamma''(\theta)
+        =\frac{s^2 \alpha^s \exp(s\theta)}{(1- \alpha^s \exp(s\theta))^2}
+        =\frac{s^2}{4\sinh^2(s( \log(1/\alpha) -\theta)/2)}
+        \leq\frac{1}{( \log(1/\alpha) -\theta)^2}.
+    \end{align}
+    Integrating twice and expanding the logarithm yields
+    \begin{align}
+        \log\Expect_k\left[\exp\left(\theta\left(N_k- s l_k - \frac{s}{1-\alpha^s} \right)\right)\right]
+        &\leq-\log\left(1- \frac{\theta}{ \log(1/\alpha)}\right) - \frac{\theta}{ \log(1/\alpha)}  \\
+        &\leq\frac{\theta^2}{2 \log(1/\alpha) ^2(1- \frac{\theta}{ \log(1/\alpha)}  )}
+        =:\Psi(\theta).
+        \label{eq:conditional-inner-work-mgf}
+    \end{align}
+
+    To account for termination, let $I_k=\mathbf{1}_{\{K_\delta\geq k\}}$ and $Y_k= \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) \mathbf{1}_{\{K_\delta\geq k\}}$, setting $N_k= s l_k =0$ after termination.
+    The indicator $\mathbf{1}_{\{K_\delta\geq k\}}$ is $\Fcal_k$-measurable.
+    By \Cref{eq:conditional-inner-work-mgf}, the process
+    \begin{align}
+        M_j=\exp\left(\sum_{k=0}^{j-1} \left( \theta\left( N_k- s l_k - \frac{s}{1-\alpha^s} \right) - \Psi(\theta) \right) \mathbf{1}_{\{K_\delta\geq k\}}\right),
+        \qquad 0\leq j\leq  K_\delta^+ + 1 ,
+    \end{align}
+    is a nonnegative supermartingale with $M_0=1$.
+    Thus, $\Expect[M_{ j}]\leq 1$ for all $j$.
+    Note that $\sum_{k=0}^{ K_\delta^+ }\mathbf{1}_{\{K_\delta\geq k\}}=K_\delta+1\leq  K_\delta^+ + 1 $, so
+    \begin{align}
+        \Expect\left[ \exp\left( \theta \sum_{k=0}^{ K_\delta} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right)  \right) \right] &= \Expect\left[ \exp\left( \theta \sum_{k=0}^{ K_\delta^+} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) \mathbf{1}_{\{K_\delta\geq k\}} \right) \right] \\
+        &\leq \exp( (K_\delta^+ + 1) \Psi(\theta)).
+    \end{align}
+    Markov's inequality, with
+    \begin{align}
+        \theta = \frac{\log(1/\alpha)\sqrt{2 \log(1/\eta)}}{\sqrt{ K_\delta^+ + 1 }+\sqrt{2 \log(1/\eta)}},
+    \end{align}
+    gives
+    \begin{align}
+        \prob\left( \sum_{k=0}^{ K_\delta} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) > \frac{\sqrt{2 (K_\delta^+ + 1) \log(1/\eta)+ \log(1/\eta) } }{\log(1/\alpha)} \right) \leq \exp(- \log(1/\eta) ).
+    \end{align}
+    The pathwise telescoping bound \Cref{eq:telescoped-beta-bound} of \Cref{thm:total-inner-work-bound} gives
+    \begin{subequations}\label{eq:s-l_k-N_k-upper-bounds}
         \begin{align}
-            \Expect_{k+1}[\norm{\gamma z^0 + \Ccal^* u^0 - w_{k+1}}^2] &\leq G^2\norm{R(w_k)}^2, \quad \text{(warm-start bound)}\\
-            \norm{R(w_{k+1})} &\leq H\norm{R(w_k)}, \quad \text{(residual drift bound)}
+            \sum_{k=0}^{K_\delta} s l_k &\leq \frac{K_\delta \log D_{\sigma} }{ \log(1/\alpha) } + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2\log(1/\alpha)}  \\
+            \sum_{k=0}^{K_\delta}N_k &\leq \mathcal{T}_\delta(K_\delta) + \sum_{k=0}^{ K_\delta} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) .
         \end{align}
     \end{subequations}
-    where $H\geq 1$.
-    The proof of \Cref{thm:total-inner-work-bound} then goes through with $D$ replaced by $\max\left\{ \frac{(1+\sigma)^2C_0G^2}{\sigma^2}, H^2 \right\}$.
-    The maximum with $H^2$ is what allows the $\max\{0,\cdot\}$ in $\logp$ to be dropped.
-    \Cref{lem:warm-start-bounds} gives $G = G_\sigma$ and $H = H_\sigma$ from \Cref{eq:warm-start-and-residual-drift-bounds}, for which the maximum is $D$.
-    In fact, the proof of \Cref{thm:total-inner-work-bound} used few properties of the outer algorithm in which it was implemented.
-    The main ingredients of the proof are estimates on the drift of the inner subproblem from iteration to iteration.
-    It is an interesting question to see if it is possible to apply this strategy to other well-known algorithms which assume some kind of (possibly inexact) subproblem oracle.
+    Combining the previous three inequalities shows that $\sum_{k=0}^{ K_\delta} \left(s l_k + \frac{s}{1-\alpha^s} \right) \leq \mathcal{T}_\delta(K_\delta)$, proving \Cref{eq:total-work-bernstein}.
+
+    Alternatively, applying Markov's inequality directly to $M_{ K_\delta^+ + 1 }$ gives, for every fixed $0<\theta< \log(1/\alpha) $,
+    \begin{align}
+        \prob\left( \sum_{k=0}^{ K_\delta} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) >\frac{(K_\delta+1)\Psi(\theta)+ \log(1/\eta) }{\theta}\right)
+        \leq\exp(- \log(1/\eta) ).
+    \end{align}
+    Choosing $\theta= \frac{1}{2}\log(1/\alpha)$, for which $\Psi(\theta)=\frac{1}{4}$, proves \Cref{eq:total-work-realized-count}.
+\end{proof}
+    
+\begin{remark}[Concentration of the outer stopping time]\label{rem:outer-count-concentration}
+    Replacing $\mathcal{T}_\delta(K_\delta)$ by $\mathcal{T}_\delta(K_\delta^+)$ in \Cref{eq:total-work-bernstein} gives a deterministic upper bound with confidence $1-\eta$.
+    However, replacing $K_\delta$ by $\Expect[K_\delta]$ in the probability bounds \Cref{eq:total-work-bernstein,eq:total-work-realized-count} would require additional control of the outer stopping time.
+    Since $\mathcal{T}_\delta$ is an increasing affine function, a bound on the upper tail of $K_\delta-\Expect[K_\delta]$ could be combined with \Cref{thm:total-inner-work-concentration} by a union bound.
+    The resulting work bound would involve $\mathcal{T}_\delta(\Expect[K_\delta])$ and an additional deviation term.
+
+    Certain classes of parameterized families of problems and inner solvers may admit sharper results with the aforementioned upper tail decay.
+    Establishing concentration about $\Expect[K_\delta]$ over popular classes of problems and applying it to practical algorithms is an interesting avenue for future work.
 \end{remark}
-\begin{corollary}
-    From \Cref{thm:convergence-guarantee}, $K_\delta \leq K_\delta^+ = O(\delta^{-2})$.
-    Thus, we can expect a total inner work complexity of $O(s\delta^{-2})$.
-    % In fact, substituting the value of $K_\delta^+$ shows that the coefficient of $\delta^{-2}$ is $\frac{1+\sigma}{1-\sigma}\dist(w_0,\zer \Bcal)^2\left(\frac{s(2-\alpha^s)}{1-\alpha^s} + \frac{\log D}{\log(1/\alpha)}\right)$.
-\end{corollary}
-\begin{remark}
-    Under the assumptions of \Cref{thm:error-bound-outer-convergence-guarantee}, $\Expect[K_\delta] = O(\log (1/\delta))$, so the amount of total inner work is $O(\log(1/\delta))$.
-    This highlights the advantage of having a bound in terms of $\Expect[K_\delta]$, as we did not need to redo any of the outer convergence analysis.
-    An interesting related question is to see if this can be used to formulate an average-case inner work complexity, rather than the worst-case complexity presented here.
-    We leave this direction for future work.
-\end{remark}
+
+Under the assumptions of \Cref{thm:error-bound-outer-convergence-guarantee}, $\Expect[K_\delta] = O(\log (1/\delta))$, so the amount of total inner work is $O(\log(1/\delta))$.
+This highlights the advantage of having a bound in terms of $\Expect[K_\delta]$, as we did not need to redo any of the outer convergence analysis.
+An interesting related question is to see if this can be used to formulate an average-case inner work complexity, rather than the worst-case complexity presented here.
+We leave this direction for future work.
 
 \begin{theorem}[A deterministic bound]\label{thm:deterministic-inner-work}
     Suppose we have a deterministic guarantee on the inner procedure of the form:
@@ -810,12 +876,12 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
     where $(y^0,z^0)$ is the initial pair of the $k$th inner solve.
     If $\sigma\in(0,1)$ and for $k\geq1$ the inner solver is warm-started as in \Cref{lem:warm-start-bounds}, then every inner solve terminates, with
     \begin{align}
-        N_k \leq s\left\lceil\frac{\logp\tilde{\beta}_k}{s\log(1/\alpha)}\right\rceil \qquad (0\leq k\leq K_\delta),
+        N_k \leq s\left\lceil\frac{ (\log\tilde{\beta}_k)_+ }{s\log(1/\alpha)}\right\rceil \qquad (0\leq k\leq K_\delta),
         \label{eq:deterministic-per-step}
     \end{align}
     and the total inner work satisfies
     \begin{align}
-        \sum_{k=0}^{K_\delta}N_k &\leq s\left\lceil\frac{\logp\tilde{\beta}_0}{s\log(1/\alpha)}\right\rceil + K_\delta\left(s + \frac{\log D}{\log(1/\alpha)}\right) + \frac{1}{\log(1/\alpha)}\log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}. \label{eq:deterministic-total}
+        \sum_{k=0}^{K_\delta}N_k &\leq s\left\lceil\frac{ (\log\tilde{\beta}_0)_+ }{s\log(1/\alpha)}\right\rceil + K_\delta\left(s + \frac{ \log D_{\sigma} }{\log(1/\alpha)}\right) + \frac{1}{\log(1/\alpha)}\log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}. \label{eq:deterministic-total}
     \end{align}
 \end{theorem}
 \begin{proof}
@@ -829,20 +895,20 @@ Combining \Cref{thm:stopping-time-concentration,lem:warm-start-bounds} yields a 
         \norm{\gamma z^{sl} + y^{sl} - w_k}^2 &\leq C_0\alpha^{sl}\norm{\gamma z^0 + y^0 - w_k}^2 \\
         &= \tilde{\beta}_k\alpha^{sl}\left(\frac{\sigma}{1+\sigma}\right)^2\max\{\norm{R(w_k)},\gamma\delta\}^2.
     \end{align}
-    By the first paragraph, the inner loop exits by the first check $l$ with $\tilde{\beta}_k\alpha^{sl}\leq1$, and $l \geq \lceil\frac{\logp\tilde{\beta}_k}{s\log(1/\alpha)}\rceil$ satisfies this.
-    This proves \Cref{eq:deterministic-per-step}, and in particular $N_k\leq s + \frac{\logp\tilde{\beta}_k}{\log(1/\alpha)}$.
+    By the first paragraph, the inner loop exits by the first check $l$ with $\tilde{\beta}_k\alpha^{sl}\leq1$, and $l \geq \lceil\frac{ (\log\tilde{\beta}_k)_+ }{s\log(1/\alpha)}\rceil$ satisfies this.
+    This proves \Cref{eq:deterministic-per-step}, and in particular $N_k\leq s + \frac{ (\log\tilde{\beta}_k)_+ }{\log(1/\alpha)}$.
 
     For $1\leq k\leq K_\delta$, the inequalities of \Cref{lem:warm-start-bounds,cor:beta-bound} also hold deterministically, with $\tilde\beta_k$ in place of $\beta_k$.
     The argument in the proof of \Cref{thm:total-inner-work-bound} therefore gives the analog of \Cref{eq:telescoped-beta-bound} with $K = K_\delta$:
     \begin{align}
-        \sum_{k=1}^{K_\delta}N_k &\leq K_\delta s + \frac{1}{\log(1/\alpha)}\sum_{k=1}^{K_\delta}\logp\tilde{\beta}_k \\
-        &\leq K_\delta\left(s + \frac{\log D}{\log(1/\alpha)}\right) + \frac{1}{\log(1/\alpha)}\log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}.
+        \sum_{k=1}^{K_\delta}N_k &\leq K_\delta s + \frac{1}{\log(1/\alpha)}\sum_{k=1}^{K_\delta} (\log\tilde{\beta}_k)_+  \\
+        &\leq K_\delta\left(s + \frac{ \log D_{\sigma} }{\log(1/\alpha)}\right) + \frac{1}{\log(1/\alpha)}\log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}.
     \end{align}
     Adding the bound \Cref{eq:deterministic-per-step} for $k=0$ gives the desired inequality in \Cref{eq:deterministic-total}.
 \end{proof}
 \begin{remark}
     Compared with \Cref{thm:total-inner-work-bound}, the per-iteration constant $\frac{s}{1-\alpha^s}$ improves to $s$, because there is no random tail to sum.
-    \Cref{rem:inner-work-sharpness} in \Cref{sec:tightness-of-bounds} shows that the per-step bound \Cref{eq:deterministic-per-step} is attained, that the expectation bound of \Cref{thm:stopping-time-concentration} can be approached arbitrarily closely, and that, for $\sigma\leq\sigma_1$, the constant $D$ in the total bounds is sharp up to the factor $(1+\sigma)^2$.
+    \Cref{rem:inner-work-sharpness} in \Cref{sec:tightness-of-bounds} shows that the per-step bound \Cref{eq:deterministic-per-step} is attained, that the expectation bound of \Cref{thm:stopping-time-concentration} can be approached arbitrarily closely, and that, for $\sigma\leq\sigma_1$, the constant $D_\sigma$ in the total bounds is sharp up to the factor $(1+\sigma)^2$.
 \end{remark}
 
 One might wonder if \Cref{assumption:inner-work-contraction} is strong enough to ensure that every inner loop terminates when the terminal test of \Cref{alg:stopping-time-algorithm} is removed, i.e., when only the relative test is used.
@@ -876,7 +942,7 @@ The choice of $\sigma$ depends on the inner solver and is examined for specific 
     where
     \begin{align}
         N_{\mathrm{tot}} &:= (K_{\mathrm{up}}+1)\left(s + \frac{1}{\log(1/\alpha)}\right) + N', \\
-        N' &:= \frac{1}{\log(1/\alpha)}\left(K_{\mathrm{up}}\log D + \logp\beta_0 + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2}\right),
+        N' &:= \frac{1}{\log(1/\alpha)}\left(K_{\mathrm{up}} \log D_{\sigma}  +  (\log\beta_0)_+  + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2}\right),
     \end{align}
     and $D$, $\beta_0$ are as in \Cref{thm:total-inner-work-bound}.
     The choice of stride $s\in\mathbb{N}$ that minimizes this upper bound is one of $\lfloor s^\star\rfloor$ or $\lceil s^\star\rceil$, where
@@ -929,7 +995,7 @@ The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \f
         Substitute $\Expect[K_\delta]\leq K_\delta^+\leq\frac{1+\sigma}{1-\sigma}\cdot\frac{\dist(w_0,\zer \Bcal)^2}{\gamma^2\delta^2}$ into either bound.
         The coefficient of $\delta^{-2}$ is then $\frac{\dist(w_0,\zer \Bcal)^2}{\gamma^2\log(1/\alpha)}g(\sigma)$, where
         \begin{align}
-            g(\sigma) := \frac{1+\sigma}{1-\sigma}\left( \chi + \log D(\sigma) \right), \qquad D(\sigma) = \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}.
+            g(\sigma) := \frac{1+\sigma}{1-\sigma}\left( \chi +  \log D_{\sigma} (\sigma) \right), \qquad D(\sigma) = \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}.
         \end{align}
         Over $\sigma\in(0,1)$, $g$ has a unique minimizer $\sigma^\star$, which lies in $(0,\sigma_1)$ and is the unique solution in $(0,\sigma_1)$ of
         \begin{align}
@@ -941,7 +1007,7 @@ The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \f
             \sigma^\star <  \frac{1}{3/2 + s\log(1/\alpha) + 2\log(1+\gamma L)}.
         \end{align}
     \end{enumerate}
-    The other $\sigma$-dependent term in the bounds, $\frac{\logp\beta_0}{\log(1/\alpha)}$, does not grow as $\delta\to0$.
+    The other $\sigma$-dependent term in the bounds, $\frac{ (\log\beta_0)_+ }{\log(1/\alpha)}$, does not grow as $\delta\to0$.
     Consequently, $\sigma^\star$ minimizes the upper bound to leading order in $\delta^{-2}$.
 \end{proposition}
 \begin{proof}
@@ -961,13 +1027,13 @@ The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \f
     Define $S = \frac{1+\sigma}{1-\sigma}$ and $\Delta = \frac{\dist(w_0,\zer \Bcal)^2}{\gamma^2\delta^2}$.
     The bound of \Cref{thm:total-inner-work-bound} is at most
     \begin{align}
-        \frac{S\Delta}{\log(1/\alpha)}(\chi + \log D(\sigma)) + \frac{s}{1-\alpha^s} + \frac{1}{\log(1/\alpha)}\left(\logp\beta_0 + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}\right).
+        \frac{S\Delta}{\log(1/\alpha)}(\chi +  \log D_{\sigma} (\sigma)) + \frac{s}{1-\alpha^s} + \frac{1}{\log(1/\alpha)}\left( (\log\beta_0)_+  + \log\frac{\max\{\norm{R(w_0)}^2,\gamma^2\delta^2\}}{\gamma^2\delta^2}\right).
     \end{align}
     The bound of \Cref{thm:deterministic-inner-work} has the same $\delta^{-2}$ term with $\chi = s\log(1/\alpha)$, and its remaining terms also do not grow with $\delta^{-1}$ faster than $\log(1/\delta)$.
     This identifies the $\delta^{-2}$ coefficient as claimed.
     Here $\alpha$, $C_0$, and hence $\chi$ do not depend on $\sigma$.
 
-    Let $\tilde D(\sigma) := \frac{(1+\sigma)^2(1+2\sigma)^2C_0}{\sigma^2}$ and $\tilde g(\sigma) := S(\sigma)\bigl(\chi + \log\tilde D(\sigma)\bigr)$.
+    Let $\tilde D(\sigma) := \frac{(1+\sigma)^2(1+2\sigma)^2C_0}{\sigma^2}$ and $\tilde g(\sigma) := S(\sigma)\left(\chi + \log\tilde D(\sigma)\right)$.
     By \Cref{lem:warm-start-bounds}, $G_\sigma\geq1+2\sigma$ with equality for $\sigma\leq\sigma_1$, so $g\geq\tilde g$ on $(0,1)$, with equality on $(0,\sigma_1]$.
     We first minimize $\tilde g$.
     Since $\log\tilde D = \log C_0 + 2\log(1+\sigma) + 2\log(1+2\sigma) - 2\log\sigma$,
@@ -993,13 +1059,53 @@ The optimal choice of fixed stepsize is $\gamma_{\mathrm{GD}} = \frac{2}{(L + \f
     Finally, $\log\tilde D(\sigma)>\log C_0$ on $(0,1)$, and $\psi$ is decreasing, so $\psi(\sigma^\star)\geq\psi(\sigma_1) = \frac{1}{2}$.
     Substituting into \Cref{eq:optimal-sigma} gives $\frac{1}{\sigma^\star} > \frac{3}{2} + \chi + \log C_0$.
 \end{proof}
-\begin{remark}
-    The inner iterations of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm} are of the form $x_{k}^{l+1} = x_{k}^l - \gamma_{\mathrm{GD}}(\nabla f(x_k^l) + \frac{1}{\gamma}(x_k^l - w_k))$.
-    That is, all future iterates are in the span of past iterates and gradients.
-    Any such method needs $\sum_{k=0}^{K_\delta}N_k \gtrsim \delta^{-1/2}$.
-    This follows\footnote{Namely, using \Cref{thm:convergence-guarantee} to conclude that gradients and iterates are bounded by initialization constants.} from analyzing ``the worst function in the world'' \citep[Section 2.1.2]{nesterov2004introductory}.
-    We leave a more detailed analysis of worst-case behavior for future work.
-\end{remark}
+
+
+\begin{proposition}\label{prop:optimal-sigma-accelerated-gradient-inside-ppm}
+    Consider the setting of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, with $L>0$.
+    Define $\kappa:=1+\gamma L$, $L_\varphi:=L+ \frac{1}{\gamma} $, and $\rho:= \frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1} $.
+    At each outer iteration, apply Nesterov's accelerated gradient method to $\varphi_k$, with $x^0$ warm-started at the previously accepted $u$ and $x^{-1}=x^0$:
+    \begin{align}
+        v^l &= x^l+\rho(x^l-x^{l-1}), \\
+        x^{l+1} &= v^l-\frac{1}{L_\varphi}\nabla\varphi_k(v^l), \qquad l=0,1,2,\ldots.
+        \label{eq:accelerated-inner-iterations}
+    \end{align}
+    Note that momentum is reset at the beginning of each inner solve.
+    Use the graph pair $(u^l,z^l)=(x^l,\nabla f(x^l))$ at each stopping test.
+    Then the following hold:
+    \begin{enumerate}
+        \item The deterministic guarantee of \Cref{thm:deterministic-inner-work}, and hence \Cref{assumption:inner-work-contraction}, holds with
+        \begin{align}
+            \alpha=1-\frac{1}{\sqrt{\kappa}}, \qquad C_0=2\kappa.
+            \label{eq:accelerated-inner-constants}
+        \end{align}
+        \item Let $\chi:= \frac{s\log(1/\alpha)}{1-\alpha^s} $ for the expectation bound, or $\chi:=s\log(1/\alpha)$ for the deterministic bound.
+        After substituting the outer iteration bound as in \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, the coefficient of $\delta^{-2}$ is
+        \begin{align}
+            \frac{\dist(w_0,\zer\Bcal)^2}{\gamma^2\log(1/\alpha)}g(\sigma), \qquad
+            g(\sigma):=\frac{1+\sigma}{1-\sigma}
+                \left(\chi+\log\frac{2\kappa(1+\sigma)^2G_\sigma^2}{\sigma^2}\right).
+        \end{align}
+        The function $g$ has a unique minimizer $\sigma^\star\in(0,\sigma_1)$, where $\sigma_1=\frac{\sqrt{13}-1}{4}$.
+        It is the unique solution of \Cref{eq:optimal-sigma} in this interval with $C_0=2\kappa$ and the above choice of $\chi$.
+        Moreover,
+        \begin{align}
+            \sigma^\star<\frac{1}{3/2+\chi+\log(2\kappa)}
+                \leq\frac{1}{3/2+s\log(1/\alpha)+\log(2\kappa)}.
+        \end{align}
+    \end{enumerate}
+    For fixed initialization and algorithm parameters, the remaining terms grow at most as $\log(1/\delta)$ as $\delta\downarrow0$.
+    Consequently, $\sigma^\star$ minimizes the upper bound to leading order in $\delta^{-2}$.
+\end{proposition}
+The proof is given in \Cref{sec:accelerated-inner-proof}, as it is extremely similar to the proof of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}.
+
+Note that the inner iterations of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm} are of the form $x_{k}^{l+1} = x_{k}^l - \gamma_{\mathrm{GD}}(\nabla f(x_k^l) + \frac{1}{\gamma}(x_k^l - w_k))$.
+That is, all future iterates are in the span of past iterates and gradients.
+Any such method needs $\sum_{k=0}^{K_\delta}N_k \gtrsim \delta^{-1/2}$.
+This follows\footnote{Namely, using \Cref{thm:convergence-guarantee} to conclude that gradients and iterates are bounded by initialization constants.} from analyzing ``the worst function in the world'' \citep[Section 2.1.2]{nesterov2004introductory}.
+One can see a similar property for \Cref{prop:optimal-sigma-accelerated-gradient-inside-ppm}.
+We leave a more detailed analysis of lower bounds future work.
+
 
 \subsection{Douglas--Rachford}
 \citet{alves2025generalframeworkinexactsplitting} show that the inexact Douglas--Rachford splitting of \citet{EcksteinRelativeError2018} fits into their framework.
@@ -1008,16 +1114,16 @@ Suppose we wish to solve
 \begin{align}
     \text{find } x \text{ such that } 0 \in\Acal_1 x + \Acal_2 x, \label{eq:Douglas-Rachford-inclusion}
 \end{align}
-where $\mathcal{A}_1$ and $\mathcal{A}_2$ are maximal monotone operators.
+where $\Acal_1$ and $\Acal_2$ are maximal monotone operators.
 We introduce the operators
 \begin{align}
-    \mathcal{A} = \begin{bmatrix}
+    \Acal = \begin{bmatrix}
         \tau\Acal_1 & I & -I \\
         -I & \tau\Acal_2 & I \\
         I & -I & 0 \\
     \end{bmatrix}, \qquad \Ccal = \begin{bmatrix}
         I \\ -I \\ I
-    \end{bmatrix}, \qquad \mathcal{M} = \Ccal\Ccal^*,
+    \end{bmatrix}, \qquad  \Mcal  = \Ccal\Ccal^*,
 \end{align}
 and set $\gamma = 1$.
 One can check that $(\Ccal\Ccal^* + \gamma \Acal)^{-1}\Ccal\Ccal^*$ is defined everywhere.
@@ -1076,7 +1182,7 @@ The state carried between outer iterations is $(z_k, p_k)$.
 We reproduce their algorithm within the framework established by \citet{alves2025generalframeworkinexactsplitting}.
 Take $\Acal_1 = \partial f$, $\Acal_2 = \partial g$, and $\tau = \frac{1}{c}$ in the Douglas--Rachford instance above, that is,
 \begin{align}
-    \mathcal{A} = \begin{bmatrix}
+    \Acal = \begin{bmatrix}
         \frac{1}{c}\partial f & I & -I \\
         -I & \frac{1}{c}\partial g & I \\
         I & -I & 0 \\
@@ -1108,7 +1214,7 @@ We formally prove this in \Cref{prop:admm}.
 \STATE \textbf{Initialize:} $z_0, p_0$ (equivalently $w_0 = z_0 - \frac{p_0}{c}$), penalty $c>0$, inexactness $\sigma\in[0,1)$, stride $s\in\mathbb{N}$, and stopping tolerance $\delta$
 \FOR{$k = 0, 1, 2, \ldots$}
   \STATE Produce $(x_k, a_k)$ with $a_k\in\partial f(x_k)$ and $x_k\approx\argmin_x \varphi_k(x)$, warm-started at $(x_{k-1}, a_{k-1})$ for $k\geq1$.
-  \STATE Compute $z_{k+1} = \argmin_z g(z) + \ip{a_k}{z} + \frac{c}{2}\norm{z - x_k}^2 = \prox_{g/c}\left( x_k - \frac{a_k}{c} \right)$.
+  \STATE Compute $z_{k+1} = \argmin_z \left\{ g(z) + \ip{a_k}{z} + \frac{c}{2}\norm{z - x_k}^2  \right\}= \prox_{g/c}\left( x_k - \frac{a_k}{c} \right)$.
     \IF {$\norm{x_k - z_{k+1}} \leq \delta$}
         \STATE Stop and return $(x_k, z_{k+1}, a_k)$.
     \ELSIF {$\norm{a_k + p_k + c(x_k - z_k)} \leq \sigma \norm{a_k + p_k + c(z_{k+1} - z_k)}$}
@@ -1193,7 +1299,7 @@ We can extend the Douglas--Rachford result to the more general Davis--Yin case \
 \begin{align}
     \text{find } x \text{ such that } 0 \in\Acal_1 x + \Acal_2 x + \Acal_3 x, \label{eq:Davis--Yin-inclusion}
 \end{align}
-where $\mathcal{A}_1$ and $\mathcal{A}_2$ are maximal monotone operators and $\Acal_3$ is $L_3^{-1}$-cocoercive.\footnote{That is, $\ip{\Acal_3 x - \Acal_3 x'}{x - x'}\geq L_3^{-1}\norm{\Acal_3 x - \Acal_3 x'}^2$ for all $x$ and $x'$ (for example $\Acal_3 = \nabla h$ with $h$ convex and $L_3$-smooth).}
+where $\Acal_1$ and $\Acal_2$ are maximal monotone operators and $\Acal_3$ is $L_3^{-1}$-cocoercive.\footnote{That is, $\ip{\Acal_3 x - \Acal_3 x'}{x - x'}\geq L_3^{-1}\norm{\Acal_3 x - \Acal_3 x'}^2$ for all $x$ and $x'$ (for example $\Acal_3 = \nabla h$ with $h$ convex and $L_3$-smooth).}
 Let $\tau\in(0,2/L_3)$ be the Davis--Yin stepsize and let
 \begin{align}
     0 < \theta \leq 1 - \frac{\tau L_3}{4}
@@ -1203,7 +1309,7 @@ be the relaxation parameter.
 As in the Douglas--Rachford case, the stepsize of \Cref{alg:stopping-time-algorithm} is $\gamma = 1$, and $\tau$ plays the role of the stepsize inside $\Acal$.
 We define
 \begin{align}
-    \mathcal{A} = \begin{bmatrix}
+    \Acal = \begin{bmatrix}
         \tau\Acal_1 & I & -I \\
         \tau\Acal_3 - I & \tau\Acal_2 & I \\
         \theta I & -\theta I & 0 \\
@@ -1303,7 +1409,7 @@ When the $\Acal_1$-step is exact, $\tau u_k = w_k - x_k$, and lines 4 and 8 beco
             \end{align}
             By the definition of $a_2$, $\bar d = \tau\Delta u + \tau\Delta\Acal_3 + \tau\Delta a_2$, hence $\ip{d_2}{\bar d} = \tau\ip{d_2}{\Delta u} + \tau\ip{d_2}{\Delta\Acal_3} + \tau\ip{d_2}{\Delta a_2}$, and therefore
             \begin{align}
-                \ip{\Ccal^*(d_1,d_2,d_3)}{\zeta - \zeta'} = \theta(1-\theta)\norm{\bar d}^2 + \theta\tau\bigl(\ip{\Delta u}{d_1} + \ip{\Delta a_2}{d_2} + \ip{\Delta\Acal_3}{d_2}\bigr).
+                \ip{\Ccal^*(d_1,d_2,d_3)}{\zeta - \zeta'} = \theta(1-\theta)\norm{\bar d}^2 + \theta\tau\left(\ip{\Delta u}{d_1} + \ip{\Delta a_2}{d_2} + \ip{\Delta\Acal_3}{d_2}\right).
             \end{align}
             The first two inner products are nonnegative by monotonicity of $\Acal_1$ and $\Acal_2$.
             By cocoercivity and $d_2 = d_1 - \bar d$, $\ip{\Delta\Acal_3}{d_2}\geq L_3^{-1}\norm{\Delta\Acal_3}^2 - \norm{\Delta\Acal_3}\norm{\bar d}$.
@@ -1451,10 +1557,6 @@ The cost of checking depends on factors such as hardware types and availability,
 \subsection{Inexact ADMM}\label{sec:numerical-experiments-admm}
 In this section, we empirically study the performance of \Cref{alg:inexact-admm} on a quadratic program with linear equality constraints.
 That is,
-% \begin{align}
-%     \min_{x\in\R^n} \quad & \frac{1}{2}x^\top Q x + d^\top x \label{eq:admm-qp}\\
-%     \text{subject to} \quad &Ax = b, \notag
-% \end{align}
 \begin{equation}\label{eq:admm-qp}
     \begin{array}{ll}
     \text{minimize} & \frac{1}{2}x^\top Q x + d^\top x, \\
@@ -1534,7 +1636,7 @@ The setup costs of computing $s^\star$ or $\sigma^\star$ are included as the mid
     The minimizer of the unrelaxed bound is the better choice, both in the model and in the measurement.}\label{fig:admm-qp-optimal-b-star-model}
 \end{figure}
 
-\subsection{Rotation Operator}
+\subsection{Rotation Operator}\label{sec:numerical-experiments-rotation}
 We first check the one-step decrease of \Cref{lem:one-step-decrease-inequality} on the two-dimensional Huber instance, and then on an operator for which the lemma is tight for exact steps.
 On the two-dimensional Huber instance of \Cref{fig:ppm-huber-trajectories}, the decrease of $\norm{w_k - x^\star}^2$ at each accepted update is well above the amount that \Cref{lem:one-step-decrease-inequality} guarantees for every $\sigma$ (\Cref{fig:huber-fejer-ratio}).
 The median over the accepted updates is between $1.77$ and $2.58$ times $\norm{\gamma z_k}^2$ for every $\sigma$ shown, including $\sigma^\star$, against a guarantee of $\frac{1-\sigma}{1+\sigma}$, so the factor $\frac{1+\sigma}{1-\sigma}$ of \Cref{thm:convergence-guarantee} is not reflected in the decrease per accepted step.
@@ -1543,8 +1645,8 @@ To show that this factor is not an artifact of the analysis, we repeat the exper
 \end{bmatrix}$ is the rotation by a quarter turn.
 The operator $\Bcal$ is monotone (but not a gradient).
 The instance has $x^\star$ at distance $5$ from the start $x_0 = 0$, and the runs use the same $\sigma$ sweep as before at $s = 1$, with $\delta = 10^{-9}$ and an inner residual of $10^{-12}$ for the near-exact method.
-The exact proximal step $w^+$ satisfies $\norm{w - x^\star}^2 - \norm{w^+ - x^\star}^2 = \norm{w - w^+}^2$\footnote{The critical property here is skew-symmetry of the operator.
-One could take any higher-dimensional skew-symmetric affine operator to get the same exact decrease equality.} and \Cref{lem:one-step-decrease-inequality} is tight for exact steps.
+The exact proximal step $w^+$ satisfies $\norm{w - x^\star}^2 - \norm{w^+ - x^\star}^2 = \norm{w - w^+}^2$\footnote{The critical property here is skew-symmetry of $U$.
+One could take any higher-dimensional skew-symmetric matrix to get the same exact decrease equality.} and \Cref{lem:one-step-decrease-inequality} is tight for exact steps.
 The inner solver is Richardson iteration on the resolvent residual with the step that minimizes its contraction factor, which satisfies \Cref{assumption:inner-work-contraction} with $C_0 = 1$ and $\alpha = \frac{\gamma^2}{1+\gamma^2} = 0.8$ for $\gamma = 2$.
 \Cref{fig:torsion-trajectories} shows the paths and \Cref{fig:torsion-fejer-ratio} the observed decrease against its guarantee; the convergence of the sweep, in the layout of \Cref{fig:ppm-huber-outer-convergence}, is \Cref{fig:torsion-convergence} in \Cref{sec:additional-rotation}.
 The near-exact method needs $K_\delta = 26$ outer iterations, $\sigma = 0.5$ needs $62$, $\sigma = 0.9$ needs $48$, and $\sigma = 1$ needs $235$, and the median decrease per $\norm{\gamma z_k}^2$ is $1.00$ for the near-exact method, $1.02$ at $\sigma = 0.01$, $0.41$ at $\sigma = 0.5$, $0.28$ at $\sigma = 0.9$, and $0.047$ at $\sigma = 1$, against guarantees of $1$, $0.98$, $0.33$, $0.053$, and $0$.
@@ -1585,11 +1687,259 @@ Another direction would be to relax the requirement in \Cref{alg:stopping-time-a
 
 
 \appendix
+\crefalias{section}{appendix}
+\crefalias{subsection}{appendix}
 \section{Tightness of Bounds}\label{sec:tightness-of-bounds}
 Here, we consider the tightness of the bounds of \Cref{sec:inner-work-guarantees}.
+\subsection{Dependence on the Stopping Tolerance}
+The additive logarithm in \Cref{thm:total-inner-work-bound} and the worst-case rate in \Cref{thm:convergence-guarantee} describe different regimes.
+The following two constructions establish their respective dependence on $\delta$.
 
-\subsection{Tightness of \texorpdfstring{$G_{\sigma}$}{G\_sigma} and \texorpdfstring{$H_{\sigma}$}{H\_sigma}}
-\begin{remark}\label{rem:warm-start-sharp}
+\begin{proposition}[Necessity of the additive logarithm]\label{prop:necessary-logarithm}
+    Fix $\sigma\in(0,1)$, $\alpha\in(0,1)$, and a positive integer $s$.
+    There is a scalar strongly convex quadratic, with $\gamma=1$, a fixed initialization, and gradient descent as the inner procedure, satisfying \Cref{assumption:inner-work-contraction} with $C_0=1$, for which every $\delta\in(0,1)$ gives
+    \begin{align}
+        K_\delta=1, \qquad
+        \sum_{k=0}^{K_\delta}N_k
+        =s\left\lceil\frac{\log(1/\delta^2)}{s\log(1/\alpha)}\right\rceil.
+        \label{eq:necessary-logarithm}
+    \end{align}
+    The right-hand side of \Cref{eq:total-inner-work-bound} in \Cref{thm:total-inner-work-bound} exceeds this work by an additive term not dependent on $\delta$.
+\end{proposition}
+\begin{proof}
+    Let $\Hcal=\Dcal=\R$, $\Ccal=I$, $\gamma=1$, and $\Acal=\Bcal=\nabla f$, where
+    \begin{align}
+        f(y)=\frac{\mu}{2}y^2, \qquad \mu=1+\frac{1}{\sigma}.
+    \end{align}
+    Set $w_0=1$ and initialize the first graph pair at $y^0=\frac{1}{\mu}$ and $z^0=1$.
+    At every outer iteration, apply gradient descent to $f(y)+\frac{1}{2}(y-w_k)^2$ with stepsize $(1-\sqrt{\alpha})/(1+\mu)$, using the graph pair $z^l=\mu y^l$.
+    By \citet[Theorem 2.1.15]{nesterov2004introductory}, the update and residual satisfy
+    \begin{align}
+        y^{l+1}&=y^l-\frac{1-\sqrt{\alpha}}{1+\mu}\left((1+\mu)y^l-w_k\right),\\
+        e^{l+1}&=\sqrt{\alpha}\,e^l, \qquad e^l=(1+\mu)y^l-w_k.
+    \end{align}
+    Hence the deterministic contraction holds with equality, with the same $\alpha$ and $C_0=1$ at every outer iteration.
+
+    At the first check, the terminal test fails because $z^0=1>\delta$, whereas the relative test holds with equality:
+    \begin{align}
+        |z^0+y^0-w_0|=\frac{1}{\mu}
+        =\sigma\left(1-\frac{1}{\mu}\right)=\sigma|y^0-w_0|.
+    \end{align}
+    Thus $N_0=0$, the accepted pair is $(y_0,z_0)=(\frac{1}{\mu},1)$, and $w_1=w_0-z_0=0$.
+    Warm-starting at this pair gives, during the second inner solve,
+    \begin{align}
+        y^l=\frac{\alpha^{l/2}}{\mu}, \qquad z^l=\alpha^{l/2}, \qquad
+        |e^l|=\left(1+\frac{1}{\mu}\right)\alpha^{l/2}
+        >\frac{\sigma}{\mu}\alpha^{l/2}=\sigma|y^l-w_1|.
+    \end{align}
+    The relative test therefore fails at every finite inner iteration.
+    The terminal test first passes at the first multiple $l$ of $s$ with $\alpha^{l/2}\leq\delta$, proving \Cref{eq:necessary-logarithm}.
+
+    For this choice of initialization, $R(w_0)=\frac{\mu}{1+\mu} = \frac{\sigma+1}{2\sigma+1}$ and
+    \begin{align}
+        \frac{(1+\sigma)^2}{\sigma^2}|z^0+y^0-w_0|^2=1.
+    \end{align}
+    Consequently, the two logarithmic initialization terms in \Cref{eq:total-inner-work-bound} have 
+    \begin{align}
+         (\log\beta_0)_+  + \log\frac{\max\left\{ \norm{R(w_{0})}^2,\gamma^2\delta^2 \right\}}{\gamma^2\delta^2} &= \left( \log\frac{1}{\max\left\{\left( \frac{\mu}{1+\mu} \right)^2, \delta^2\right\}} \right)_+ + \log\frac{\max\left\{ \left( \frac{\mu}{1+\mu} \right)^2,\delta^2 \right\}}{\delta^2} \\
+        &= \left(\log \frac{1}{\max\left\{\left( \frac{\sigma+1}{2\sigma+1} \right)^2, \delta^2\right\}} \right)_+ + \log\frac{\max\left\{ \left( \frac{\sigma+1}{2\sigma+1} \right)^2,\delta^2 \right\}}{\delta^2}\\
+        &=\log(\delta^{-2}),
+    \end{align}
+    where we used the fact that $\max\left\{\left( \frac{\sigma+1}{2\sigma+1} \right)^2, \delta^2\right\} < 1$.
+    Since $K_\delta=1$, the right-hand side of the total inner work bound \Cref{eq:total-inner-work-bound} of \Cref{thm:total-inner-work-bound} is
+    \begin{align}
+        \frac{2s}{1-\alpha^s}+\frac{ \log D_{\sigma} }{\log(1/\alpha)}
+        +\frac{\log(\delta^{-2})}{\log(1/\alpha)}.
+    \end{align}
+    Noting that the ceiling in \Cref{eq:necessary-logarithm} adds fewer than $s$ iterations to the last term completes the proof.
+\end{proof}
+
+\begin{remark}[Any prescribed positive number of outer updates]\label{rem:prescribed-outer-count}
+    The construction of \Cref{prop:necessary-logarithm} extends to any prescribed positive integer $m$ if the gradient descent stepsize may depend on the outer state.
+    Fix $\sigma\in(0,1)$, $\alpha\in(0,1)$, and a positive integer $s$, and choose
+    \begin{align}
+        \mu \geq \max\left\{1+\frac{1}{\sigma},\,\alpha^{-s/4}\right\},
+        \qquad q := \sqrt{\alpha}, \qquad \rho := \mu^{-2/s} \leq q.
+    \end{align}
+    Use the same quadratic $f(y)=\frac{\mu}{2}y^2$, with $\Ccal=I$ and $\gamma=1$, for every $m$.
+    At outer state $w$, apply gradient descent to $f(y)+\frac{1}{2}(y-w)^2$ with the stepsize
+    \begin{align}
+        \eta(w) = \frac{1}{1+\mu}
+        \begin{cases}
+            1, & w>1,\\
+            1-\rho, & w=1,\\
+            1-q, & w<1.
+        \end{cases}
+    \end{align}
+    This rule is independent of $m$ and $\delta$.
+    Every graph residual contracts in one inner iteration by a factor of $0$, $\rho$, or $q$, respectively, so \Cref{assumption:inner-work-contraction} holds with the prescribed $\alpha$ and $C_0=1$.
+
+    For $m\geq2$, set $w_0=(1+\mu)^{m-1}$ and initialize the first graph pair at $y^0=\frac{w_0}{1+\mu}$ and $z^0=\mu y^0$.
+    For $m=1$, set $w_0=1$, $y^0=\frac{1}{\mu}$, and $z^0=1$.
+    For every $\delta\in(0,1)$, this gives
+    \begin{align}
+        K_\delta=m, \qquad
+        \sum_{k=0}^{K_\delta}N_k
+        =s(m-1)+s\left\lceil\frac{\log(1/\delta^2)}{s\log(1/\alpha)}\right\rceil.
+        \label{eq:prescribed-outer-count}
+    \end{align}
+
+    To verify the claim for $m\geq2$, note that the first $m-1$ accepted updates are exact proximal steps, with
+    \begin{align}
+        w_k=(1+\mu)^{m-1-k}\quad(0\leq k\leq m-1).
+    \end{align}
+    The initial pair passes the relative test without inner work.
+    At each subsequent warm start before $w=1$, the previous exact pair has $y^0=w_k$ and $z^0=\mu w_k>\delta$, so both tests fail.
+    The inner solver reaches the exact pair after one iteration, which is checked after $s$ iterations.
+    At $w_{m-1}=1$, the warm start is $(y^0,z^0)=(1,\mu)$, with residual $e^0=\mu$.
+    After $s$ inner iterations, $e^s=\rho^s\mu=\frac{1}{\mu}$, giving the graph pair $(y^s,z^s)=(\frac{1}{\mu},1)$.
+    This pair passes the relative test because $\frac{1}{\mu}\leq\sigma(1-\frac{1}{\mu})$, and its accepted update gives $w_m=0$.
+    All preceding accepted operator values are at least $1$, so none passes the terminal test for $\delta<1$.
+    The final warm-started inner solve has $z^l=q^l$ and never passes the relative test, exactly as in \Cref{prop:necessary-logarithm}.
+    This proves \Cref{eq:prescribed-outer-count}, including $m=1$ with its specified initialization.
+
+    The actual work and the upper bound in \Cref{eq:total-inner-work-bound} are both $\Theta(m+\log(1/\delta))$, with constants depending only on the fixed parameters.
+    Indeed, for $m\geq2$ the cold start is exact, so $\beta_0=0$, while $R(w_0)=\mu(1+\mu)^{m-2}$.
+    The endpoint logarithm is therefore $2\log\mu+2(m-2)\log(1+\mu)+\log(1/\delta^2)$.
+    In this family, the initial distance $(1+\mu)^{m-1}$ grows with $m$.
+    Alternatively, rescaling every iterate and the stepsize rule's threshold by $h_m=(1+\mu)^{-(m-1)}$ gives initial distance $1$, with $K_\delta=m$ for $0<\delta<h_m$ and total work
+    \begin{align}
+        s(m-1)+s\left\lceil\frac{\log(h_m^2/\delta^2)}{s\log(1/\alpha)}\right\rceil.
+    \end{align}
+\end{remark}
+
+\begin{proposition}[Matching worst-case accuracy bounds]\label{prop:quadratic-accuracy-lower-bound}
+    Fix $\sigma\in(0,1)$ and $\alpha\in(0,1)$, and set $\gamma=s=C_0=1$.
+    For every $\delta\in(0,1/2)$, there is an instance on $\R^2$ with $\dist(w_0,\zer\Bcal)=1$ and an inner procedure satisfying \Cref{assumption:inner-work-contraction} for which
+    \begin{align}
+        \sum_{k=0}^{K_\delta}N_k=K_\delta+1
+        =\left\lceil\frac{\log 4}{\log(1+4\delta^2)}\right\rceil
+        \geq\frac{\log 4}{4\delta^2}.
+        \label{eq:quadratic-accuracy-lower-bound}
+    \end{align}
+    The upper bound in \Cref{eq:total-inner-work-bound} is $O(\delta^{-2})$ on this family, with a constant independent of $\delta$.
+\end{proposition}
+\begin{proof}
+    Let $\Hcal=\Dcal=\R^2$, $\Ccal=I$, $w_0=(1,0)$, and
+    \begin{align}
+        \Acal=\Bcal=2\delta U, \qquad
+        U=\begin{bmatrix}0&-1\\1&0\end{bmatrix}.
+    \end{align}
+    The operator is monotone because $U$ is skew-symmetric.
+    Since $I+2\delta U$ is invertible, Minty's Theorem shows that $U$ is maximal monotone \citep[Theorem 21.1]{bauschkeConvexAnalysisMonotone2017}.
+    Its unique zero is the origin, and
+    \begin{align}
+        J=\frac{I- 2 \delta U }{1+ 4 \delta^2}, \qquad
+        J^\top J=\frac{I}{1+ 4 \delta^2}.
+    \end{align}
+    Initialize the first graph pair at $y^0=w_0$ and $z^0= 2 \delta U w_0$.
+    Choose the inner procedure that returns $(J(w_k), 2 \delta U J(w_k))$ after one inner iteration and retains this exact pair at all subsequent inner iterations.
+    This procedure satisfies the deterministic contraction with $C_0=1$ and any prescribed $\alpha\in(0,1)$, since its residual vanishes after the first iteration.
+    The displayed formula for $J$ evaluates this pair with a fixed number of scalar arithmetic operations.
+
+    At the initial check, $y^0=w_0$ and $\norm{z^0}=2\delta>\delta$, so both tests fail.
+    At every subsequent warm start, $y^0=y_{k-1}=w_k$, while $z^0=z_{k-1}$ has norm greater than $\delta$ because the preceding update was nonterminal.
+    Thus both tests again fail before the first inner iteration, and $N_k=1$ for every $0\leq k\leq K_\delta$.
+    All accepted updates are exact proximal steps, so
+    \begin{align}
+        w_k=J^k w_0, \qquad y_k=J^{k+1}w_0, \qquad
+        \norm{z_k}=\frac{t}{(1+ 4 \delta^2)^{(k+1)/2}}.
+    \end{align}
+    The first terminal check is therefore characterized by
+    \begin{align}
+        K_\delta+1=\left\lceil\frac{\log( \frac{4 \delta^2}{\delta^2})}{\log(1+ 4 \delta^2)}\right\rceil
+        =\left\lceil\frac{\log 4}{\log(1+4\delta^2)}\right\rceil.
+    \end{align}
+    The inequality $\log(1+x)\leq x$ proves the lower bound in \Cref{eq:quadratic-accuracy-lower-bound}.
+    Conversely, $\log(1+x)\geq \frac{x}{1+x}$ gives
+    \begin{align}
+        K_\delta+1\leq\frac{\log 4}{4\delta^2}+\log 4+1.
+    \end{align}
+    Moreover,
+    \begin{align}
+        \frac{\norm{R(w_0)}^2}{\delta^2}=\frac{4}{1+4\delta^2}, \qquad
+        \beta_0=\frac{(1+\sigma)^2}{\sigma^2}(1+4\delta^2).
+    \end{align}
+    Both quantities are bounded independently of $\delta$, so \Cref{eq:total-inner-work-bound} is also $O(\delta^{-2})$ on this family.
+\end{proof}
+
+\begin{remark}[Two subspaces]
+    The resolvent in \Cref{prop:quadratic-accuracy-lower-bound} is also a Douglas--Rachford map for two lines.
+    Let $P_1$ and $P_2$ be the orthogonal projectors onto $\{(a,0)\mid a\in\R\}$ and $\{(a,-2\delta a)\mid a\in\R\}$, respectively.
+    Direct multiplication gives
+    \begin{align}
+        I-P_1+P_2(2P_1-I)
+        =\frac{1}{1+ 4 \delta^2}\begin{bmatrix}1&2 \delta \\-2\delta &1\end{bmatrix}=J.
+    \end{align}
+    Thus the same trajectory and stopping residual occur for exact Douglas--Rachford splitting between these subspaces.
+\end{remark}
+
+\section{Proof of \texorpdfstring{\Cref{lem:warm-start-bounds}}{Lemma 4.1}}\label{sec:proof-of-warm-start-bounds-lemma}
+\subsection{Proof of Bounds \texorpdfstring{$G_{\sigma}$}{G\_sigma} and \texorpdfstring{$H_{\sigma}$}{H\_sigma}}
+\begin{proof}
+    From the update rule of \Cref{alg:stopping-time-algorithm},
+    \begin{align}
+        \gamma z_k + \Ccal^* u_k - w_{k+1} &= \gamma z_k + y_k - (w_{k} - \gamma z_k) \\
+        &= e_k + \gamma z_k.
+    \end{align}
+    Write $r := \norm{R(w_k)}$, $e_J := y_k - J(w_k)$, $e_R := \gamma z_k - R(w_k)$, and $\varepsilon := \norm{e_k}$, so that $e_k = e_J + e_R$, $\gamma z_k = R(w_k) + e_R$, $y_k - w_k = e_J - R(w_k)$, and
+    \begin{align}
+        \gamma z_k + \Ccal^* u_k - w_{k+1} &= e_k + \gamma z_k \\
+        &= R(w_k) + e_J + 2e_R.
+    \end{align}
+    We use three facts.
+    First, \Cref{eq:graph-error-component-bound} in \Cref{lem:exact-inexact-graph-pair-inequalities} gives $\norm{e_J}^2 + \norm{e_R}^2\leq\varepsilon^2$.
+    In particular, $\ip{e_J}{e_R}\geq0$, so $\norm{e_R}\leq\varepsilon$ and $\norm{e_R - e_J}^2 = \varepsilon^2 - 4\ip{e_J}{e_R}\leq\varepsilon^2$.
+    Second, the relative test gives $\norm{R(w_k) - e_J} = \norm{y_k - w_k}\geq\frac{\varepsilon}{\sigma}$.
+    Third, by the bound $\norm{\gamma z + y - w} \leq \frac{\sigma}{1-\sigma}\norm{R(w)}$ \Cref{eq:fixed-point-vs-error-bound} in \Cref{lem:exact-inexact-graph-pair-inequalities}, $\varepsilon\leq\frac{\sigma r}{1-\sigma}$.
+
+    If $\varepsilon\leq\sigma r$, then
+    \begin{align}
+        \norm{R(w_k) + e_J + 2e_R}\leq r + \norm{e_J + e_R} + \norm{e_R}\leq r + 2\varepsilon\leq(1+2\sigma)r\leq G_\sigma r.
+    \end{align}
+    Suppose now $\varepsilon\geq\sigma r$.
+    Expanding, and using $\norm{R(w_k) + e_J}^2 = 2r^2 + 2\norm{e_J}^2 - \norm{R(w_k) - e_J}^2$ and $4\ip{e_J}{e_R} + 4\norm{e_R}^2 = 4\varepsilon^2 - 4\norm{e_J}^2 - 4\ip{e_J}{e_R}$,
+    \begin{align}
+        \norm{R(w_k) + e_J + 2e_R}^2 &= \norm{R(w_k) + e_J}^2 + 4\ip{R(w_k)}{e_R} + 4\ip{e_J}{e_R} + 4\norm{e_R}^2 \\
+        &= 2r^2 - 2\norm{e_J}^2 - \norm{R(w_k) - e_J}^2 + 4\varepsilon^2 + 4\ip{R(w_k)}{e_R} - 4\ip{e_J}{e_R}.
+    \end{align}
+    Since $\ip{e_J}{e_R}\geq0$, we have $\norm{R(w_k) - e_J}^2\geq\frac{\varepsilon^2}{\sigma^2}$, and 
+    \begin{align}
+        \ip{R(w_k)}{e_R} = \ip{R(w_k)}{e_J} + \ip{R(w_k)}{e_R - e_J}\leq\ip{R(w_k)}{e_J} + r\varepsilon.
+    \end{align}
+    Moreover,
+    \begin{align}
+        2\ip{R(w_k)}{e_J} = r^2 + \norm{e_J}^2 - \norm{R(w_k) - e_J}^2\leq r^2 + \norm{e_J}^2 - \frac{\varepsilon^2}{\sigma^2}.
+    \end{align}
+    Therefore
+    \begin{align}
+        \norm{R(w_k) + e_J + 2e_R}^2\leq4r^2 + 4r\varepsilon + \left(4 - \frac{3}{\sigma^2}\right)\varepsilon^2 =: \Phi(\varepsilon),
+        \label{eq:warm-start-quadratic}
+    \end{align}
+    a quadratic in $\varepsilon$ alone.
+    Maximizing $\Phi$ over $\varepsilon\in[\sigma r,\frac{\sigma r}{1-\sigma}]$ yields \Cref{eq:warm-start-constant}.
+
+    We now move on to $H_\sigma$.
+    Note that $w_{k+1} = w_k - \gamma z_k = J(w_k) - e_R$.
+    Since $R$ is firmly nonexpansive (\Cref{lem:exact-inexact-graph-pair-inequalities}) and $w_{k+1} - w_k = -\gamma z_k = -(R(w_k) + e_R)$,
+    \begin{align}
+        \norm{R(w_{k+1}) - R(w_k)}^2&\leq\ip{R(w_{k+1}) - R(w_k)}{w_{k+1} - w_k} = -\ip{R(w_{k+1}) - R(w_k)}{R(w_k) + e_R}.
+    \end{align}
+    As a consequence,
+    \begin{align}
+        \norm{R(w_{k+1})}^2\leq\ip{R(w_{k+1})}{R(w_k) - e_R} + \ip{R(w_k)}{e_R}.
+    \end{align}
+    The fact that $\ip{R(w_{k+1})}{R(w_k) - e_R}\leq\frac{1}{2}\norm{R(w_{k+1})}^2 + \frac{1}{2}\norm{R(w_k) - e_R}^2$ and using $\frac{1}{2}\norm{R(w_k) - e_R}^2 + \ip{R(w_k)}{e_R} = \frac{1}{2}\left(r^2 + \norm{e_R}^2\right)$ gives
+    \begin{align}
+        \norm{R(w_{k+1})}^2\leq r^2 + \norm{e_R}^2 = \norm{R(w_k)}^2 + \norm{\gamma z_k - R(w_k)}^2. \label{eq:drift-quadrature}
+    \end{align}
+    The first two facts give $\norm{e_R}^2\leq\varepsilon^2 - \norm{e_J}^2\leq\sigma^2\norm{R(w_k) - e_J}^2 - \norm{e_J}^2\leq\sigma^2(\norm{e_J}+r)^2 - \norm{e_J}^2$, a concave quadratic in $\norm{e_J}$ whose maximum, attained at $\norm{e_J} = \frac{\sigma^2 r}{1-\sigma^2}$, equals $\frac{\sigma^2 r^2}{1-\sigma^2}$.
+    Hence $\norm{e_R}\leq\frac{\sigma r}{\sqrt{1-\sigma^2}}$ and $\norm{R(w_{k+1})}^2\leq r^2 + \frac{\sigma^2r^2}{1-\sigma^2} = \frac{r^2}{1-\sigma^2} = H_\sigma^2r^2$.
+
+    The proof of the tightness of the constants can be found in \Cref{sec:warm-start-sharp}.
+\end{proof}
+\subsection{Tightness of \texorpdfstring{$G_{\sigma}$}{G\_sigma} and \texorpdfstring{$H_{\sigma}$}{H\_sigma}}\label{sec:warm-start-sharp}
+\begin{proof}
     The constant $G_\sigma$ in \Cref{eq:warm-start-bound} is sharp.
     Fix $\sigma$ and $r>0$, let $\varepsilon\in[\sigma r,\frac{\sigma r}{1-\sigma}]$ maximize $\Phi$ in \Cref{eq:warm-start-quadratic}, and set, for an orthonormal pair $(v_1,v_2)$,
     \begin{align}
@@ -1623,8 +1973,7 @@ Here, we consider the tightness of the bounds of \Cref{sec:inner-work-guarantees
     so both inequalities leading to \Cref{eq:drift-quadrature} hold with equality.
     The extremal configurations for the two constants differ: for $G_\sigma$ (with $\sigma\leq\sigma_1$) the error $e_R$ in $\gamma z_k$ is aligned with $R(w_k)$, whereas for $H_\sigma$ it is orthogonal to $R(w_k)$ and as large as the relative test allows, since \Cref{eq:drift-quadrature} adds it in quadrature.
     The first coordinate of this example is the instance of \Cref{rem:inner-work-sharpness}.
-\end{remark}
-
+\end{proof}
 
 \begin{remark}[Sharpness of \Cref{thm:stopping-time-concentration,thm:total-inner-work-bound,thm:deterministic-inner-work}]\label{rem:inner-work-sharpness}
     The per-step bound \Cref{eq:deterministic-per-step} is attained, for every $\sigma\in(0,1)$, $s$, $\alpha$, and $C_0$, by the following instance.
@@ -1640,7 +1989,7 @@ Here, we consider the tightness of the bounds of \Cref{sec:inner-work-guarantees
     Then $y^l>0$, so $(y^l,z^l)\in\gra\Bcal$, and the residual is $e^l = t_l R(w_k)$.
     Thus, $\norm{e^l}^2 = C_0\alpha^l\norm{e^0}^2$ for $l \geq 1$.
     The relative test $\norm{e^l}\leq\sigma\norm{y^l - w_k} = \sigma|1-t_l|r$ holds if and only if $t_l\leq\frac{\sigma}{1+\sigma}$; i.e., if and only if $\norm{e^l}\leq\frac{\sigma}{1+\sigma}\norm{R(w_k)}$; and the terminal test fails because $\norm{z^l} = r>\delta$.
-    Hence the inner loop exits at the first check at which the sufficient condition used in the proof of \Cref{thm:stopping-time-concentration} holds, and $N_k = s\lceil\logp\tilde\beta_k/(s\log(1/\alpha))\rceil$ exactly (whenever $\norm{e^0}>\frac{\sigma}{1+\sigma}\norm{R(w_k)}$, which is the case for $k\geq1$ below).
+    Hence the inner loop exits at the first check at which the sufficient condition used in the proof of \Cref{thm:stopping-time-concentration} holds, and $N_k = s\left\lceil\frac{(\log\tilde\beta_k)_+}{s\log(1/\alpha)}\right\rceil$ exactly (whenever $\norm{e^0}>\frac{\sigma}{1+\sigma}\norm{R(w_k)}$, which is the case for $k\geq1$ below).
     Since $z$ is exact, the outer step is the exact proximal step $w_{k+1} = J(w_k)$, and the next warm start is $e^0_{k+1} = e_k + \gamma z_k = (1+t_{\mathrm{exit}})R(w_k)$ with $t_{\mathrm{exit}}\leq\frac{\sigma}{1+\sigma}$, so that $\norm{e^0_{k+1}}\leq\frac{1+2\sigma}{1+\sigma}\norm{R(w_k)}$ and, for $k\geq1$,
     \begin{align}
         \tilde\beta_k\leq\frac{(1+2\sigma)^2C_0}{\sigma^2}\,\frac{\norm{R(w_{k-1})}^2}{\norm{R(w_k)}^2} = \frac{D}{(1+\sigma)^2}\,\frac{\norm{R(w_{k-1})}^2}{\norm{R(w_k)}^2}\qquad(\sigma\leq\sigma_1),
@@ -1648,17 +1997,47 @@ Here, we consider the tightness of the bounds of \Cref{sec:inner-work-guarantees
     with equality in the inequality when $t_{\mathrm{exit}} = \frac{\sigma}{1+\sigma}$, which is approached for $s = 1$ as $\alpha\to1$.
     A randomized variant of the same instance, in which the residual decreases deterministically to just above the threshold $\frac{\sigma}{1+\sigma}\norm{R(w_k)}$ and then, at each inner iteration, is either solved exactly with probability $1-\alpha$ or left unchanged, makes Markov's inequality in the proof of \Cref{thm:stopping-time-concentration} tight at every check.
     It shows that the bound on $\Expect_k[N_k]$ there, and with it the per-iteration constant $\frac{s}{1-\alpha^s}$ of \Cref{thm:total-inner-work-bound}, can be approached arbitrarily closely.
-
-    The total bounds \Cref{eq:total-inner-work-bound,eq:deterministic-total} are, however, never attained when $K_\delta \geq 1$.
-    The constant $D = \frac{(1+\sigma)^2C_0G_\sigma^2}{\sigma^2}$ combines the threshold factor $\frac{1+\sigma}{\sigma}$ of \Cref{thm:stopping-time-concentration}, which is used fully only when an inner loop exits at the forced level, with an accepted residual $\norm{e_k}\leq\frac{\sigma}{1+\sigma}\norm{R(w_k)}$, with the warm-start factor $G_\sigma$ of \Cref{lem:warm-start-bounds}, which by \Cref{rem:warm-start-sharp} requires an accepted residual $\norm{e_k}\geq\sigma\norm{R(w_k)}$ at the same iteration.
-    The two cannot hold simultaneously.
-    Quantitatively, $\norm{e^0_{k+1}}\leq\norm{R(w_k)} + 2\norm{e_k}$ always, so a forced exit yields $\norm{e^0_{k+1}}\leq\frac{1+3\sigma}{1+\sigma}\norm{R(w_k)}<G_\sigma\norm{R(w_k)}$.
-    In the instance above the exit is at the forced level and the warm start is $G_\sigma\norm{R(w_k)}/(1+\sigma)$.
-    Exiting instead at $\norm{e_k} = \sigma\norm{R(w_k)}$ with the extremal pair of \Cref{rem:warm-start-sharp} gives the same per-iteration cost, namely $\frac{(1+2\sigma)^2C_0}{\sigma^2}$ in place of $D$ in both cases.
-    Consequently, for $\sigma\leq\sigma_1$, no constant smaller than $\frac{D}{(1+\sigma)^2} = \frac{(1+2\sigma)^2C_0}{\sigma^2}$ can replace $D$ in \Cref{eq:total-inner-work-bound,eq:deterministic-total} (take the instance above with $s = 1$ and $\alpha\to1$).
-    While $D$ itself is never attained, $D$ is sharp up to the factor $(1+\sigma)^2$, i.e., up to $\frac{2\log(1+\sigma)}{\log(1/\alpha)}\leq\frac{2\sigma}{\log(1/\alpha)}$ inner iterations per outer iteration, and the ceiling in \Cref{eq:deterministic-per-step} accounts for fewer than $s$ further inner iterations per outer iteration.
-    % For the values of $\sigma^\star$ of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm}, this is a few percent of the per-iteration work $\frac{\log D}{\log(1/\alpha)}\approx\frac{2\log(1/\sigma)}{\log(1/\alpha)}$.
 \end{remark}
+
+\section{Proof for Accelerated Inner Solves}\label{sec:accelerated-inner-proof}
+\begin{proof}[Proof of \Cref{prop:optimal-sigma-accelerated-gradient-inside-ppm}]
+    Fix an outer iteration $k$, and let $x_k^\star$ be the unique minimizer of $\varphi_k$.
+    As in the gradient descent case, $\varphi_k$ is $\mu$-strongly convex and $L_\varphi$-smooth, with $\mu= \frac{1}{\gamma} $ and $\frac{L_{\varphi}}{\mu}=\kappa$.
+    The graph pair $(x^l,\nabla f(x^l))$ has residual $e^l=\gamma\nabla\varphi_k(x^l)$.
+    The standard estimate for Nesterov's method with zero initial momentum gives
+    \begin{align}
+        \varphi_k(x^l)-\varphi_k(x_k^\star)
+        \leq\left(1-\frac{1}{\sqrt{\kappa}}\right)^l
+            \left(\varphi_k(x^0)-\varphi_k(x_k^\star)
+                +\frac{\mu}{2}\norm{x^0-x_k^\star}^2\right).
+        \label{eq:accelerated-inner-objective-bound}
+    \end{align}
+    This estimate follows from the estimating sequence analysis of \citet[Theorem 2.2.3]{nesterov2004introductory}, with initial curvature $\mu$ and constant acceleration parameter $\sqrt{\frac{\mu}{L_{\varphi}}}$.
+    Strong convexity yields
+    \begin{align}
+        \frac{\mu}{2}\norm{x^0-x_k^\star}^2
+        \leq\varphi_k(x^0)-\varphi_k(x_k^\star)
+        \leq\frac{1}{2\mu}\norm{\nabla\varphi_k(x^0)}^2.
+    \end{align}
+    Smoothness gives $\norm{\nabla\varphi_k(x^l)}^2\leq2L_\varphi(\varphi_k(x^l)-\varphi_k(x_k^\star))$.
+    Combining these inequalities with \Cref{eq:accelerated-inner-objective-bound}, we obtain
+    \begin{align}
+        \norm{e^l}^2
+        &\leq2\gamma^2L_\varphi\left(\varphi_k(x^l)-\varphi_k(x_k^\star)\right)\\
+        &\leq\frac{2L_\varphi}{\mu}
+            \left(1-\frac{1}{\sqrt{\kappa}}\right)^l
+            \gamma^2\norm{\nabla\varphi_k(x^0)}^2\\
+        &=2\kappa\left(1-\frac{1}{\sqrt{\kappa}}\right)^l\norm{e^0}^2.
+    \end{align}
+    This deterministic residual bound holds for every inner iteration and every outer warm start, proving \Cref{eq:accelerated-inner-constants}.
+
+    Substituting these constants into \Cref{thm:total-inner-work-bound,thm:deterministic-inner-work} gives the stated coefficient of $\delta^{-2}$.
+    The parameter-selection argument in the proof of \Cref{prop:optimal-sigma-gradient-descent-inside-ppm} uses only that $C_0\geq1$ and that $\alpha$ and $C_0$ do not depend on $\sigma$.
+    These properties hold here, so that argument gives uniqueness, the equation \Cref{eq:optimal-sigma}, and $\sigma^\star<(3/2+\chi+\log(2\kappa))^{-1}$.
+    The final inequality follows from $\chi\geq s\log(1/\alpha)$.
+    The remaining terms have the same dependence on $\delta$ as in the gradient descent case.
+\end{proof}
+
 
 \section{Additional Numerical Results}\label{sec:additional-numerics}
 This appendix collects figures that supplement \Cref{sec:numerical-experiments} without being needed to follow it: magnified views of the convergence figures and the convergence of the rotation-operator sweep.

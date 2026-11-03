@@ -399,20 +399,16 @@ abstract = { We describe a modular rewriting system for translating optimization
 }
 
 @book{nesterov2004introductory,
-  author    = {Nesterov, Yurii},
-  title     = {Introductory Lectures on Convex Optimization: A Basic Course},
-  publisher = {Kluwer Academic Publishers},
-  address   = {Boston},
-  year      = {2004},
-  series    = {Applied Optimization},
-  volume    = {87}
+  title     = "Introductory lectures on convex optimization",
+  author    = "Nesterov, Y",
+  publisher = "Springer",
+  series    = "Applied Optimization",
+  edition   =  2004,
+  month     =  dec,
+  year      =  2013,
+  address   = "New York, NY",
+  language  = "en"
 }
-
-
-
-
-
-
 
 @article{rockafellar1976monotoneoperatorsandppm,
 author = {Rockafellar, R. Tyrrell},
@@ -423,23 +419,9 @@ number = {5},
 pages = {877-898},
 year = {1976},
 doi = {10.1137/0314056},
-
-URL = { 
-    
-        https://doi.org/10.1137/0314056
-    
-    
-
-},
-eprint = { 
-    
-        https://doi.org/10.1137/0314056
-    
-    
-
-}
-,
-    abstract = { For the problem of minimizing a lower semicontinuous proper convex function f on a Hilbert space, the proximal point algorithm in exact form generates a sequence \$\{ z^k \} \$ by taking \$z^{k + 1} \$ to be the minimizes of \$f(z) + ({1 / {2c\_k }})\| {z - z^k } \|^2 \$, where \$c\_k > 0\$. This algorithm is of interest for several reasons, but especially because of its role in certain computational methods based on duality, such as the Hestenes-Powell method of multipliers in nonlinear programming. It is investigated here in a more general form where the requirement for exact minimization at each iteration is weakened, and the subdifferential \$\partial f\$ is replaced by an arbitrary maximal monotone operator T. Convergence is established under several criteria amenable to implementation. The rate of convergence is shown to be “typically” linear with an arbitrarily good modulus if \$c\_k \$ stays large enough, in fact superlinear if \$c\_k \to \infty \$. The case of \$T = \partial f\$ is treated in extra detail. Application is also made to a related case corresponding to minimax problems. }
+URL = {https://doi.org/10.1137/0314056},
+eprint = {https://doi.org/10.1137/0314056},
+abstract = { For the problem of minimizing a lower semicontinuous proper convex function f on a Hilbert space, the proximal point algorithm in exact form generates a sequence \$\{ z^k \} \$ by taking \$z^{k + 1} \$ to be the minimizes of \$f(z) + ({1 / {2c\_k }})\| {z - z^k } \|^2 \$, where \$c\_k > 0\$. This algorithm is of interest for several reasons, but especially because of its role in certain computational methods based on duality, such as the Hestenes-Powell method of multipliers in nonlinear programming. It is investigated here in a more general form where the requirement for exact minimization at each iteration is weakened, and the subdifferential \$\partial f\$ is replaced by an arbitrary maximal monotone operator T. Convergence is established under several criteria amenable to implementation. The rate of convergence is shown to be “typically” linear with an arbitrarily good modulus if \$c\_k \$ stays large enough, in fact superlinear if \$c\_k \to \infty \$. The case of \$T = \partial f\$ is treated in extra detail. Application is also made to a related case corresponding to minimax problems. }
 }
 
 @article{bredies2021degeneratepreconditionedproximalpoint,
@@ -622,4 +604,58 @@ address = {Philadelphia, PA},
 edition   = {},
 URL = {https://epubs.siam.org/doi/abs/10.1137/1.9780898719574},
 eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898719574}
+}
+
+
+@article{Howard2020TimeUniformChernoffBounds,
+author = {Steven R. Howard and Aaditya Ramdas and Jon McAuliffe and Jasjeet Sekhon},
+title = {{Time-uniform Chernoff bounds via nonnegative supermartingales}},
+volume = {17},
+journal = {Probability Surveys},
+number = {none},
+publisher = {Institute of Mathematical Statistics and Bernoulli Society},
+pages = {257 -- 317},
+abstract = {We develop a class of exponential bounds for the probability that a martingale sequence crosses a time-dependent linear threshold. Our key insight is that it is both natural and fruitful to formulate exponential concentration inequalities in this way. We illustrate this point by presenting a single assumption and theorem that together unify and strengthen many tail bounds for martingales, including classical inequalities (1960–80) by Bernstein, Bennett, Hoeffding, and Freedman; contemporary inequalities (1980–2000) by Shorack and Wellner, Pinelis, Blackwell, van de Geer, and de la Peña; and several modern inequalities (post-2000) by Khan, Tropp, Bercu and Touati, Delyon, and others. In each of these cases, we give the strongest and most general statements to date, quantifying the time-uniform concentration of scalar, matrix, and Banach-space-valued martingales, under a variety of nonparametric assumptions in discrete and continuous time. In doing so, we bridge the gap between existing line-crossing inequalities, the sequential probability ratio test, the Cramér-Chernoff method, self-normalized processes, and other parts of the literature.},
+keywords = {Exponential concentration inequalities, line crossing probability, nonnegative supermartingale},
+year = {2020},
+doi = {10.1214/18-PS321},
+URL = {https://doi.org/10.1214/18-PS321}
+}
+
+@book{Glowinski2017SplittingMethods,
+  title     = "Splitting methods in communication, imaging, science, and
+               engineering",
+  editor    = "Glowinski, Roland and Osher, Stanley J and Yin, Wotao",
+  publisher = "Springer International Publishing",
+  series    = "Scientific Computation",
+  edition   =  1,
+  month     =  jan,
+  year      =  2017,
+  address   = "Cham, Switzerland",
+  language  = "en"
+}
+
+@misc{liao2026errorboundsplcondition,
+      title={Error bounds, PL condition, and quadratic growth for weakly convex functions, and linear convergences of proximal point methods}, 
+      author={Feng-Yi Liao and Lijun Ding and Yang Zheng},
+      year={2026},
+      eprint={2312.16775},
+      archivePrefix={arXiv},
+      primaryClass={math.OC},
+      url={https://arxiv.org/abs/2312.16775}, 
+}
+
+@article{liInexactProximalAugmented2021,
+  title = {An Inexact Proximal Augmented {{Lagrangian}} Framework with Arbitrary Linearly Convergent Inner Solver for Composite Convex Optimization},
+  author = {Li, Fei and Qu, Zheng},
+  date = {2021-09-01},
+  journaltitle = {Mathematical Programming Computation},
+  shortjournal = {Mathematical Programming Computation},
+  volume = {13},
+  number = {3},
+  pages = {583--644},
+  issn = {1867-2957},
+  doi = {10.1007/s12532-021-00205-x},
+  url = {https://doi.org/10.1007/s12532-021-00205-x},
+  abstract = {We propose an inexact proximal augmented Lagrangian framework with explicit inner problem termination rule for composite convex optimization problems. We consider arbitrary linearly convergent inner solver including in particular stochastic algorithms, making the resulting framework more scalable facing the ever-increasing problem dimension. Each subproblem is solved inexactly with an explicit and self-adaptive stopping criterion, without requiring to set an a priori target accuracy. When the primal and dual domain are bounded, our method achieves \$\$O(1/\textbackslash sqrt\{\textbackslash epsilon \})\$\$and \$\$O(1/\{\textbackslash epsilon \})\$\$complexity bound in terms of number of inner solver iterations, respectively for the strongly convex and non-strongly convex case. Without the boundedness assumption, only logarithm terms need to be added and the above two complexity bounds increase respectively to \$\$\{\textbackslash tilde\{O\}\}(1/\textbackslash sqrt\{\textbackslash epsilon \})\$\$and \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \})\$\$, which hold both for obtaining \$\$\textbackslash epsilon \$\$-optimal and \$\$\textbackslash epsilon \$\$-KKT solution. Within the general framework that we propose, we also obtain \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \})\$\$and \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \textasciicircum 2\})\$\$complexity bounds under relative smoothness assumption on the differentiable component of the objective function. We show through theoretical analysis as well as numerical experiments the computational speedup possibly achieved by the use of randomized inner solvers for large-scale problems.}
 }

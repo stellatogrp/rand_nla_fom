@@ -1,0 +1,12 @@
+{
+  "campaign_v7/__init__.py": "fd78aa24fcc188f3c907a85e38d9c612e2f8fcdf3cc21a86a5531111744d8c2c",
+  "campaign_v7/advance.py": "fa0448307fc990c8eae288a4f96dcad0934546f21fa17a6c9dfacaf4e0ffd61e",
+  "campaign_v7/manifests/kaczmarz_candidates.csv": "09184dfe9b1fd3932ccc7e4c7941213aa5f145daceee10ee0aa5604e47be1649",
+  "campaign_v7/manifests/kaczmarz_screen.csv": "5666a3c242cc1e0404abf81e8584c677acde642d4ecf0350d768ec2ba3fad703",
+  "campaign_v7/manifests/qp_tune.csv": "de273a09fbbd951adc5fc0a204d7a1817033c596112caa4f22f35dbe131f77d3",
+  "campaign_v7/manifests/regression_pilots.csv": "30f1b4b44f416b6a2e4809575d6e96fe403cf9458b9ad605a8b333cf3de54ba6",
+  "campaign_v7/plan.json": "562610699b5ef2921ba4f4efd3d034297470d7366492ea5fbd46bc859076bd01",
+  "campaign_v7/prepare.py": "8e0b7119d879a4f8c0394438a30b9201ee016260bbf8c6413b9134f5e2ea4c3e",
+  "campaign_v7/runner.py": "5e4229296c675fae79d172d4baa55b17527b93956b05826c1e211d75bfc3122a",
+  "slurm/campaign_v7.slurm": "ffd73bd1cab2fa6337753d923c5327f788e5dadebbc30ca4805fa613fc714d3b"
+}
