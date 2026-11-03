@@ -838,7 +838,7 @@ The proof uses the exponential supermartingale method described by \citet{Howard
             \sum_{k=0}^{K_\delta}N_k &\leq \mathcal{T}_\delta(K_\delta) + \sum_{k=0}^{ K_\delta} \left(N_k- s l_k - \frac{s}{1-\alpha^s} \right) .
         \end{align}
     \end{subequations}
-    Combining the previous three inequalities shows that $\sum_{k=0}^{ K_\delta} \left(s l_k + \frac{s}{1-\alpha^s} \right) \leq \mathcal{T}_\delta(K_\delta)$, proving \Cref{eq:total-work-bernstein}.
+    Combining the previous inequalities shows that $\sum_{k=0}^{ K_\delta} \left(s l_k + \frac{s}{1-\alpha^s} \right) \leq \mathcal{T}_\delta(K_\delta)$, proving \Cref{eq:total-work-bernstein}.
 
     Alternatively, applying Markov's inequality directly to $M_{ K_\delta^+ + 1 }$ gives, for every fixed $0<\theta< \log(1/\alpha) $,
     \begin{align}
@@ -854,7 +854,7 @@ The proof uses the exponential supermartingale method described by \citet{Howard
     Since $\mathcal{T}_\delta$ is an increasing affine function, a bound on the upper tail of $K_\delta-\Expect[K_\delta]$ could be combined with \Cref{thm:total-inner-work-concentration} by a union bound.
     The resulting work bound would involve $\mathcal{T}_\delta(\Expect[K_\delta])$ and an additional deviation term.
 
-    Certain classes of parameterized families of problems and inner solvers may admit sharper results with the aforementioned upper tail decay.
+    Certain parameterized families of problems and inner solvers may admit sharper results with the aforementioned upper tail decay.
     Establishing concentration about $\Expect[K_\delta]$ over popular classes of problems and applying it to practical algorithms is an interesting avenue for future work.
 \end{remark}
 

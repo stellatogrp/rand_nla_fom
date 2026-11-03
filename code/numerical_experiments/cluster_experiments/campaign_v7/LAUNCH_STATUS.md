@@ -119,3 +119,20 @@ The full steps array was observed running eight one-core workers. Dependent
 held-out evaluation planner **16606094** is queued after job 16606062 and will
 refuse incomplete or unresolved inputs. It generates the evaluation manifest;
 held-out solves have not started yet.
+
+## November 3 status check
+
+The full stepsize/penalty sweep completed all 1,770 configurations: 1,425
+converged, 323 reached the solve-time cap, and 22 reached the inner-work cap.
+There were no unresolved/infrastructure outcomes among completed records.
+The evaluation planner completed successfully and generated 183 independent
+held-out runs on seeds 3, 4, 5, with a matching source/manifest seal.
+
+Held-out pilot **16753087** was submitted (manifest task 141: million-variable
+rank-128 Nyström case, held-out seed 3). Its latest observed state was pending
+for resources. Inspect its resource statistics before releasing the full
+evaluation array. Evaluation results are not available yet.
+
+Real-data readiness is unchanged: 16 pilots completed with one converged
+smallNORB logistic/PDHG case; other groups remain blocked on convergence.
+The 174-case Kaczmarz screen remains complete with no qualifying expansion.
