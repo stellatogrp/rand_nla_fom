@@ -284,7 +284,7 @@ Note that \Cref{assumption:well-defined-resolvents} is strictly stronger than \C
 
 Using these assumptions, we can now introduce \Cref{alg:stopping-time-algorithm}, whose convergence properties we will analyze in this section.
 \begin{algorithm}
-\caption{Modified version of the algorithm from~\citet{alves2025generalframeworkinexactsplitting}.}\label{alg:stopping-time-algorithm}
+\caption{Inexact Proximal Point Method}\label{alg:stopping-time-algorithm}
 \begin{algorithmic}[1]
 \STATE \textbf{Initialize:} $w_0 \in \Dcal$, inexactness $\sigma \in [0,1)$, stepsize $\gamma > 0$, stride $s \in\mathbb{N}$, and stopping tolerance $\delta$
 \FOR{$k = 0, 1, 2, \ldots$}
@@ -357,7 +357,7 @@ The following proposition shows that at stopping, the returned iterates provide 
 
 \section{Outer Convergence Guarantees}\label{sec:outer-convergence-guarantees}
 In this section, we present a quantitative estimate on the convergence of \Cref{alg:stopping-time-algorithm}.
-We will show that the inexactness affects convergence only through a multiplicative factor, which allows the rest of the analysis to follow.
+The inexactness affects convergence only through a multiplicative factor, which allows the rest of the analysis to follow.
 The next lemma is needed to show the convergence of \Cref{alg:stopping-time-algorithm}.
 \begin{lemma}\label{lem:exact-inexact-graph-pair-inequalities}
     The resolvent $J$ and its fixed-point residual $R := I - J$ are firmly nonexpansive.

@@ -1,0 +1,21 @@
+{
+  "manifest_sha256": "af953784ab0edd15e5009af6dcce29100f7e11db27018b6245afd8de7e067876",
+  "numerical_archive_sha256": "f8be21a4c85ab6373dd465b441fc61a2937dafcb901c703eb8edb28d37270aeb",
+  "source_sha256": {
+    "figure_campaign/__init__.py": "20f790b6ea3b863e7a1dce76a6b0bbf3d358322f0fd9f7bddd792a7557d3dc9c",
+    "figure_campaign/prepare.py": "589bfe34cecbb0baca2d3d7c307c591e251eec2e034c2dbd1389e1083dfb6b15",
+    "figure_campaign/runner.py": "ce968e41c03d607857e85a333ac8af84df5c2eb43736b7bc26565a5ed52eb0f8",
+    "plots/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "plots/accounting.py": "5e8635ad3338c592ea0feb9974c1a921333f304e95d1a532d242a3976b41a137",
+    "plots/corrections.py": "986d1944c7da7d1f9d5cf7dc9ee91eae07474d7a7f4b22967882e76d7d512771",
+    "plots/initialization.py": "bddac860bf3d0820d70662015396e313a15b87ec4f2cc18af384cbded2d7fa0b",
+    "plots/main_summary.py": "465952a23ecdf732f8253c30e217cde260a401ea638b435cb020a4b5f33973d8",
+    "plots/publication.py": "99f92fd1ad8a1046f99a8943653548ebef2f6e582ff103533ca95ee4edf1519f",
+    "plots/report.py": "005a9fe676025b6b78a2230e2c4d351ac2f78c25e2629ed32114db86c1f4bfc0",
+    "plots/scaling.py": "988d7eb6c35ffdd13f53e08af2f696a592576f9e9fda6819b82ded9c2884300c",
+    "plots/style.py": "2f13b5b7bd6f15983421dcb3d6be906bdf087d9b40f6faca5655705aca5d9ee2",
+    "plots/work.py": "31146585a9e77f5cc0d090a20ace8cb75ec3a02726aa480bef43980a7855b2a0",
+    "slurm/figure_v8.slurm": "2b567718b2bbd62902fdf6e72c5d9371bd9e9328cc936a697800a18650a97c20",
+    "slurm/figure_v8_plot.slurm": "4786488f7fc420db3c25bb39c13758fce72ab858eb511a739e8a452355677bc5"
+  }
+}

@@ -136,3 +136,17 @@ evaluation array. Evaluation results are not available yet.
 Real-data readiness is unchanged: 16 pilots completed with one converged
 smallNORB logistic/PDHG case; other groups remain blocked on convergence.
 The 174-case Kaczmarz screen remains complete with no qualifying expansion.
+
+## Final held-out QP evaluation completed
+
+Pilot 16753087 and all 23 batches of array 16753558 completed. All 183
+selected held-out configurations converged on seeds 3, 4, 5. A post-run audit
+verified every manifest/configuration identity, finite stationarity/feasibility
+certificate at the common tolerance, and independent setup policy. The audit
+is saved as `results/qp_evaluate_v7_20261031/evaluation_audit.csv`.
+
+The planned QP tuning, stepsize, and held-out computations are now finished.
+Publication exports and preliminary figures have been generated in the held-out
+result directory. Final interpretation/figure review remains. Real-data
+convergence is unchanged: only one of the 16 pilots converged. At the final
+queue check, no jobs for this project remained running or pending.

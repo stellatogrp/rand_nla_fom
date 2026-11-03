@@ -1,0 +1,6 @@
+*.png
+*.pdf
+*.csv
+fresh_v8/
+previous_v7/
+*.log

@@ -1,0 +1,28 @@
+{
+  "archive_sha256": "ec89f379a0625236a4e8aa863ef2a90fbc38fb09d2dc27dcb6cfa433b21041ed",
+  "captured_at": "2026-11-03T20:10:13.529312+00:00",
+  "history_entry_sha256": "49d2ba1ae7aac7c7906225408f522f83810704ce7bd07fc6e2788f2e27f95f8c",
+  "kind": "reporting",
+  "note": "Main QP summary figures and verified inner-contraction comparison; fresh v8 evaluation inputs are separately sealed.",
+  "previous_entry_sha256": "f6dca118230c692ba34915ef263c4392bed891644acece2a48375146228b6f01",
+  "release": "reporting_v2",
+  "source_sha256": {
+    "EXPERIMENT_VALIDATION.md": "a428762a4e2aeabfebe2d4e0bee00df61f841d673e361fa0d6d8db222da77e59",
+    "experiments/io.py": "c6e611039e06c3fd39b4c530dc13b81cdb2a8a6e470a8632567178fa3408dab8",
+    "plots/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "plots/accounting.py": "5e8635ad3338c592ea0feb9974c1a921333f304e95d1a532d242a3976b41a137",
+    "plots/corrections.py": "986d1944c7da7d1f9d5cf7dc9ee91eae07474d7a7f4b22967882e76d7d512771",
+    "plots/initialization.py": "bddac860bf3d0820d70662015396e313a15b87ec4f2cc18af384cbded2d7fa0b",
+    "plots/main_summary.py": "465952a23ecdf732f8253c30e217cde260a401ea638b435cb020a4b5f33973d8",
+    "plots/publication.py": "99f92fd1ad8a1046f99a8943653548ebef2f6e582ff103533ca95ee4edf1519f",
+    "plots/report.py": "005a9fe676025b6b78a2230e2c4d351ac2f78c25e2629ed32114db86c1f4bfc0",
+    "plots/scaling.py": "988d7eb6c35ffdd13f53e08af2f696a592576f9e9fda6819b82ded9c2884300c",
+    "plots/style.py": "2f13b5b7bd6f15983421dcb3d6be906bdf087d9b40f6faca5655705aca5d9ee2",
+    "plots/work.py": "31146585a9e77f5cc0d090a20ace8cb75ec3a02726aa480bef43980a7855b2a0",
+    "pyproject.toml": "0af5edfbedcad3d7a8521695a56c0e06762ee55c449eca41066568baed548109",
+    "release_tools/__init__.py": "be8667d5e0a1855adb4c33a3b8b4dd5fb70d8ea51b2610655cb2be0dc9a96a5b",
+    "release_tools/reporting.py": "2d391430367a1cac5b250701aa5fe9432503460b09fb7c3f1af4d89fedbb4382",
+    "tests/test_publication.py": "927fbea3f32351744ec4cdd36d56277a5bfb02eb7ddbbeaf08d931f380baf983",
+    "uv.lock": "33b5fa306611e24d86a2cce582b04f0b9363f49c4071060a9bce6834816a4fdf"
+  }
+}
