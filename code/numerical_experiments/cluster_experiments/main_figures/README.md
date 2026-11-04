@@ -35,3 +35,26 @@ scientific CSVs and figure outputs using only the Slurm skill helper. It polls
 at the helper's one-minute interval, has a finite waiting budget, and stops
 immediately on any helper error without connection retries. Progress is saved
 in `collection_status.csv` and `collection.log`.
+
+## Sigma and stride sweeps
+
+`sweeps_v7/` contains separate sigma and stride figures for setup-inclusive
+wall time, cumulative inner updates, and outer solves. Each setting uses
+three seeds: points show arithmetic means without error bars.
+Panels separate problem sizes and warm/fixed/Gaussian initialization. The sigma
+sweep fixes s=1; the stride sweep fixes sigma=0.1; both fix L/c=10.
+GD/CG model-prescribed settings are marked at their actual resolved values.
+
+Reproduce with `uv run python -m plots.sweep_effects`. All six figures have
+PNG/PDF versions and supporting run, summary, and source-hash CSVs.
+
+`sweeps_v7/warm_start_sweeps` combines only the warm-started wall-time panels,
+with sigma on the top row and stride on the bottom row. It reports arithmetic
+means without error bars and has PNG/PDF versions. Reproduce with
+`uv run python -m plots.warm_sweeps`.
+
+`fresh_v8/warm_only/` contains warm-start-only versions of all four fresh QP
+figures: outer convergence, inner convergence, wall time, and GD/CG theoretical
+bounds. They use arithmetic means without error bars or shaded ranges. Native
+baselines remain as references. Reproduce with
+`uv run python -m plots.warm_evaluation`.

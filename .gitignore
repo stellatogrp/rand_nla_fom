@@ -23,6 +23,7 @@ tex/*.out
 tex/*.synctex.gz
 tex/*.toc
 tex/*.pdf
+!tex/General_inexactness.pdf
 # biber / biblatex
 tex/*.bcf
 tex/*.run.xml
