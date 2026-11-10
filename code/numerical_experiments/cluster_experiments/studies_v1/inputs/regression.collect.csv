@@ -1,0 +1,7 @@
+task,stage,lane,study,module,args,instance,configuration
+0,collect,regression,admm_lasso_random_normal_gmres,admm_lasso,studies_v1/inputs/admm_lasso_random_normal_gmres.args,,
+1,collect,regression,admm_lasso_random_normal_gd,admm_lasso,studies_v1/inputs/admm_lasso_random_normal_gd.args,,
+2,collect,regression,admm_lasso_random_normal_agd,admm_lasso,studies_v1/inputs/admm_lasso_random_normal_agd.args,,
+3,collect,regression,admm_lasso_random_normal_cg,admm_lasso,studies_v1/inputs/admm_lasso_random_normal_cg.args,,
+4,collect,regression,admm_lasso_random_normal_nystrom_pcg_rank128,admm_lasso,studies_v1/inputs/admm_lasso_random_normal_nystrom_pcg_rank128.args,,
+5,collect,regression,ppm_logistic_random_normal_gd,ppm_logistic,studies_v1/inputs/ppm_logistic_random_normal_gd.args,,

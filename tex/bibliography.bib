@@ -553,12 +553,6 @@ URL = {https://doi.org/10.1214/aoms/1177703732}
   abstract = {Operator-splitting methods convert optimization and inclusion problems into fixed-point equations; when applied to convex optimization and monotone inclusion problems, the equations given by operator-splitting methods are often easy to solve by standard techniques. The hard part of this conversion, then, is to design nicely behaved fixed-point equations. In this paper, we design a new, and thus far, the only nicely behaved fixed-point equation for solving monotone inclusions with three operators; the equation employs resolvent and forward operators, one at a time, in succession. We show that our new equation extends the Douglas-Rachford and forward-backward equations; we prove that standard methods for solving the equation converge; and we give two accelerated methods for solving the equation.}
 }
 
-
-
-
-
-
-
 @article{saad1986GMRES,
 author = {Saad, Youcef and Schultz, Martin H.},
 title = {GMRES: A Generalized Minimal Residual Algorithm for Solving Nonsymmetric Linear Systems},
@@ -568,31 +562,10 @@ number = {3},
 pages = {856-869},
 year = {1986},
 doi = {10.1137/0907058},
-
-URL = { 
-    
-        https://doi.org/10.1137/0907058
-    
-    
-
-},
-eprint = { 
-    
-        https://doi.org/10.1137/0907058
-    
-    
-
+URL = {https://doi.org/10.1137/0907058},
+eprint = {https://doi.org/10.1137/0907058},
+abstract = { We present an iterative method for solving linear systems, which has the property of minimizing at every step the norm of the residual vector over a Krylov subspace. The algorithm is derived from the Arnoldi process for constructing an \$l\_2 \$-orthogonal basis of Krylov subspaces. It can be considered as a generalization of Paige and Saunders’ MINRES algorithm and is theoretically equivalent to the Generalized Conjugate Residual (GCR) method and to ORTHODIR. The new algorithm presents several advantages over GCR and ORTHODIR. }
 }
-,
-    abstract = { We present an iterative method for solving linear systems, which has the property of minimizing at every step the norm of the residual vector over a Krylov subspace. The algorithm is derived from the Arnoldi process for constructing an \$l\_2 \$-orthogonal basis of Krylov subspaces. It can be considered as a generalization of Paige and Saunders’ MINRES algorithm and is theoretically equivalent to the Generalized Conjugate Residual (GCR) method and to ORTHODIR. The new algorithm presents several advantages over GCR and ORTHODIR. }
-}
-
-
-
-
-
-
-
 
 @book{Trefethen1997NumericalLinearAlgebra,
 author = {Trefethen, Lloyd N. and Bau, III, David},
@@ -605,7 +578,6 @@ edition   = {},
 URL = {https://epubs.siam.org/doi/abs/10.1137/1.9780898719574},
 eprint = {https://epubs.siam.org/doi/pdf/10.1137/1.9780898719574}
 }
-
 
 @article{Howard2020TimeUniformChernoffBounds,
 author = {Steven R. Howard and Aaditya Ramdas and Jon McAuliffe and Jasjeet Sekhon},
@@ -658,4 +630,63 @@ URL = {https://doi.org/10.1214/18-PS321}
   doi = {10.1007/s12532-021-00205-x},
   url = {https://doi.org/10.1007/s12532-021-00205-x},
   abstract = {We propose an inexact proximal augmented Lagrangian framework with explicit inner problem termination rule for composite convex optimization problems. We consider arbitrary linearly convergent inner solver including in particular stochastic algorithms, making the resulting framework more scalable facing the ever-increasing problem dimension. Each subproblem is solved inexactly with an explicit and self-adaptive stopping criterion, without requiring to set an a priori target accuracy. When the primal and dual domain are bounded, our method achieves \$\$O(1/\textbackslash sqrt\{\textbackslash epsilon \})\$\$and \$\$O(1/\{\textbackslash epsilon \})\$\$complexity bound in terms of number of inner solver iterations, respectively for the strongly convex and non-strongly convex case. Without the boundedness assumption, only logarithm terms need to be added and the above two complexity bounds increase respectively to \$\$\{\textbackslash tilde\{O\}\}(1/\textbackslash sqrt\{\textbackslash epsilon \})\$\$and \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \})\$\$, which hold both for obtaining \$\$\textbackslash epsilon \$\$-optimal and \$\$\textbackslash epsilon \$\$-KKT solution. Within the general framework that we propose, we also obtain \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \})\$\$and \$\$\{\textbackslash tilde\{O\}\}(1/\{\textbackslash epsilon \textasciicircum 2\})\$\$complexity bounds under relative smoothness assumption on the differentiable component of the objective function. We show through theoretical analysis as well as numerical experiments the computational speedup possibly achieved by the use of randomized inner solvers for large-scale problems.}
+}
+
+@INPROCEEDINGS{SchizasConsensusEstimationCommunications2006,
+  author={Schizas, Ioannis D. and Giannakis, Georgios B.},
+  booktitle={2006 Fortieth Asilomar Conference on Signals, Systems and Computers}, 
+  title={Consensus-Based Distributed Estimation of Random Signals with Wireless Sensor Networks}, 
+  year={2006},
+  volume={},
+  number={},
+  pages={530-534},
+  keywords={Wireless sensor networks;Data models;Vectors;Parameter estimation;Minimization methods;Collaboration;Government;Lagrangian functions;Estimation error;Constraint optimization},
+  doi={10.1109/ACSSC.2006.354804}}
+
+@article{GLOWINSKIFluidDynamicsPDEs1994,
+title = {A fictitious domain method for Dirichlet problem and applications},
+journal = {Computer Methods in Applied Mechanics and Engineering},
+volume = {111},
+number = {3},
+pages = {283-303},
+year = {1994},
+issn = {0045-7825},
+doi = {https://doi.org/10.1016/0045-7825(94)90135-X},
+url = {https://www.sciencedirect.com/science/article/pii/004578259490135X},
+author = {Roland Glowinski and Tsorng-Whay Pan and Jacques Periaux},
+abstract = {In this article we discuss the solution of the Dirichlet problem for a class of elliptic operators by a Lagrange multiplier/fictitious domain method. This approach allows the use of regular grids and therefore of fast specialized solvers for problems on complicated geometries; the resulting saddle-point system can be solved by an Uzawa/conjugate gradient algorithm. In the case of two-dimensional problems, a quasi-optimal preconditioner has been found by Fourier analysis and numerical experiments confirm its nice scaling properties. The resulting methodology is applied to a nonlinear time dependent problem, namely the flow of a viscous-plastic medium in a cylindrical pipe showing the potential of this methodology for some classes of nonlinear problems.}
+}
+
+@misc{richard2019constrainedriskbudgetingportfolios,
+      title={Constrained Risk Budgeting Portfolios: Theory, Algorithms, Applications \& Puzzles}, 
+      author={Jean-Charles Richard and Thierry Roncalli},
+      year={2019},
+      eprint={1902.05710},
+      archivePrefix={arXiv},
+      primaryClass={q-fin.PM},
+      url={https://arxiv.org/abs/1902.05710}, 
+}
+
+@article{Sun2025DegeneratePPMProximalADMM,
+author = {Sun, Defeng and Yuan, Yancheng and Zhang, Guojun and Zhao, Xinyuan},
+title = {Accelerating Preconditioned ADMM via Degenerate Proximal Point Mappings},
+journal = {SIAM Journal on Optimization},
+volume = {35},
+number = {2},
+pages = {1165-1193},
+year = {2025},
+doi = {10.1137/24M1650053},
+URL = {https://doi.org/10.1137/24M1650053},
+eprint = {https://doi.org/10.1137/24M1650053},
+abstract = { Abstract. In this paper, we aim to accelerate a preconditioned alternating direction method of multipliers (pADMM), whose proximal terms are convex quadratic functions, for solving linearly constrained convex optimization problems. To achieve this, we first reformulate the pADMM into a form of the proximal point method (PPM) with a positive semidefinite preconditioner which can be degenerate due to the lack of strong convexity of the proximal terms in the pADMM. Then we accelerate the pADMM by accelerating the reformulated degenerate PPM (dPPM). Specifically, we first propose an accelerated dPPM by integrating the Halpern iteration and the fast Krasnosel’skiĭ–Mann iteration into it, achieving asymptotic \(o(1/k)\) and nonasymptotic \(O(1/k)\) convergence rates. Subsequently, building upon the accelerated dPPM, we develop an accelerated pADMM algorithm that exhibits both asymptotic \(o(1/k)\) and nonasymptotic \(O(1/k)\) nonergodic convergence rates concerning the Karush–Kuhn–Tucker residual and the primal objective function value gap. Preliminary numerical experiments validate the theoretical findings, demonstrating that the accelerated pADMM outperforms the pADMM in solving convex quadratic programming problems. }
+}
+
+@misc{du2026inferencenewtonmethodsaccelerated,
+      title={Inference for Newton Methods with Accelerated Sketch-and-Project via Random Scaling}, 
+      author={Xinchen Du and Elizaveta Rebrova and Michał Dereziński and Sen Na},
+      year={2026},
+      eprint={2609.12421},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      url={https://arxiv.org/abs/2609.12421}, 
 }

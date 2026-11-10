@@ -1,0 +1,8 @@
+# admm_lasso_random_normal_agd: admm_lasso, lane regression
+--calibration-repetitions 100
+--instances 10
+--dataset-spec studies_v1/random.json
+--dataset random_normal
+--inner agd
+--results-dir results/studies_v1
+--name admm_lasso_random_normal_agd

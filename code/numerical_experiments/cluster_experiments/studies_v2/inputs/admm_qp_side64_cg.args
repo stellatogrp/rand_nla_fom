@@ -1,0 +1,8 @@
+# admm_qp_side64_cg: admm_qp, lane qp
+--calibration-repetitions 100
+--time-limit 1200
+--instances 20
+--side 64
+--inner cg
+--results-dir results/studies_v2
+--name admm_qp_side64_cg

@@ -53,8 +53,8 @@ means both the worker and its audit passed. After syncing results:
 ```bash
 uv run python -m validation_v7.audit \
   --manifest release_history/pilots/accounting_v7_validation_20261031.csv \
-  --results-dir results/validation_v7_20261031 \
-  --output results/validation_v7_20261031/accounting_audit.csv
+  --results-dir results/legacy/validation_v7_20261031 \
+  --output results/legacy/validation_v7_20261031/accounting_audit.csv
 ```
 
 The audit checks identities, setup policy/timing, finite convergence

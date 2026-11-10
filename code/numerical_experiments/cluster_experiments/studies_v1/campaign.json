@@ -1,0 +1,379 @@
+{
+ "campaign": "studies_v1",
+ "description": "The cluster problems in the format of the original studies: every configuration of every instance a separate Slurm task, lanes kept apart.",
+ "results_dir": "results/studies_v1",
+ "common": [
+  "--calibration-repetitions",
+  "100"
+ ],
+ "lanes": {
+  "qp": {
+   "throttle": 8,
+   "mem": "16G",
+   "time": "09:00:00",
+   "flags": [
+    "--instances",
+    "20"
+   ],
+   "calibrate_time": "01:00:00"
+  },
+  "kaczmarz": {
+   "throttle": 1,
+   "mem": "4G",
+   "time": "01:00:00",
+   "flags": [
+    "--instances",
+    "3",
+    "--near-exact-time-limit",
+    "600"
+   ],
+   "calibrate_time": "00:30:00"
+  },
+  "regression": {
+   "throttle": 2,
+   "mem": "4G",
+   "time": "03:00:00",
+   "flags": [
+    "--instances",
+    "10",
+    "--dataset-spec",
+    "studies_v1/random.json"
+   ],
+   "calibrate_time": "00:30:00"
+  }
+ },
+ "studies": [
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "32",
+    "--bs",
+    "20",
+    "100",
+    "200",
+    "1000",
+    "2000",
+    "--sigma-sweep-b",
+    "200"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "128",
+    "--bs",
+    "5",
+    "25",
+    "50",
+    "250",
+    "500",
+    "--sigma-sweep-b",
+    "50"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "32",
+    "--bs",
+    "20",
+    "100",
+    "200",
+    "1000",
+    "2000",
+    "--sigma-sweep-b",
+    "200"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "128",
+    "--bs",
+    "5",
+    "25",
+    "50",
+    "250",
+    "500",
+    "--sigma-sweep-b",
+    "50"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "ppm_logistic",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal"
+   ]
+  }
+ ]
+}

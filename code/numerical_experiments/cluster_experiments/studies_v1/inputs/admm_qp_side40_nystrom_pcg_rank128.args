@@ -1,0 +1,8 @@
+# admm_qp_side40_nystrom_pcg_rank128: admm_qp, lane qp
+--calibration-repetitions 100
+--instances 20
+--side 40
+--inner nystrom_pcg
+--rank 128
+--results-dir results/studies_v1
+--name admm_qp_side40_nystrom_pcg_rank128

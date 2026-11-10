@@ -1,0 +1,18 @@
+{
+  "random_normal": {
+    "kind": "random_sparse",
+    "rows": 100000,
+    "cols": 50000,
+    "entries_per_row": 20,
+    "distribution": "normal",
+    "seed": 314159
+  },
+  "random_sign": {
+    "kind": "random_sparse",
+    "rows": 100000,
+    "cols": 50000,
+    "entries_per_row": 20,
+    "distribution": "rademacher",
+    "seed": 271828
+  }
+}

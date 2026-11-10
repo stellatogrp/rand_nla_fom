@@ -1,0 +1,12 @@
+{
+  "manifest_sha256": "9df86bb8a9a041fac2300f7c05a9b1df9ec26fbeb044bfe23091cd2daacc0817",
+  "numerical_archive_sha256": "aae007ec53f724ca5825cd483e464d252e600b4d3734c4b5a349626ccffc9d77",
+  "source_sha256": {
+    "regression_v2/__init__.py": "5967435f8bc80e1264b39920e530443bbfddd0febd819022ec5d51d2775f636b",
+    "regression_v2/prepare.py": "c3a351e8e8846c08f20fe0d62cbcbe6b40cdf5a9538a53d700cda263d7f4c596",
+    "regression_v2/runner.py": "3d36fc669a619844979dc77b919be4306103ad3b4f04d4417bcd5526e3d8c204",
+    "slurm/regression_v2.slurm": "59dec9e3c77433b9094f82331e31e19c58d8675fc303052a4ac5e9bb2120389d"
+  },
+  "parent_manifest": "regression_v1/inputs/followup_candidates.csv",
+  "parent_manifest_sha256": "f6fa39ffec3f3ef208e3f5fdd6b6bcd8ccbcd200fbf3941f5bb1eb7dafb83974"
+}

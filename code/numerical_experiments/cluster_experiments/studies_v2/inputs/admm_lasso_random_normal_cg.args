@@ -1,0 +1,9 @@
+# admm_lasso_random_normal_cg: admm_lasso, lane regression
+--calibration-repetitions 100
+--time-limit 1200
+--instances 10
+--dataset-spec studies_v2/random.json
+--dataset random_normal
+--inner cg
+--results-dir results/studies_v2
+--name admm_lasso_random_normal_cg

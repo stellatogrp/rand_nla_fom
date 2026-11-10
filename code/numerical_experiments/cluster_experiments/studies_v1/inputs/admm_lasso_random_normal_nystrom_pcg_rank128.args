@@ -1,0 +1,9 @@
+# admm_lasso_random_normal_nystrom_pcg_rank128: admm_lasso, lane regression
+--calibration-repetitions 100
+--instances 10
+--dataset-spec studies_v1/random.json
+--dataset random_normal
+--inner nystrom_pcg
+--rank 128
+--results-dir results/studies_v1
+--name admm_lasso_random_normal_nystrom_pcg_rank128

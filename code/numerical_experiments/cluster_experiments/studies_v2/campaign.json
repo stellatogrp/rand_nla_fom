@@ -1,0 +1,289 @@
+{
+ "campaign": "studies_v2",
+ "description": "studies_v1 without the Kaczmarz lane, with a 1,200 s wall-clock stop per inexact run instead of 300 s, so that no Nystrom-PCG run is censored and every inner solver runs under the same longer limit.",
+ "results_dir": "results/studies_v2",
+ "common": [
+  "--calibration-repetitions",
+  "100",
+  "--time-limit",
+  "1200"
+ ],
+ "lanes": {
+  "qp": {
+   "throttle": 8,
+   "mem": "16G",
+   "time": "09:00:00",
+   "flags": [
+    "--instances",
+    "20"
+   ],
+   "calibrate_time": "01:30:00"
+  },
+  "regression": {
+   "throttle": 2,
+   "mem": "4G",
+   "time": "02:00:00",
+   "flags": [
+    "--instances",
+    "10",
+    "--dataset-spec",
+    "studies_v2/random.json"
+   ],
+   "calibrate_time": "00:30:00"
+  }
+ },
+ "studies": [
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "64",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "32"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "qp",
+   "flags": [
+    "--side",
+    "100",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "gmres"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "gd"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "agd"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "cg"
+   ]
+  },
+  {
+   "module": "admm_lasso",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal",
+    "--inner",
+    "nystrom_pcg",
+    "--rank",
+    "128"
+   ]
+  },
+  {
+   "module": "ppm_logistic",
+   "lane": "regression",
+   "flags": [
+    "--dataset",
+    "random_normal"
+   ]
+  }
+ ]
+}

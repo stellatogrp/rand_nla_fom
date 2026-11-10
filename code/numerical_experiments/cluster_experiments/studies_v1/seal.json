@@ -1,0 +1,354 @@
+{
+ "campaign": "studies_v1",
+ "engine": "regression_v9",
+ "engine_archive_sha256": "aae007ec53f724ca5825cd483e464d252e600b4d3734c4b5a349626ccffc9d77",
+ "lanes": {
+  "kaczmarz": {
+   "calibrate": "studies_v1/inputs/kaczmarz.calibrate.csv",
+   "calibrate_time": "00:30:00",
+   "collect": "studies_v1/inputs/kaczmarz.collect.csv",
+   "flags": [
+    "--instances",
+    "3",
+    "--near-exact-time-limit",
+    "600"
+   ],
+   "mem": "4G",
+   "run_parts_chained": false,
+   "run_throttle": 1,
+   "runs": [
+    {
+     "manifest": "studies_v1/inputs/kaczmarz.run.part000.csv",
+     "tasks": 58
+    }
+   ],
+   "tasks": 58,
+   "throttle": 1,
+   "time": "01:00:00"
+  },
+  "qp": {
+   "calibrate": "studies_v1/inputs/qp.calibrate.csv",
+   "calibrate_time": "01:00:00",
+   "collect": "studies_v1/inputs/qp.collect.csv",
+   "flags": [
+    "--instances",
+    "20"
+   ],
+   "mem": "16G",
+   "run_parts_chained": false,
+   "run_throttle": 8,
+   "runs": [
+    {
+     "manifest": "studies_v1/inputs/qp.run.part000.csv",
+     "tasks": 261
+    }
+   ],
+   "tasks": 261,
+   "throttle": 8,
+   "time": "09:00:00"
+  },
+  "regression": {
+   "calibrate": "studies_v1/inputs/regression.calibrate.csv",
+   "calibrate_time": "00:30:00",
+   "collect": "studies_v1/inputs/regression.collect.csv",
+   "flags": [
+    "--instances",
+    "10",
+    "--dataset-spec",
+    "studies_v1/random.json"
+   ],
+   "mem": "4G",
+   "run_parts_chained": false,
+   "run_throttle": 2,
+   "runs": [
+    {
+     "manifest": "studies_v1/inputs/regression.run.part000.csv",
+     "tasks": 90
+    }
+   ],
+   "tasks": 90,
+   "throttle": 2,
+   "time": "03:00:00"
+  }
+ },
+ "results_dir": "results/studies_v1",
+ "sources": {
+  "slurm/studies_campaign.slurm": "529e115c93446dd2e7f1a88a687eff80ce7979465112fcac52e854beb04fd95a",
+  "studies/__init__.py": "41ac4c37ae1f0c2009ff858b1e12e0c9c22b64fb84af0db0874a1bfa5a6c76ba",
+  "studies/_io.py": "562a7b0ea99fbdb996fc7a44a239d070b7fdcc4c1f0270c02e114fd55d242b5c",
+  "studies/aggregate.py": "9fa6135ab87e33c782cafcb13515ee8bdc3dd9ba763aa6d2f13c0b05ccd2bf9a",
+  "studies/algorithms.py": "2a9d1b324b48638a73f305e7f4a296a1073dd789b563c3305cbf7ceddb956c55",
+  "studies/campaign.py": "0cc40162ef9e34741edce35f4494c96b222dad1d40bf9c97b8a93eec976bf7e3",
+  "studies/inner.py": "afb363a823fb33d1f89c57605bb9190f0520a5a49e79d9041bcb9e7a8a8d0403",
+  "studies/problems.py": "91d80b41a1d34c48386aa12409b1bc90a9b131cfea17ef3764036a2489e85f1c",
+  "studies/run_admm_lasso.py": "8bee739a58bd9f7ce39412e7b811f03216271bfef5db9a35513a268228608885",
+  "studies/run_admm_qp.py": "6cb0edf0ab43997726971f94c95f91584fbdccfe326263943fbc33b580475982",
+  "studies/run_ppm_logistic.py": "b0a98d4629980efa1fda883721c15fb49e7da413aa64fd2549d4c19ee0feb508",
+  "studies/study.py": "c09a66becec963ccbed0b0a9d4b864abdd350acf34576bf03ae333178382a2c9",
+  "studies_v1/campaign.json": "4e2fbfa05d7efaa7a7efcd0b203e288a35953e19287640df9653adb2711b305d",
+  "studies_v1/inputs/admm_lasso_random_normal_agd.args": "43b784a941f6b82d7e631b4d92308de2c9134baee6034dab1771b618e64b639e",
+  "studies_v1/inputs/admm_lasso_random_normal_cg.args": "20f18cbada6fb19509bc86c36a993e25b07f70f3f3219bdf9cbc8c6c9ab2e2fd",
+  "studies_v1/inputs/admm_lasso_random_normal_gd.args": "d55d5dd553b17ac35266fdf23a1141402eedb640f0e653245e11d90f40712be4",
+  "studies_v1/inputs/admm_lasso_random_normal_gmres.args": "f52a22d0c7369073d88607c44e7bca455e0bdbba62d137250f750f9af14b94b0",
+  "studies_v1/inputs/admm_lasso_random_normal_nystrom_pcg_rank128.args": "1f3df18eb2cebd05ac5800039366b26c120d7914a56e05e2abbe2c59d9a1af71",
+  "studies_v1/inputs/admm_qp_side100_agd.args": "b1f732143a48fb181bd7ceffff9a59b37ccdb64259b7311524f64c8be58306b1",
+  "studies_v1/inputs/admm_qp_side100_cg.args": "606261f064d5cfa67ddcba45291f8566a434d2c901cf8da7e5bde5e9fbc8c72e",
+  "studies_v1/inputs/admm_qp_side100_gd.args": "3c79c6245544940fbdebd47cc916cbc513602a2f831d269afe9734db56e4d8f1",
+  "studies_v1/inputs/admm_qp_side100_gmres.args": "57cddd92e048e2e5412059b49f3978969caf7229c160adbcba7b75f05b10bc84",
+  "studies_v1/inputs/admm_qp_side100_nystrom_pcg_rank128.args": "fb92c6779f3242c659f6add8d5c4101c6878e9631b07e192a56403154db86926",
+  "studies_v1/inputs/admm_qp_side100_nystrom_pcg_rank32.args": "4a54913827fee509c7778b7dc34a74a10b0a5b80a88ae3c5f35c63547d5be71e",
+  "studies_v1/inputs/admm_qp_side40_agd.args": "c8706782984c7947b3694e902a7d16d58fcc7c4ad55153780cce12517eab23fd",
+  "studies_v1/inputs/admm_qp_side40_block_kaczmarz_block128.args": "f5f3d190b6ff437a137d0fc315b97ebb2f51650189159a91ebd65b01c5160f63",
+  "studies_v1/inputs/admm_qp_side40_block_kaczmarz_block32.args": "2c342a5dd8fc39f89747f00af94f8b8463638659ce5a591c75bfdae49dc16e87",
+  "studies_v1/inputs/admm_qp_side40_cg.args": "e9b6ffc5c4a11b2ae6d4881409886bada87084d1d84b8011f694e66d68b867d3",
+  "studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block128.args": "808099460024f43dc14ed60d43cd6371efc57371d5633ed92cbbd5512767e0eb",
+  "studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block32.args": "cebbf37a5ebf55a6f6499cd38405a4a8be45b1649e8fae3f9446042ea0cfd5bc",
+  "studies_v1/inputs/admm_qp_side40_gd.args": "80b025c05b58b9ee9af5554251cb4a7bd418ab204c2bc950a4d5535864132d96",
+  "studies_v1/inputs/admm_qp_side40_gmres.args": "ebb89ce93774b5d5d9dbe912ec02ec07a1a820d7e26968a8591b3b53008b63de",
+  "studies_v1/inputs/admm_qp_side40_nystrom_pcg_rank128.args": "6b28230227284196549eb54262361bf0ac626b3667826e0167733a7233b845af",
+  "studies_v1/inputs/admm_qp_side40_nystrom_pcg_rank32.args": "c8a3a568b3fd9c5bde80c1003f90018b5bfb4b1bcf934a6de2556a83d94c3eb4",
+  "studies_v1/inputs/admm_qp_side64_agd.args": "67bc221392cd219efa99e9d332d62cc8aa821c993644698ee4a3444d34e0b864",
+  "studies_v1/inputs/admm_qp_side64_cg.args": "c25a5b764fe8cd7b00a5ed92fe0d99d9730c7c065389c4f9dbc0793b004bff1d",
+  "studies_v1/inputs/admm_qp_side64_gd.args": "514ef53aebed548d02d425450e727522ee458bffd882b0da5f44f4ea2451a564",
+  "studies_v1/inputs/admm_qp_side64_gmres.args": "b0aa6ce9cf0ab3b7bfd7f7e908330242fc4184af53789b16d5bb35da27e613bb",
+  "studies_v1/inputs/admm_qp_side64_nystrom_pcg_rank128.args": "47b0376f35126755d737eb2b37b2094a078b64341ecb11beacfbdd4580166c35",
+  "studies_v1/inputs/admm_qp_side64_nystrom_pcg_rank32.args": "2d7895b6dd1b83dccc6f5164ae580e304ab6dc709620207e9d9639d1dca66c7a",
+  "studies_v1/inputs/kaczmarz.calibrate.csv": "e0db69219ec4fdb657ff6c0700b45c4144a10c668ed4db31c8e1dfb80dd987e2",
+  "studies_v1/inputs/kaczmarz.collect.csv": "11f4789f1fa586c0bebbfce1e33e809b055c69c37834fef3f8ec25e639cc7a8a",
+  "studies_v1/inputs/kaczmarz.run.part000.csv": "9c8e930be4e7e7c2c59b6068f7c476f2843efa1790a7ded72206241a304a7a97",
+  "studies_v1/inputs/ppm_logistic_random_normal_gd.args": "4cd60c5d9553da5dafc668eb76a7e68ccaffa0f95a76ed91c6325b0e7ebbde83",
+  "studies_v1/inputs/qp.calibrate.csv": "51f2c060c1db320b2e3cf44c0dbc767ae116d7dfe2762725ae819b3c439fedd3",
+  "studies_v1/inputs/qp.collect.csv": "6740f9f7ee6c18dac994a41de4e8f1342cbc6b42969ac8845575132de7fb7afe",
+  "studies_v1/inputs/qp.run.part000.csv": "b1286d1d6445c099d9d0464f543f947de0cc867ad57976a9839828510f4a5492",
+  "studies_v1/inputs/regression.calibrate.csv": "0b1f977142552923362f780d82e27485cc9c48bc9f13483bbf45f1965f28bac5",
+  "studies_v1/inputs/regression.collect.csv": "0bdfbabb9db76e0daf0c27088c5453a76d67f63510826b38db0fa1c30f0ceadc",
+  "studies_v1/inputs/regression.run.part000.csv": "d2c7a013f722bee5a51b5e69c383ff2f863adba945c4734ef4046629baeb9362",
+  "studies_v1/random.json": "e9b6afdacfb94a245f165241e9fcd311240118243f2023ee452a871a36a6305f"
+ },
+ "studies": [
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_gmres.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_gmres",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_gd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_gd",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_agd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_agd",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_cg.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cg",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_nystrom_pcg_rank32.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_nystrom_pcg_rank32",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_nystrom_pcg_rank128.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_nystrom_pcg_rank128",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_gmres.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_gmres",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_gd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_gd",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_agd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_agd",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_cg.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_cg",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_nystrom_pcg_rank32.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_nystrom_pcg_rank32",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side64_nystrom_pcg_rank128.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side64_nystrom_pcg_rank128",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_gmres.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_gmres",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_gd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_gd",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_agd.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_agd",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_cg.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_cg",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_nystrom_pcg_rank32.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_nystrom_pcg_rank32",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side100_nystrom_pcg_rank128.args",
+   "instances": 20,
+   "lane": "qp",
+   "module": "admm_qp",
+   "name": "admm_qp_side100_nystrom_pcg_rank128",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_block_kaczmarz_block32.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block32",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_block_kaczmarz_block128.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block128",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block32.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block32",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block128.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block128",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_lasso_random_normal_gmres.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "admm_lasso",
+   "name": "admm_lasso_random_normal_gmres",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_lasso_random_normal_gd.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "admm_lasso",
+   "name": "admm_lasso_random_normal_gd",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_lasso_random_normal_agd.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "admm_lasso",
+   "name": "admm_lasso_random_normal_agd",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/admm_lasso_random_normal_cg.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "admm_lasso",
+   "name": "admm_lasso_random_normal_cg",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v1/inputs/admm_lasso_random_normal_nystrom_pcg_rank128.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "admm_lasso",
+   "name": "admm_lasso_random_normal_nystrom_pcg_rank128",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v1/inputs/ppm_logistic_random_normal_gd.args",
+   "instances": 10,
+   "lane": "regression",
+   "module": "ppm_logistic",
+   "name": "ppm_logistic_random_normal_gd",
+   "reserved": 16
+  }
+ ]
+}

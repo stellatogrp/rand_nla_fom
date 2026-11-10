@@ -39,21 +39,21 @@ remain valid censored outcomes. Commands after their prerequisite stages finish:
 ```bash
 uv run python -m campaign_v7.advance qp-steps \
   --manifest campaign_v7/manifests/qp_tune.csv \
-  --results-dir results/qp_tune_v7_20261031 \
-  --output results/campaign_v7_plans/qp_steps.csv
+  --results-dir results/legacy/qp_tune_v7_20261031 \
+  --output results/legacy/campaign_v7_plans/qp_steps.csv
 uv run python -m campaign_v7.advance kaczmarz-expand \
   --manifest campaign_v7/manifests/kaczmarz_screen.csv \
-  --results-dir results/kaczmarz_screen_v7_20261031 \
-  --output results/campaign_v7_plans/kaczmarz_expanded.csv
+  --results-dir results/legacy/kaczmarz_screen_v7_20261031 \
+  --output results/legacy/campaign_v7_plans/kaczmarz_expanded.csv
 uv run python -m campaign_v7.advance regression-readiness \
   --manifest campaign_v7/manifests/regression_pilots.csv \
-  --results-dir results/regression_pilots_v7_20261031 \
-  --output results/campaign_v7_plans/regression_readiness.csv
+  --results-dir results/legacy/regression_pilots_v7_20261031 \
+  --output results/legacy/campaign_v7_plans/regression_readiness.csv
 # After the generated steps manifest has actually run to completion:
 uv run python -m campaign_v7.advance qp-evaluate \
-  --manifest results/campaign_v7_plans/qp_steps.csv \
-  --results-dir results/qp_steps_v7_20261031 \
-  --output results/campaign_v7_plans/qp_evaluate.csv
+  --manifest results/legacy/campaign_v7_plans/qp_steps.csv \
+  --results-dir results/legacy/qp_steps_v7_20261031 \
+  --output results/legacy/campaign_v7_plans/qp_evaluate.csv
 ```
 
 The steps grid includes the QP reference ratio sqrt(kappa)=100, GD's minimax

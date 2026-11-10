@@ -1,0 +1,8 @@
+# ppm_logistic_random_normal_gd: ppm_logistic, lane regression
+--calibration-repetitions 100
+--time-limit 1200
+--instances 10
+--dataset-spec studies_v2/random.json
+--dataset random_normal
+--results-dir results/studies_v2
+--name ppm_logistic_random_normal_gd

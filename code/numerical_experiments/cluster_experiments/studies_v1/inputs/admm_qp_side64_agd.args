@@ -1,0 +1,7 @@
+# admm_qp_side64_agd: admm_qp, lane qp
+--calibration-repetitions 100
+--instances 20
+--side 64
+--inner agd
+--results-dir results/studies_v1
+--name admm_qp_side64_agd

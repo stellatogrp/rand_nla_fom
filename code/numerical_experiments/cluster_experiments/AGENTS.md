@@ -4,6 +4,10 @@ This folder is a standalone uv project; run commands from this directory.
 Use US English in prose, comments, docstrings, CLI help, plot text, and new
 identifiers. Preserve external names, APIs, URLs, quotations, and source titles.
 Use scripts in `experiments/` and CSV-reading plots in `plots/`. No notebooks.
+`studies/` runs these problems in the original studies' format and must keep
+their table columns (`tests/test_studies.py`); `studies/_io.py`,
+`studies/aggregate.py`, and `plots/studies.py` are snapshots of the original
+modules, changed only where their docstrings say.
 Generated `data/`, `manifests/`, and `results/` are ignored; never edit results.
 Do not change the original numerical studies as part of this setup.
 

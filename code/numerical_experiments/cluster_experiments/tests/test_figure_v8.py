@@ -49,10 +49,11 @@ def test_trace_preserves_updates_and_meets_verified_inner_contraction(method, mo
 
 
 def test_matched_initialization_grid_preserves_baselines_and_seeds():
-    source = Path("results/campaign_v7_plans/qp_evaluate.csv")
+    source = Path("results/legacy/campaign_v7_plans/qp_evaluate.csv")
     if not source.exists():
         pytest.skip("local completed evaluation manifest unavailable")
-    configs = configurations(source)
+    # The sealed default names the results' place before they moved to legacy/.
+    configs = configurations(source, Path("results/legacy/qp_evaluate_v7_20261031"))
     assert len(configs) == 183
     groups = {}
     for config in configs:

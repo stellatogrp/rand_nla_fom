@@ -1,5 +1,31 @@
 # Launch status — November 3, 2026
 
+## Latest follow-up completion
+
+The first automatic retry successfully submitted array **16792144** on
+November 4 at 03:34 UTC. Both serial batch tasks are COMPLETED and all 20
+follow-up result CSVs and histories are synced locally. The latest cluster
+check showed no queued or running jobs.
+
+Recorded outcomes: **2 converged, 12 time_limit, 6 inner_time_limit**. The
+converged runs are logistic PDHG on smallNORB (1,665.7 independent worker
+seconds) and realsim (4,362.4 seconds), both at the 1e-6 common certificate.
+No logistic GD pilot was marked converged. Best smallNORB LASSO residual
+among these follow-ups was 4.8820e-5 with PDHG, still above the target.
+
+The realsim LASSO Nystrom-PCG run at L/c=1e4 ended with a true final
+stationarity of 6.3921e-7 and feasibility of 5.3583e-8, but its recorded
+status is time_limit, not converged. The solver gates its common KKT test
+behind an additional unnormalized terminal graph test. This stopping-rule
+discrepancy requires an audit before claiming a validated LASSO convergence
+time; raw statuses and CSVs have not been relabeled. Earlier saved passing
+diagnostics use the recurrence and are not independent true-gradient audits.
+
+Each batch used one core with about 99.6% CPU efficiency. No crashes or
+out-of-memory outcomes occurred in these 20 runs. Broad regression sweeps
+and held-out evaluation remain pending stopping-rule verification and further
+inner-solver convergence work.
+
 ## Completion update — November 4, 2026, 03:21 UTC
 
 All four recovery pilots finished; none reached the common 1e-6 certificate.

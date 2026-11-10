@@ -1,0 +1,2852 @@
+{
+ "benchmark": "bench_v1",
+ "source_campaign": "studies_v2",
+ "source_seal_sha256": "064a3b8ad8cd8c92ddce710c8e9cacbaf92e21873f329af3e69aee737aecd662",
+ "source_results": "results/studies_v2",
+ "order_seed": 20261108,
+ "rounds": 1,
+ "problems": [
+  {
+   "name": "lasso random_normal",
+   "slug": "lasso_random_normal",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "studies": [
+    {
+     "name": "admm_lasso_random_normal_agd",
+     "module": "admm_lasso",
+     "args": "studies_v2/inputs/admm_lasso_random_normal_agd.args",
+     "solver": "agd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_lasso_random_normal_cg",
+     "module": "admm_lasso",
+     "args": "studies_v2/inputs/admm_lasso_random_normal_cg.args",
+     "solver": "cg",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.07480711182625513,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 3
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_lasso_random_normal_gd",
+     "module": "admm_lasso",
+     "args": "studies_v2/inputs/admm_lasso_random_normal_gd.args",
+     "solver": "gd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.1295672621454897,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 4
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_lasso_random_normal_gmres",
+     "module": "admm_lasso",
+     "args": "studies_v2/inputs/admm_lasso_random_normal_gmres.args",
+     "solver": "gmres",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.09491970070323598,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 3
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_lasso_random_normal_nystrom_pcg_rank128",
+     "module": "admm_lasso",
+     "args": "studies_v2/inputs/admm_lasso_random_normal_nystrom_pcg_rank128.args",
+     "solver": "nystrom_pcg rank 128",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    }
+   ],
+   "exact_study": "admm_lasso_random_normal_cg",
+   "near_exact_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "name": "qp side 100",
+   "slug": "qp_side100",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "studies": [
+    {
+     "name": "admm_qp_side100_agd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_agd.args",
+     "solver": "agd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side100_cg",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_cg.args",
+     "solver": "cg",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.07480929527880635,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 3
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side100_gd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_gd.args",
+     "solver": "gd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.12955932382244706,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 6
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side100_gmres",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_gmres.args",
+     "solver": "gmres",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.09491970070323598,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side100_nystrom_pcg_rank128",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_nystrom_pcg_rank128.args",
+     "solver": "nystrom_pcg rank 128",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side100_nystrom_pcg_rank32",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side100_nystrom_pcg_rank32.args",
+     "solver": "nystrom_pcg rank 32",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    }
+   ],
+   "exact_study": "admm_qp_side100_cg",
+   "near_exact_seeds": [
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "name": "qp side 40",
+   "slug": "qp_side40",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "studies": [
+    {
+     "name": "admm_qp_side40_agd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_agd.args",
+     "solver": "agd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side40_cg",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_cg.args",
+     "solver": "cg",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.07480929527880634,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 4
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side40_gd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_gd.args",
+     "solver": "gd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.12955932382244703,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 6
+      },
+      {
+       "index": 15,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 7
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side40_gmres",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_gmres.args",
+     "solver": "gmres",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.09491970070323598,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 3
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side40_nystrom_pcg_rank128",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_nystrom_pcg_rank128.args",
+     "solver": "nystrom_pcg rank 128",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side40_nystrom_pcg_rank32",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side40_nystrom_pcg_rank32.args",
+     "solver": "nystrom_pcg rank 32",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    }
+   ],
+   "exact_study": "admm_qp_side40_cg",
+   "near_exact_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "name": "qp side 64",
+   "slug": "qp_side64",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "studies": [
+    {
+     "name": "admm_qp_side64_agd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_agd.args",
+     "solver": "agd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side64_cg",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_cg.args",
+     "solver": "cg",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.07480929527880634,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 3
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side64_gd",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_gd.args",
+     "solver": "gd",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.12955932382244703,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b+campaign_best",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      },
+      {
+       "index": 14,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 6
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side64_gmres",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_gmres.args",
+     "solver": "gmres",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "sigma+sigma_star",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.09491970070323598,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 13,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side64_nystrom_pcg_rank128",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_nystrom_pcg_rank128.args",
+     "solver": "nystrom_pcg rank 128",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    },
+    {
+     "name": "admm_qp_side64_nystrom_pcg_rank32",
+     "module": "admm_qp",
+     "args": "studies_v2/inputs/admm_qp_side64_nystrom_pcg_rank32.args",
+     "solver": "nystrom_pcg rank 32",
+     "configurations": [
+      {
+       "index": 2,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.01,
+       "b": 1
+      },
+      {
+       "index": 3,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.05,
+       "b": 1
+      },
+      {
+       "index": 4,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.2,
+       "b": 1
+      },
+      {
+       "index": 5,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.5,
+       "b": 1
+      },
+      {
+       "index": 6,
+       "kinds": "sigma+campaign_best",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 0.9,
+       "b": 1
+      },
+      {
+       "index": 7,
+       "kinds": "sigma",
+       "method": "inexact",
+       "sweep": "sigma",
+       "sigma": 1.0,
+       "b": 1
+      },
+      {
+       "index": 8,
+       "kinds": "b+fixed",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 1
+      },
+      {
+       "index": 9,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 2
+      },
+      {
+       "index": 10,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 5
+      },
+      {
+       "index": 11,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 10
+      },
+      {
+       "index": 12,
+       "kinds": "b",
+       "method": "inexact",
+       "sweep": "b",
+       "sigma": 0.1,
+       "b": 20
+      }
+     ],
+     "near_exact": {
+      "index": 1,
+      "kinds": "near_exact",
+      "method": "near_exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 1
+     },
+     "exact": {
+      "index": 0,
+      "kinds": "exact",
+      "method": "exact",
+      "sweep": "reference",
+      "sigma": null,
+      "b": 0
+     }
+    }
+   ],
+   "exact_study": "admm_qp_side64_cg",
+   "near_exact_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ]
+}

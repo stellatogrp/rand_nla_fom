@@ -1,0 +1,5 @@
+task,stage,lane,study,module,args,instance,configuration
+0,calibrate,kaczmarz,admm_qp_side40_block_kaczmarz_block32,admm_qp,studies_v1/inputs/admm_qp_side40_block_kaczmarz_block32.args,,
+1,calibrate,kaczmarz,admm_qp_side40_block_kaczmarz_block128,admm_qp,studies_v1/inputs/admm_qp_side40_block_kaczmarz_block128.args,,
+2,calibrate,kaczmarz,admm_qp_side40_cyclic_kaczmarz_block32,admm_qp,studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block32.args,,
+3,calibrate,kaczmarz,admm_qp_side40_cyclic_kaczmarz_block128,admm_qp,studies_v1/inputs/admm_qp_side40_cyclic_kaczmarz_block128.args,,

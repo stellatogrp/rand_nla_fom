@@ -6,6 +6,42 @@ The remote project root is `/scratch/gpfs/BSTELLATO/pranav/rand_nla_fom` and
 contains the contents of this folder. The connection alias is `della-gpu`, but
 these jobs run on CPU compute nodes, using the discovered `bstellato` account.
 
+## Original-format studies
+
+[`studies/`](studies/README.md) runs these problems (the equality QP and the
+LASSO by ADMM, ridge logistic regression by the proximal point method) and all
+of their inner solvers in the format of the original studies of
+`../README.md`: the same configurations per instance (the classical and
+near-exact baselines, the sigma sweep with `sigma*`, the stride sweep with
+`s*`), the original stopping rule `||z_k|| <= 1e-9` and hard stops, and the
+original `parameters.csv`, `results.csv`, `histories.csv`, `curves.csv`, and
+`summary.csv` with the same columns and theorem checks. `plots.studies` draws
+the original figures from them. On Della a campaign (`studies.campaign`,
+`slurm/studies_campaign.slurm`) runs every configuration of every study as its
+own array task, in separate lanes for the QP, Kaczmarz, and regression studies,
+so a stalled configuration delays no other result; `studies_v1/` is the first
+campaign, and `studies_v2/` reruns its QP and regression studies with a
+1,200 s instead of a 300 s limit per inexact run. It imports the sealed
+`releases/regression_v9` engine and changes nothing below.
+
+## Results layout
+
+The results of the earlier pipeline (`experiments.run`, one directory per task
+configuration) were moved on 2026-11-06 from `results/<experiment>/` to
+`results/legacy/<experiment>/`, so that `results/` holds only the
+original-format studies (for example `results/studies_v1/`). Commands and sync
+configurations that read those results point to `results/legacy/`; the launch
+records (`*/LAUNCH_STATUS.md`, `release_history/`) and the sealed sources keep
+the paths they were written with. Pass `--results-dir
+results/legacy/<experiment>` to a sealed tool whose default names an old path.
+Della keeps the same layout, so that `sync down` never copies the old results
+back to their old place; the human moved them there on 2026-11-06, from a
+terminal, with:
+
+```bash
+ssh della-gpu 'cd /scratch/gpfs/BSTELLATO/pranav/rand_nla_fom/results && mkdir -p legacy && for d in */; do case "$d" in legacy/|studies_*/) ;; *) mv -n "$d" legacy/ ;; esac; done && ls'
+```
+
 ## Choosing matrix sources
 
 For the five NysADMM dataset families, downloads, native labels, random Fourier
@@ -483,8 +519,8 @@ and peak RSS. Compare streamed and resident full-data profiles as well as QP
 Nyström solves. Gradient-only results do not establish end-to-end solver wins.
 
 ```bash
-uv run python -m plots.scaling --results-dir results/scaling_speed_v2 \
-  --output results/scaling_speed_v2/summary.csv
+uv run python -m plots.scaling --results-dir results/legacy/scaling_speed_v2 \
+  --output results/legacy/scaling_speed_v2/summary.csv
 ```
 
 Recommendations require matched CPU models, at least two successful repeats,
