@@ -929,6 +929,65 @@ We leave this direction for future work.
     \Cref{rem:inner-work-sharpness} in \Cref{sec:tightness-of-bounds} shows that the per-step bound \Cref{eq:deterministic-per-step} is attained, that the expectation bound of \Cref{thm:stopping-time-concentration} can be approached arbitrarily closely, and that, for $\sigma\leq\sigma_1$, the constant $D_\sigma$ in the total bounds is sharp up to the factor $(1+\sigma)^2$.
 \end{remark}
 
+The same inner-work analysis also allows relaxation of the outer update.
+The graph condition, relative error test, and terminal test remain unchanged.
+\begin{proposition}[Relaxed inexact PPM]\label{prop:relaxed-inexact-ppm}
+    Suppose \Cref{assumption:well-defined-b-operator,assumption:inner-work-contraction} hold, and fix
+    \begin{align}
+        0<\theta<2,\qquad
+        0<\sigma<\min\left\{1,\frac{2-\theta}{\theta}\right\}.
+        \label{eq:relaxed-ppm-parameters}
+    \end{align}
+    Consider \Cref{alg:stopping-time-algorithm} with its accepted update replaced by
+    \begin{align}
+        w_{k+1}=w_k-\theta\gamma z_k.
+        \label{eq:relaxed-ppm-update}
+    \end{align}
+    Define
+    \begin{align}
+        c_{\sigma,\theta}
+        :=\theta\left(\frac{2}{1+\sigma}-\theta\right)>0.
+    \end{align}
+    Every accepted update satisfies, for any $w^\star\in\zer\Bcal$,
+    \begin{align}
+        \norm{w_{k+1}-w^\star}^2
+        &\leq\norm{w_k-w^\star}^2
+          -c_{\sigma,\theta}\gamma^2\norm{z_k}^2.
+        \label{eq:relaxed-ppm-decrease}
+    \end{align}
+    Consequently, for $\delta>0$, the number of accepted updates before the terminal test passes obeys almost surely
+    \begin{align}
+        K_\delta\leq
+        \left\lfloor
+        \frac{\dist(w_0,\zer\Bcal)^2}
+             {c_{\sigma,\theta}\gamma^2\delta^2}
+        \right\rfloor.
+        \label{eq:relaxed-ppm-outer-bound}
+    \end{align}
+    The terminal certificate of \Cref{prop:certificate} is unchanged.
+
+    If the inner solver reuses the previously accepted graph pair, set
+    \begin{align}
+        G_{\sigma,\theta}
+          &:=\frac{\sigma+\theta}{1-\sigma},&
+        H_{\sigma,\theta}
+          &:=1+\frac{\theta}{1-\sigma},&
+        D_{\sigma,\theta}
+          &:=\frac{(1+\sigma)^2C_0G_{\sigma,\theta}^2}{\sigma^2}.
+        \label{eq:relaxed-ppm-warm-constants}
+    \end{align}
+    Then the expected total-work bound and the high-probability bounds of \Cref{thm:total-inner-work-bound,thm:total-inner-work-concentration} hold with $D_\sigma$ replaced by $D_{\sigma,\theta}$ and $K_\delta$ denoting the relaxed outer stopping time \Cref{eq:relaxed-ppm-outer-bound}.
+    With a deterministic inner contraction, the same replacement gives \Cref{thm:deterministic-inner-work}.
+    In particular, the expected total inner work remains $O(\delta^{-2})$ for fixed admissible parameters and initialization.
+    This bound holds deterministically when the inner contraction is deterministic.
+\end{proposition}
+The proof is given in \Cref{sec:relaxed-inexact-ppm-proof}.
+The restriction $\theta<\frac{2}{1+\sigma}$ is necessary for a uniform convergence guarantee with this relative test.
+For example, take $\Bcal=N_{\{0\}}$, $\gamma=1$, $y=0$, and $z=(1+\sigma)w$.
+The relative test holds with equality, while $w^+=(1-\theta(1+\sigma))w$.
+For nonzero $w$, equality $\theta(1+\sigma)=2$ produces a two-cycle, and larger values give divergence.
+With exact solves, $\sigma=0$ and the decrease coefficient reduces to the well-known $\theta(2-\theta)$.
+
 One might wonder if \Cref{assumption:inner-work-contraction} is strong enough to ensure that every inner loop terminates when the terminal test of \Cref{alg:stopping-time-algorithm} is removed, i.e., when only the relative error test is used.
 We show with a simple example that this is not the case.
 This phenomenon has already been noted in~\citet{EcksteinRelativeError2018}.
@@ -1386,6 +1445,213 @@ Setting $\rho = 0$ and $E=I$ yields the inexact ADMM algorithm of \citet{Eckstei
 % \end{proof}
 The proof of \Cref{prop:admm} is in \Cref{sec:admm-proof}.
 
+\begin{example}[OSQP with an inexact quadratic solve]\label{ex:osqp}
+Consider the quadratic program
+\begin{equation}\label{eq:osqp-qp-problem}
+    \begin{array}{ll}
+		\text{minimize} & \frac{1}{2} x^\top Px + q^\top x \\
+		\text{subject to} & l\leq Ax \leq u,
+    \end{array}
+\end{equation}
+where $x\in\R^n$ is the variable and $P=P^\top \succeq0$, $q\in\R^n$, and $A\in\R^{m\times n}$ are data.
+Let $\mathcal{Z}=\left\{ x \mid l \leq x \leq u \right\}$, where we allow some bounds to be infinite.
+We also assume that a primal-dual solution exists.
+
+For $\tau,\rho>0$ and $0<\theta<2$, OSQP uses the updates \citep[Algorithm~1]{osqp-original-paper}
+\begin{subequations}\label{eq:osqp-consensus-updates}
+\begin{align}
+    \begin{bmatrix}
+        P+\tau I & A^\top \\
+        A & -\rho^{-1}I
+    \end{bmatrix}
+    \begin{bmatrix}
+        \tilde x_{k+1} \\
+        \nu_{k+1}
+    \end{bmatrix}
+      &=\begin{bmatrix}
+        \tau x_k-q \\
+        z_k-\rho^{-1}y_k
+    \end{bmatrix}, \\
+    \tilde z_{k+1}&=z_k+\rho^{-1}(\nu_{k+1}-y_k),\\
+    x_{k+1}&=\theta\tilde x_{k+1}+(1-\theta)x_k,\\
+    z_{k+1}&=\Pi_{\mathcal{Z}}\bigl(\theta\tilde z_{k+1}
+                     +(1-\theta)z_k+\rho^{-1}y_k\bigr),\\
+    y_{k+1}&=y_k+\rho\bigl(\theta\tilde z_{k+1}
+                     +(1-\theta)z_k-z_{k+1}\bigr).
+\end{align}
+\end{subequations}
+Here $\tau$ and $\theta$ denote OSQP's parameters $\sigma$ and $\alpha$, respectively.
+Let $K = \begin{bmatrix}
+    P+\tau I & A^\top \\
+    A & -\rho^{-1}I
+\end{bmatrix}$ and fix $\tau$, $\rho$, and $\theta$.
+
+Equip $\R^{n+m}$ with the inner product $\ip{v}{w}_H=v^\top Hw$, where $H=\diag(\tau I_n,\rho I_m)$.
+Define
+\begin{align}
+    f(x,z)  &= \frac{1}{2}x^\top Px+q^\top x+\mathcal I_{\{(x,z):Ax=z\}}(x,z), &g(x,z) &= \mathcal I_{\mathcal{Z}}(z),\notag \\
+    \Acal_1 &= H^{-1}\partial f, &\Acal_2 &= H^{-1}\partial g. \label{eq:osqp-drs-operators}
+\end{align}
+Both operators are maximal monotone in this inner product.
+Write $F=J_{\Acal_1}$ and $G=J_{\Acal_2}$, so $G(x,z)=(x,\Pi_{\mathcal{Z}}(z))$.
+For $S_k=(x_k,z_k+\rho^{-1}y_k)$, the OSQP updates become
+\begin{align}
+    S_{k+1}=S_k+\theta\bigl(F(2G(S_k)-S_k)-G(S_k)\bigr).
+    \label{eq:osqp-drs-map}
+\end{align}
+This identity holds whenever $y_k\in N_{\mathcal{Z}}(z_k)$, which the projection enforces for $k\geq1$.
+This is relaxed DRS with the operator order $(\Acal_2,\Acal_1)$.
+
+To make the quadratic solve inexact in \Cref{alg:inexact-drs}, we reverse this order:
+\begin{align}
+    W_{k+1}=T_\theta W_k,\qquad
+    T_\theta=I+\theta\bigl(G(2F-I)-F\bigr).
+    \label{eq:osqp-reordered-map}
+\end{align}
+Since $F$ is affine, $S_k=(2F-I)W_k$ maps every exact trajectory of \Cref{eq:osqp-reordered-map} to \Cref{eq:osqp-drs-map} with corresponding initialization \citep{bauschke2016douglasrachfordalgorithm}.
+The inexact iterates below use this reordered state $W_k$.
+
+Apply \Cref{alg:inexact-drs} to the preconditioned subdifferential operators \Cref{eq:osqp-drs-operators} with stepsize $\gamma=1$, the $H$-norm, and the relaxed update of \Cref{prop:relaxed-inexact-ppm}.
+At $W_k=(w_{x,k},w_{z,k})$, the first resolvent is the quadratic subproblem
+\begin{equation}\label{eq:osqp-quadratic-subproblem}
+    \begin{array}{ll}
+		\text{minimize} & \frac{1}{2}\tilde x^\top P\tilde x+q^\top \tilde x + \frac{\tau}{2}\norm{\tilde x-w_{x,k}}^2 + \frac{\rho}{2}\norm{\tilde z-w_{z,k}}^2\\
+        \text{subject to} & A\tilde x=\tilde z,
+    \end{array}
+\end{equation}
+with variables $(\tilde x,\tilde z)$ and Lagrange multiplier $\nu$.
+For an approximate pair $(\tilde x,\nu)$, compute
+\begin{align}
+    h&=P\tilde x+q+A^\top \nu,&
+    \bar z&=\Pi_{\mathcal{Z}}(A\tilde x+\rho^{-1}\nu).
+\end{align}
+The two graph pairs in \Cref{alg:inexact-drs} are $(X,U)$ and $(Y,V)$, where
+\begin{align}
+    X&=\begin{bmatrix}\tilde x \\
+        A\tilde x
+    \end{bmatrix},&         U&=\begin{bmatrix}
+        \tau^{-1} h \\
+        -\rho^{-1}\nu
+    \end{bmatrix} \in\Acal_1X,\notag \\
+    Y&=\begin{bmatrix}
+        \tilde x-\tau^{-1}h \\
+        \bar z\end{bmatrix} = G(X-U),   & V &= \begin{bmatrix}
+        0 \\
+        A\tilde x+\rho^{-1}\nu-\bar z
+    \end{bmatrix} \in\Acal_2Y. \label{eq:osqp-graph-points}
+\end{align}
+The choice $X_z=A\tilde x$ ensures $X\in\dom\Acal_1$ even before the quadratic solve converges.
+This corresponds to eliminating the varible $\tilde{z}$ from the quadratic subproblem \Cref{eq:osqp-quadratic-subproblem}.
+Set
+\begin{align}
+    \zeta &= X-Y=U+V =\begin{bmatrix}
+        \tau^{-1}h \\
+        A\tilde x-\bar z
+    \end{bmatrix}, \\
+    e&=X+U-W_k
+       =\begin{bmatrix}
+           \tilde x+\tau^{-1}h-w_{x,k}\\
+           A\tilde x-\rho^{-1}\nu-w_{z,k}
+         \end{bmatrix}.
+    \label{eq:osqp-inexact-residuals}
+\end{align}
+The terminal criterion becomes stop if $\norm{\zeta}_H\leq\delta$.
+Otherwise, we accept the candidate update when
+\begin{align}
+    \norm{e}_H\leq\sigma\norm{e-\zeta}_H, \label{eq:osqp-relative-test}
+\end{align}
+for $0<\sigma<\min\left\{1,\frac{2-\theta}{\theta}\right\}$.
+We then update
+\begin{align}
+    w_{x,k+1}&=w_{x,k}-\frac{\theta}{\tau}h, \\
+    w_{z,k+1}&=w_{z,k}-\theta(A\tilde x-\bar z). \label{eq:osqp-inexact-update}
+\end{align}
+If neither test passes, we run $s$ additional iterations of the inner procedure and recompute the residuals \Cref{eq:osqp-graph-points,eq:osqp-inexact-residuals}.
+Moreover, we warm-start $(\tilde x,\nu)$ at the previously accepted value, which satisfies the warm-start hypotheses of \Cref{prop:relaxed-inexact-ppm}.
+
+\paragraph{GMRES for the quadratic subproblem.}
+The KKT conditions of \Cref{eq:osqp-quadratic-subproblem} reduce to
+\begin{align}
+    K\begin{bmatrix}\tilde x\\\nu\end{bmatrix}
+      =b_k:=\begin{bmatrix}\tau w_{x,k}-q\\w_{z,k}\end{bmatrix}.
+    \label{eq:osqp-kkt-system}
+\end{align}
+The matrix is nonsingular because eliminating $\nu$ gives $P+\tau I+\rho A^\top A\succ0$.
+For the true linear-system residual
+\begin{align}
+    r=\begin{bmatrix}r_x\\r_z\end{bmatrix}
+       :=K\begin{bmatrix}\tilde x\\\nu\end{bmatrix}-b_k,
+\end{align}
+the inexact DRS error satisfies
+\begin{align}
+    e=\begin{bmatrix}\tau^{-1}r_x\\r_z\end{bmatrix},\qquad
+    \norm{e}_H^2=\tau^{-1}\norm{r_x}^2+\rho\norm{r_z}^2.
+    \label{eq:osqp-kkt-ppm-residual}
+\end{align}
+All unweighted norms here are Euclidean.
+
+To obtain contraction in this norm, apply GMRES \citep{saad1986GMRES} to the rescaled system
+\begin{align}
+    \underbrace{\begin{bmatrix}
+        I+\tau^{-1}P&\sqrt{\frac{\rho}{\tau}}\,A^\top \\
+        -\sqrt{\frac{\rho}{\tau}}\,A&I
+    \end{bmatrix}}_{\widehat K}
+    \begin{bmatrix}\sqrt{\tau}\,\tilde x\\\rho^{-1/2}\nu\end{bmatrix}
+    =
+    \begin{bmatrix}\sqrt{\tau}\,w_{x,k}-\tau^{-1/2}q\\-\sqrt{\rho}\,w_{z,k}\end{bmatrix}.
+    \label{eq:osqp-gmres-system}
+\end{align}
+Its residual is $\widehat r=(\tau^{-1/2}r_x,-\sqrt{\rho}\,r_z)$, so $\norm{\widehat r}=\norm{e}_H$, and
+\begin{align}
+    \frac{\widehat K+\widehat K^\top }{2}
+       =\diag(I+\tau^{-1}P,I)\succeq I.
+\end{align}
+Choose $\Lambda>1$ with $\Lambda\geq\norm{\widehat K}_2$.
+Any $\Lambda > 1+\tau^{-1}\norm{P}_2+\sqrt{\frac{\rho}{\tau}}\norm{A}_2$ suffices.
+At every GMRES iteration, the next search space contains a correction along the current residual.
+For a nonzero residual, minimizing over that direction gives
+\begin{align}
+    \norm{\widehat r^{j+1}}^2
+    &\leq\norm{\widehat r^j}^2
+      -\frac{((\widehat r^j)^\top \widehat K\widehat r^j)^2}
+             {\norm{\widehat K\widehat r^j}^2}
+      \leq(1-\Lambda^{-2})\norm{\widehat r^j}^2.
+\end{align}
+See \citet{Trefethen1997NumericalLinearAlgebra} for more details.
+Thus, in exact arithmetic, full GMRES or restarted GMRES with any positive restart length satisfies
+\begin{align}
+    \norm{e^j}_H^2\leq\alpha^j\norm{e^0}_H^2,\qquad
+    C_0=1,\qquad \alpha=1-\Lambda^{-2}.
+    \label{eq:osqp-gmres-contraction}
+\end{align}
+Choosing $\Lambda > 1+\tau^{-1}\norm{P}_2+\sqrt{\frac{\rho}{\tau}}\norm{A}_2$ gives $\alpha > 1-(1+\tau^{-1}\norm{P}_2+\sqrt{\frac{\rho}{\tau}}\norm{A}_2)^{-2}$.
+With the stated warm start, \Cref{prop:relaxed-inexact-ppm} gives $O(\delta^{-2})$ total GMRES iterations for fixed admissible parameters.
+
+Alternatively, eliminate $\nu$ and apply GMRES to the positive definite Schur complement system
+\begin{align}
+    Q\tilde x=c_k,\qquad
+    Q:=P+\tau I+\rho A^\top A,\qquad
+    c_k:=\tau w_{x,k}-q+\rho A^\top w_{z,k}.
+    \label{eq:osqp-schur-system}
+\end{align}
+Recovering $\nu=\rho(A\tilde x-w_{z,k})$ gives $r_z=0$ and $\norm{e}_H=\tau^{-1/2}\norm{Q\tilde x-c_k}$.
+For $\kappa=\kappa_2(Q)>1$, applying the Chebyshev polynomial estimate in the proof of \citet[Theorem~38.5]{Trefethen1997NumericalLinearAlgebra} to the GMRES residual bound of \citet[Proposition~4]{saad1986GMRES} gives, for unrestarted GMRES,
+\begin{align}
+    \norm{Q\tilde x^j-c_k} \leq 2\left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)^j\norm{Q\tilde x^0-c_k}.
+\end{align}
+Since $(I+\tau^{-1}P)^2\succeq I+\tau^{-1}P$ implies $\kappa\leq\norm{\widehat K}_2^2\leq\Lambda^2$, the squared-residual geometric factor satisfies
+\begin{align}
+    \alpha_{\mathrm{S}}:=\left(\frac{\sqrt{\kappa}-1}{\sqrt{\kappa}+1}\right)^2 \leq \left(\frac{\Lambda-1}{\Lambda+1}\right)^2 < 1-\Lambda^{-2}=\alpha.
+\end{align}
+This compares worst-case geometric factors with the larger system.
+When $\kappa=1$, one GMRES step solves the system.
+
+To retain the graph warm start, test the previously accepted $(\tilde x,\nu)$ before reconstructing $\nu$ in the Schur iterations.
+Since $Q\tilde x^0-c_k=r_x^0+\rho A^\top r_z^0$, the bound gives $C_0=4(1+\frac{\rho}{\tau}\norm{A}_2^2)$ and $\alpha=\alpha_{\rm S}$ in \Cref{assumption:inner-work-contraction} when $\kappa>1$.
+Thus the same total-work argument applies.
+
+\end{example}
+
 \subsection{Inexact Davis--Yin}
 We can extend the Douglas--Rachford result to the more general Davis--Yin case \citep{davisThreeOperatorSplittingScheme2017}, where we wish to solve
 \begin{align}
@@ -1555,6 +1821,7 @@ The analysis of this work assumes that algorithm parameters are fixed, but in pr
 Incorporating an analysis of adaptive parameter selection would bring the theory closer to practice.
 Another direction would be to relax the requirement in \Cref{alg:stopping-time-algorithm} that $\Ccal z_k \in\Acal u_k$, for cases where finding a member of $\Acal u_k$ is difficult, such as the case where the proximal step is projection onto a convex set.
 
+\printbibliography
 
 \appendix
 \crefalias{section}{appendix}
@@ -1868,6 +2135,52 @@ The following two constructions establish their respective dependence on $\delta
     A randomized variant of the same instance, in which the residual decreases deterministically to just above the threshold $\frac{\sigma}{1+\sigma}\norm{R(w_k)}$ and then, at each inner iteration, is either solved exactly with probability $1-\alpha$ or left unchanged, makes Markov's inequality in the proof of \Cref{thm:stopping-time-concentration} tight at every check.
     It shows that the bound on $\Expect_k[N_k]$ there, and with it the per-iteration constant $\frac{s}{1-\alpha^s}$ of \Cref{thm:total-inner-work-bound}, can be approached arbitrarily closely.
 \end{remark}
+
+\section{Proof of the Relaxed Inexact PPM Proposition}\label{sec:relaxed-inexact-ppm-proof}
+\begin{proof}[Proof of \Cref{prop:relaxed-inexact-ppm}]
+    For an accepted graph pair $(y,z)$ at $w$, write $d=\gamma z$, $h=w-y$, and $e=d-h$.
+    The relative test gives $\norm{e}\leq\sigma\norm{h}$ and $\norm{d}\leq(1+\sigma)\norm{h}$.
+    Hence
+    \begin{align}
+        2\ip{h}{d}
+        &=\norm{h}^2+\norm{d}^2-\norm{e}^2 \notag\\
+        &\geq(1-\sigma^2)\norm{h}^2+\norm{d}^2
+        \geq\frac{2}{1+\sigma}\norm{d}^2.
+    \end{align}
+    Monotonicity implies $\ip{y-w^\star}{d}\geq0$.
+    Expanding $\norm{w-\theta d-w^\star}^2$ proves the decrease estimate \Cref{eq:relaxed-ppm-decrease}.
+    Before termination, each accepted point has $\norm{z_k}>\delta$, so telescoping this inequality gives the outer stopping time bound \Cref{eq:relaxed-ppm-outer-bound}.
+    Each inner loop is finite almost surely by \Cref{thm:stopping-time-concentration}, whose proof carries over.
+    The terminal test carries over similarly.
+
+    Recall that $e_k=\gamma z_k+y_k-w_k$ for an accepted pair and $R=I-J$.
+    At the next outer iteration, reusing this pair gives
+    \begin{align}
+        e_{k+1}^0=e_k+\theta\gamma z_k.
+    \end{align}
+    The estimates in \Cref{lem:exact-inexact-graph-pair-inequalities} and nonexpansiveness of $R$ therefore imply
+    \begin{align}
+        \norm{e_{k+1}^0} &\leq G_{\sigma,\theta}\norm{R(w_k)} \\
+        \norm{R(w_{k+1})} &\leq H_{\sigma,\theta}\norm{R(w_k)}.\label{eq:relaxed-ppm-drift}
+    \end{align}
+    Moreover,
+    \begin{align}
+        \frac{1+\sigma}{\sigma}G_{\sigma,\theta}-H_{\sigma,\theta} =\frac{\theta+2\sigma^2}{\sigma(1-\sigma)}>0,
+    \end{align}
+    so $D_{\sigma,\theta}\geq H_{\sigma,\theta}^2$.
+    For $r_k=\max\{\norm{R(w_k)},\gamma\delta\}$, these estimates give
+    \begin{align}
+        \beta_k &\leq D_{\sigma,\theta}\frac{r_{k-1}^2}{r_k^2}, \\
+        r_k &\leq H_{\sigma,\theta}r_{k-1},
+    \end{align}
+    and the same statements hold with $\tilde\beta_k$ in the deterministic case.
+    Thus
+    \begin{align}
+        (\log\beta_k)_+ \leq\log D_{\sigma,\theta} +\log\frac{r_{k-1}^2}{r_k^2}.
+    \end{align}
+    The per-solve bounds are unchanged, and this inequality telescopes as in the proofs of \Cref{thm:total-inner-work-bound,thm:deterministic-inner-work}.
+    Combining the resulting bounds with the outer stoppping time bound \Cref{eq:relaxed-ppm-outer-bound} proves the total-work claim.
+\end{proof}
 
 \section{Proof for Accelerated Inner Solves}\label{sec:accelerated-inner-proof}
 \begin{proof}[Proof of \Cref{prop:optimal-sigma-accelerated-gradient-inside-ppm}]
@@ -2209,7 +2522,6 @@ The following two constructions establish their respective dependence on $\delta
 %     The near-exact method stops after 26 outer iterations and the $\sigma = 1$ run after 235.}\label{fig:torsion-convergence}
 % \end{figure}
 
-\printbibliography
 
 
 \end{document}
