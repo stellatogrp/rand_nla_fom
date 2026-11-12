@@ -1,6 +1,7 @@
 """The cluster problems run in the format of the original studies (``studies``)."""
 
 import csv
+import json
 import math
 import shutil
 
@@ -14,9 +15,11 @@ from studies import study
 from studies._io import read_rows
 from studies.algorithms import Initialization, inexact_admm
 from studies.inner import (
+    CALIBRATION_DEPTH,
     EngineInner,
     Gmres,
     InnerFactory,
+    calibrate,
     contraction,
     recommendations,
     stride_scan_limit,
@@ -745,3 +748,118 @@ def test_collecting_needs_neither_the_data_nor_a_new_study(tmp_path):
     other = parser.parse_args([*common, "--stage", "collect", "--name", "absent"])
     with pytest.raises(SystemExit, match="holds no study"):
         study.run_collect("admm_lasso", other)
+
+
+def test_the_walltime_figures_charge_s_star_its_timings_and_sigma_star_nothing(
+    tmp_path,
+):
+    """sigma* needs only alpha and C_0; s* is charged the timings it needs."""
+
+    def row(sigma_star=False, b_best=0.0, b_exact=0.0):
+        return dict(
+            sigma_is_optimal=sigma_star,
+            b_optimal_fraction=b_best,
+            b_exact_optimal_fraction=b_exact,
+        )
+
+    assert not figures._charged_for_s_star(row(sigma_star=True))
+    assert figures._charged_for_s_star(row(b_best=1.0))
+    assert figures._charged_for_s_star(row(b_exact=1.0))
+    assert not figures._charged_for_s_star(row())
+
+    class Recorded:
+        directory = tmp_path / "recorded"
+
+    Recorded.directory.mkdir()
+    (Recorded.directory / "calibration.json").write_text(
+        json.dumps(dict(c_in=2e-3, c_test=1e-3, measurement_seconds=0.25))
+    )
+    assert figures._measurement_seconds(Recorded) == 0.25
+
+    # Before the calibration recorded it: the repetitions of the campaign task.
+    args = tmp_path / "study.args"
+    args.write_text("--side 4\n--calibration-repetitions 7\n")
+    manifest = tmp_path / "calibrate.csv"
+    manifest.write_text(f"task,stage,module,args\n0,calibrate,admm_qp,{args}\n")
+
+    class Legacy:
+        directory = tmp_path / "legacy"
+
+    Legacy.directory.mkdir()
+    command = ["campaign.py", "task", "--manifest", str(manifest), "--task-id", "0"]
+    (Legacy.directory / "calibration.json").write_text(
+        json.dumps(dict(c_in=2e-3, c_test=1e-3, command=command))
+    )
+    assert figures._measurement_seconds(Legacy) == pytest.approx((7 + 3) * 3e-3)
+
+
+class _CountingSolver:
+    """A stand-in inner solver that only counts what the calibration asks of it."""
+
+    full = False
+
+    def __init__(self):
+        self.steps = self.starts = 0
+
+    def start(self, x, rhs, w):
+        self.starts += 1
+
+    def step(self):
+        self.steps += 1
+
+    def solution(self):
+        return np.zeros(3)
+
+
+class _CountingFactory:
+    def __init__(self, method):
+        self.method, self.solvers = method, []
+
+    def new(self, restart=None):
+        self.solvers.append(_CountingSolver())
+        return self.solvers[-1]
+
+
+class _Problem:
+    n, algorithm = 3, "admm"
+
+    def gradient(self, x):
+        return x
+
+    def project(self, x):
+        return x
+
+
+@pytest.mark.parametrize("method", ["cg", "gd", "agd", "nystrom_pcg", "block_kaczmarz"])
+def test_calibration_times_every_step_of_solvers_whose_steps_cost_alike(method):
+    factory = _CountingFactory(method)
+    c_in, c_test, measured = calibrate(_Problem(), 1.0, 1.0, factory, repetitions=20)
+    (solver,) = factory.solvers
+    # 23 samples (3 of warm-up), every one a timed step: no untimed steps.
+    assert solver.steps == 23 and solver.starts == math.ceil(23 / CALIBRATION_DEPTH)
+    assert c_in >= 0 and c_test >= 0 and measured > 0
+
+
+def test_calibration_times_gmres_at_its_krylov_depth():
+    factory = _CountingFactory("gmres")
+    calibrate(_Problem(), 1.0, 1.0, factory, repetitions=20)
+    (solver,) = factory.solvers
+    # One timed step at dimension CALIBRATION_DEPTH per sample, as originally.
+    assert solver.steps == 23 * CALIBRATION_DEPTH and solver.starts == 23
+
+
+def test_the_study_calibrates_on_its_first_instance_and_records_the_measurements(
+    tmp_path,
+):
+    directory = study.run_calibration(
+        "admm_qp", arguments("admm_qp", tmp_path, "--stage", "calibrate")
+    )
+    record = study._calibration(directory)
+    assert record["repetitions"] == 5
+    assert 0 < record["measurement_seconds"] <= record["calibration_seconds"]
+    # The first instance was set up with these very costs: nothing was rebuilt.
+    first = read_rows(directory / "parts" / "0" / "setup" / "parameters.csv")[0]
+    assert first["c_in_seconds"] == pytest.approx(record["c_in"])
+    assert first["c_test_seconds"] == pytest.approx(record["c_test"])
+    second = read_rows(directory / "parts" / "1" / "setup" / "parameters.csv")[0]
+    assert second["c_in_seconds"] == pytest.approx(record["c_in"])

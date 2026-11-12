@@ -65,27 +65,6 @@
 \makeatother
 \input{definitions.tex}
 
-\newcommand{\Acal}{{A}}
-\newcommand{\Bcal}{{B}}
-\newcommand{\Ccal}{{C}}
-\newcommand{\Fcal}{\mathcal{F}}
-\newcommand{\Dcal}{\mathcal{D}}
-\newcommand{\Hcal}{\mathcal{H}}
-\newcommand{\Mcal}{{M}}
-\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
-
-\DeclarePairedDelimiterX{\ipx}[2]{\langle}{\rangle}{#1,#2}
-% \ip{a}{b} sizes its angle brackets with \left and \right; \ip*{a}{b} keeps them fixed.
-\makeatletter
-\newcommand{\ip}{\@ifstar{\ipx}{\ipx*}}
-\makeatother
-
-% lowercase names
-\crefname{equation}{}{}
-\crefname{assumption}{assumption}{assumptions}
-\crefname{algocf}{Algorithm}{Algorithms}
-
-
 \title{Expected Inner Work of Inexact Proximal Point Methods}
 \author{Pranav Reddy}
 \date{\small \today \vspace{-5mm}}
@@ -1345,7 +1324,7 @@ Substituting these quantities into \Cref{alg:stopping-time-algorithm} gives \Cre
 
 
 \begin{algorithm}
-\caption{Inexact proximal ADMM as an instance of \Cref{alg:stopping-time-algorithm}.}\label{alg:inexact-admm}
+\caption{Doubly inexact proximal ADMM as an instance of \Cref{alg:stopping-time-algorithm}.}\label{alg:inexact-admm}
 \begin{algorithmic}[1]
 \STATE \textbf{Initialize:} $z_0,p_0$, $t_0$, penalty $c>0$, proximal parameter $\rho \geq 0$, inexactness $\sigma\in[0,1)$, stride $s\in\mathbb{N}$, and tolerance $\delta>0$.
 \FOR{$k=0,1,2,\ldots$}
@@ -1370,17 +1349,19 @@ For $\rho>0$, expanding the subproblem subgradients of \Cref{eq:admm-residual} s
 \begin{align}
     t_{k+1}=x_k-\frac{r_{f,k}+ E^\top r_{g,k}}{\rho}.
 \end{align}
-When $E_k=0$ (which is guaranteed when $\sigma=0$), the method reduces to proximal ADMM.
-\begin{subequations}\label{eq:admm-iterates}
-\begin{align}
-    x_k &= \argmin_x\left\{f(x)+\ip{p_k}{Ex}+\frac{c}{2}\norm{Ex-z_k}^2+\frac{c\rho}{2}\norm{x-t_k}^2\right\},\\
-    p_{k+1} &= p_k+c(Ex_k-z_k), \\
-    z_{k+1} &= \argmin_z\left\{g(z)-\ip{p_{k+1}}{z}+\frac{c}{2}\norm{z-Ex_k}^2\right\},\\
-    t_{k+1} &= x_k.
-\end{align}
-\end{subequations}
-Eliminating the $t$-variable shows that the proximal term uses the previous $x$-iterate as its center.
-With inexact solves and $\rho>0$, the auxiliary state $t_{k+1}$ generally differs from $x_k$.
+When $E_k=0$ (which is guaranteed when $\sigma=0$), the method reduces to proximal ADMM of \citet{Sun2025DegeneratePPMProximalADMM}.
+% \begin{subequations}\label{eq:admm-iterates}
+% \begin{align}
+%     x_k &= \argmin_x\left\{f(x)+\ip{p_k}{Ex}+\frac{c}{2}\norm{Ex-z_k}^2+\frac{c\rho}{2}\norm{x-t_k}^2\right\},\\
+%     &= \argmin_x\left\{f(x)+\frac{c}{2}\norm{Ex-z_k + c^{-1}p_k}^2+\frac{c\rho}{2}\norm{x-t_k}^2\right\},\\
+%     p_{k+1} &= p_k+c(Ex_k-z_k), \\
+%     z_{k+1} &= \argmin_z\left\{g(z)-\ip{p_{k+1}}{z}+\frac{c}{2}\norm{z-Ex_k}^2\right\},\\
+%     &= \argmin_z\left\{g(z)+\frac{c}{2}\norm{z-Ex_k + c^{-1}p_{k+1}}^2\right\},\\
+%     t_{k+1} &= x_k.
+% \end{align}
+% \end{subequations}
+% Eliminating the $t$-variable shows that the proximal term uses the previous $x$-iterate as its center.
+% With inexact solves and $\rho>0$, the auxiliary state $t_{k+1}$ generally differs from $x_k$.
 Setting $\rho = 0$ and $E=I$ yields the inexact ADMM algorithm of \citet{EcksteinRelativeError2018}.
 \begin{proposition}\label{prop:admm}
     Suppose $f$ and $g$ are closed, convex, and proper functions, and that the composite optimization problem \Cref{eq:admm-problem} has a solution.
@@ -1445,7 +1426,42 @@ Setting $\rho = 0$ and $E=I$ yields the inexact ADMM algorithm of \citet{Eckstei
 % \end{proof}
 The proof of \Cref{prop:admm} is in \Cref{sec:admm-proof}.
 
-\begin{example}[OSQP with an inexact quadratic solve]\label{ex:osqp}
+\subsubsection{SDP Application}
+Consider the semidefinite program (SDP)
+\begin{equation}\label{eq:sdp-problem}
+    \begin{array}{ll}
+		\text{minimize} & \langle C, X\rangle \\
+		\text{subject to} & E(X) = b, \\
+		& X \succeq 0,
+    \end{array}
+\end{equation}
+where $X\in\mathbb{S}^{n}$ is the optimization variable, $E: \mathbb{S}^{n} \to \R^m$ is a linear map, $C\in\mathbb{S}^{n}$, and $b\in\R^m$.
+We can rewrite this as 
+\begin{equation}\label{eq:sdp-admm-problem}
+    \begin{array}{ll}
+		\text{minimize} & \langle C, X\rangle + \mathcal{I}_{\left\{ y \mid y = b \right\}}(y) + \mathcal{I}_{\left\{ Z \mid Z \succeq 0 \right\}}(Z)  \\
+		\text{subject to} & E(X) = y, \\
+		& X = Z,
+    \end{array}
+\end{equation}
+where we introduced new optimization variables $Z\in\mathbb{S}^{n}$ and $y\in \R^m$.
+Letting $f(X) = \langle C, X\rangle$ and $g(y,Z) = \mathcal{I}_{\left\{ y \mid y = b \right\}}(y) + \mathcal{I}_{\left\{ Z \mid Z \succeq 0 \right\}}(Z)$, we can fit this into the doubly inexact proximal ADMM \Cref{alg:inexact-admm}.
+The main difficulty is the projection onto the positive semidefinite cone and solving the $f$-subproblem.
+As the $f$-subproblem is an unconstrained strongly convex quadratic, it is equivalent to solving a positive definite linear system.
+Note that \Cref{alg:inexact-admm} requires producing a subgradient of $g$ at the candidate point $(y_{k+1}, Z_{k+1})$.
+For projection onto the singleton set $\left\{ b \right\}$, its normal cone, equivalently the subgradient of $\mathcal{I}_{\left\{ y \mid y = b \right\}}$, is $\R^m$.
+It is known that 
+\begin{align}
+    N_{\left\{ Z \mid Z \succeq 0 \right\}}(Z) = \begin{cases}
+        \left\{ 0 \right\}, & Z \succ 0 \\
+        \left\{ A \mid A \preceq 0, \Tr(AZ) = 0 \right\}, & Z \succeq 0, Z \nsucc 0 \\
+        \varnothing, & Z \nsucceq 0.
+    \end{cases}
+\end{align}
+Therefore, a method like (block) Lanczos iteration, which converges quickly to the largest (not in magnitude) eigenvalues of a symmetric matrix, can be applied to $A$ and $-A$ to quickly obtain both a feasible point and a subgradient at that point.
+
+
+\subsubsection{OSQP with an inexact quadratic solve}\label{sec:osqp}
 Consider the quadratic program
 \begin{equation}\label{eq:osqp-qp-problem}
     \begin{array}{ll}
@@ -1649,8 +1665,6 @@ When $\kappa=1$, one GMRES step solves the system.
 To retain the graph warm start, test the previously accepted $(\tilde x,\nu)$ before reconstructing $\nu$ in the Schur iterations.
 Since $Q\tilde x^0-c_k=r_x^0+\rho A^\top r_z^0$, the bound gives $C_0=4(1+\frac{\rho}{\tau}\norm{A}_2^2)$ and $\alpha=\alpha_{\rm S}$ in \Cref{assumption:inner-work-contraction} when $\kappa>1$.
 Thus the same total-work argument applies.
-
-\end{example}
 
 \subsection{Inexact Davis--Yin}
 We can extend the Douglas--Rachford result to the more general Davis--Yin case \citep{davisThreeOperatorSplittingScheme2017}, where we wish to solve

@@ -54,6 +54,11 @@
 \newtheorem{exercise}{Exercise}[section]
 \newtheorem{remark}{Remark}[section]
 
+% lowercase names
+\crefname{equation}{}{}
+\crefname{assumption}{assumption}{assumptions}
+\crefname{algocf}{Algorithm}{Algorithms}
+
 % Acronyms.  Defined only when the preamble loaded the glossaries package, so
 % that this file can be \input from a document that does not use acronyms.
 \makeatletter
@@ -90,3 +95,18 @@
 \newcommand{\zer}{\mathop{\bf zer}}
 \newcommand{\gra}{\mathop{\bf gra}}
 \newcommand{\fix}{\mathop{\bf fix}}
+
+\newcommand{\Acal}{{A}}
+\newcommand{\Bcal}{{B}}
+\newcommand{\Ccal}{{C}}
+\newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Mcal}{{M}}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\DeclarePairedDelimiterX{\ipx}[2]{\langle}{\rangle}{#1,#2}
+% \ip{a}{b} sizes its angle brackets with \left and \right; \ip*{a}{b} keeps them fixed.
+\makeatletter
+\newcommand{\ip}{\@ifstar{\ipx}{\ipx*}}
+\makeatother

@@ -581,3 +581,28 @@ class TimeLimitTests(unittest.TestCase):
         self.assertEqual(by_method["near_exact"]["stopped_by"], "converged")
         inexact = [r for r in rows if r["method"] == "inexact"]
         self.assertTrue(all(r["stopped_by"] == "time_limit" for r in inexact))
+
+
+class ParameterAccountingTest(unittest.TestCase):
+    """The wall-clock figures charge s* its timings only, and sigma* nothing."""
+
+    def test_only_the_rows_of_s_star_are_charged(self):
+        def row(sigma_star=False, b_best=0.0, b_exact=0.0):
+            return dict(
+                sigma_is_optimal=sigma_star,
+                b_optimal_fraction=b_best,
+                b_exact_optimal_fraction=b_exact,
+            )
+
+        self.assertFalse(plots._charged_for_s_star(row(sigma_star=True)))
+        self.assertTrue(plots._charged_for_s_star(row(b_best=1.0)))
+        self.assertTrue(plots._charged_for_s_star(row(b_exact=1.0)))
+        self.assertFalse(plots._charged_for_s_star(row()))
+
+    def test_s_star_is_charged_the_timed_measurements(self):
+        class Costs:
+            def constant(self, name):
+                return {"c_in_seconds": 2e-3, "c_test_seconds": 1e-3}[name]
+
+        samples = study.STUDY_CALIBRATION_REPETITIONS + 3
+        self.assertAlmostEqual(plots._measurement_seconds(Costs()), samples * 3e-3)

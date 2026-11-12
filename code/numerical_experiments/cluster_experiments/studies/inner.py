@@ -43,8 +43,12 @@ Array = np.ndarray
 # Krylov dimension at which GMRES restarts, as in the original ADMM study.
 RESTART = 200
 # Krylov dimension at which the costs of a GMRES step and of a check are timed
-# for ``s*``: about the inner iterations of one outer iteration.
+# for ``s*``: about the inner iterations of one outer iteration.  The other
+# solvers are timed on runs of this many steps.
 CALIBRATION_DEPTH = 10
+# Timings of each cost behind ``s*`` (``--calibration-repetitions``); the
+# original studies took 300, and studies_v1 to studies_v3 took 100.
+CALIBRATION_REPETITIONS = 30
 METHODS = (
     "gmres",
     "gd",
@@ -304,25 +308,39 @@ def calibrate(
     c: float,
     gamma: float,
     factory: InnerFactory | None,
-    repetitions: int = 100,
+    repetitions: int = CALIBRATION_REPETITIONS,
     depth: int = CALIBRATION_DEPTH,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     """Median seconds of one inner iteration and of one check (Lemma 4.2).
 
-    The same measurements as ``study._calibrate`` of the original studies.
-    PPM: an inner iteration is a gradient evaluation and the residual, a check
-    the three norms of the tests.  ADMM: an inner iteration is one step of
-    the inner solver at Krylov dimension (or step count) ``depth``, and a
-    check forms the iterate, evaluates the gradient there, projects, and
-    takes the norms of the tests.
+    Also returns the seconds the timed operations took, the cost of the
+    measurements that ``s*`` needs.  PPM: an inner iteration is a gradient
+    evaluation and the residual, a check the three norms of the tests.  ADMM:
+    a check forms the iterate, evaluates the gradient there, projects, and
+    takes the norms of the tests, and an inner iteration is one step of the
+    inner solver.  A GMRES step costs more the larger its Krylov space, so it
+    is timed at dimension ``depth``, after ``depth - 1`` untimed steps, as in
+    the original studies.  The step of any other solver costs the same
+    wherever it falls, so every step of runs of ``depth`` steps is timed, each
+    followed by a timed check, with no untimed steps.  Each cost is sampled
+    ``repetitions + 3`` times, the first three discarded as warm-up.
     """
     rng = np.random.default_rng(12345)
     n = instance.n
     v = rng.standard_normal(n)
     w = rng.standard_normal(n)
     inner, check = [], []
+    samples = repetitions + 3
+
+    def result() -> tuple[float, float, float]:
+        return (
+            float(np.median(inner[3:])),
+            float(np.median(check[3:])),
+            float(sum(inner) + sum(check)),
+        )
+
     if instance.algorithm == "ppm":
-        for _ in range(repetitions + 3):
+        for _ in range(samples):
             started = time.perf_counter()
             g = instance.gradient(v)
             e = gamma * g + (v - w)
@@ -332,26 +350,14 @@ def calibrate(
             float(np.linalg.norm(v - w))
             float(np.linalg.norm(e))
             check.append(time.perf_counter() - started)
-        return float(np.median(inner[3:])), float(np.median(check[3:]))
-    solver = factory.new(restart=depth + 1)
+        return result()
 
-    def advance():
-        # A tiny test problem can exhaust a GMRES cycle (a happy breakdown)
-        # within ``depth`` steps; start a fresh one rather than step past it.
-        if solver.full:
-            solver.start(v, w, w)
-        solver.step()
-
-    for _ in range(repetitions + 3):
-        # Any residual will do: only the costs are measured.
-        solver.start(v, w, w)
-        for _ in range(depth - 1):
-            advance()
-        if solver.full:
-            solver.start(v, w, w)
+    def timed_step(solver) -> None:
         started = time.perf_counter()
         solver.step()
         inner.append(time.perf_counter() - started)
+
+    def timed_check(solver) -> None:
         started = time.perf_counter()
         x = solver.solution()
         g = instance.gradient(x)
@@ -361,7 +367,36 @@ def calibrate(
         float(np.linalg.norm(z + g / c - w))
         float(np.linalg.norm(e))
         check.append(time.perf_counter() - started)
-    return float(np.median(inner[3:])), float(np.median(check[3:]))
+
+    if factory.method != "gmres":
+        solver = factory.new()
+        while len(inner) < samples:
+            # Any residual will do: only the costs are measured.  A fresh start
+            # every ``depth`` steps keeps CG-like solvers from converging into
+            # steps that do nothing.
+            solver.start(v, w, w)
+            for _ in range(min(depth, samples - len(inner))):
+                timed_step(solver)
+                timed_check(solver)
+        return result()
+    solver = factory.new(restart=depth + 1)
+
+    def advance():
+        # A tiny test problem can exhaust a GMRES cycle (a happy breakdown)
+        # within ``depth`` steps; start a fresh one rather than step past it.
+        if solver.full:
+            solver.start(v, w, w)
+        solver.step()
+
+    for _ in range(samples):
+        solver.start(v, w, w)
+        for _ in range(depth - 1):
+            advance()
+        if solver.full:
+            solver.start(v, w, w)
+        timed_step(solver)
+        timed_check(solver)
+    return result()
 
 
 def recommendations(

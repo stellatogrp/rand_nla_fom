@@ -1,0 +1,229 @@
+{
+ "campaign": "studies_v3",
+ "description": "Block and cyclic Kaczmarz at side 40 with block sizes around sqrt(n) (n = 64,000; p = 64, 125, 250, 500, 1000), strides as fractions of one pass, a 3,600 s wall-clock stop per inexact run, and a 10^7 cap on inner steps.",
+ "results_dir": "results/studies_v3",
+ "common": [
+  "--calibration-repetitions",
+  "100",
+  "--time-limit",
+  "3600",
+  "--max-total-inner",
+  "10000000"
+ ],
+ "lanes": {
+  "kaczmarz": {
+   "throttle": 8,
+   "mem": "4G",
+   "time": "04:00:00",
+   "flags": [
+    "--instances",
+    "3",
+    "--near-exact-time-limit",
+    "600"
+   ],
+   "calibrate_time": "00:30:00"
+  }
+ },
+ "studies": [
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "64",
+    "--bs",
+    "10",
+    "50",
+    "100",
+    "500",
+    "1000",
+    "--sigma-sweep-b",
+    "100"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "125",
+    "--bs",
+    "5",
+    "26",
+    "51",
+    "256",
+    "512",
+    "--sigma-sweep-b",
+    "51"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "250",
+    "--bs",
+    "3",
+    "13",
+    "26",
+    "128",
+    "256",
+    "--sigma-sweep-b",
+    "26"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "500",
+    "--bs",
+    "1",
+    "6",
+    "13",
+    "64",
+    "128",
+    "--sigma-sweep-b",
+    "13"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "block_kaczmarz",
+    "--block-size",
+    "1000",
+    "--bs",
+    "1",
+    "3",
+    "6",
+    "32",
+    "64",
+    "--sigma-sweep-b",
+    "6"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "64",
+    "--bs",
+    "10",
+    "50",
+    "100",
+    "500",
+    "1000",
+    "--sigma-sweep-b",
+    "100"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "125",
+    "--bs",
+    "5",
+    "26",
+    "51",
+    "256",
+    "512",
+    "--sigma-sweep-b",
+    "51"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "250",
+    "--bs",
+    "3",
+    "13",
+    "26",
+    "128",
+    "256",
+    "--sigma-sweep-b",
+    "26"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "500",
+    "--bs",
+    "1",
+    "6",
+    "13",
+    "64",
+    "128",
+    "--sigma-sweep-b",
+    "13"
+   ]
+  },
+  {
+   "module": "admm_qp",
+   "lane": "kaczmarz",
+   "flags": [
+    "--side",
+    "40",
+    "--inner",
+    "cyclic_kaczmarz",
+    "--block-size",
+    "1000",
+    "--bs",
+    "1",
+    "3",
+    "6",
+    "32",
+    "64",
+    "--sigma-sweep-b",
+    "6"
+   ]
+  }
+ ]
+}

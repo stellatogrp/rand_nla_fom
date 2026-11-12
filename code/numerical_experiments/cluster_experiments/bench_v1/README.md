@@ -7,7 +7,9 @@ times as long on `della-h12n15` as on `della-h12n14` during that campaign
 process on one node, `della-h12n14`, with the runs of each instance
 interleaved in a seeded random order, so that a change of load falls on every
 solver alike. Its code is `bench/one_node.py`; it reads `studies_v2`'s stored
-setups (read only) and writes `results/bench_v1/`.
+setups (read only) and writes `results/bench_v1/`. Status: complete on
+2026-11-11, all 1,503 runs; results and the comparison are in
+`LAUNCH_STATUS.md`.
 
 What is timed (`plan.json`, sealed by `seal.json` with the `bench` and
 `studies` sources, the Slurm script, and `studies_v2`'s seal):

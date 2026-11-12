@@ -21,8 +21,28 @@ the original figures from them. On Della a campaign (`studies.campaign`,
 own array task, in separate lanes for the QP, Kaczmarz, and regression studies,
 so a stalled configuration delays no other result; `studies_v1/` is the first
 campaign, and `studies_v2/` reruns its QP and regression studies with a
-1,200 s instead of a 300 s limit per inexact run. It imports the sealed
+1,200 s instead of a 300 s limit per inexact run, and `studies_v3/` runs
+block and cyclic Kaczmarz with blocks of 1/4 to 4 times sqrt(n) rows. Those
+campaigns ran the `studies` code archived in `releases/studies_r1/`; the
+working package has since a cheaper calibration of the costs behind `s*`
+(every step timed for solvers other than GMRES, 30 repetitions, on the first
+instance's own setup), for the campaigns after them. It imports the sealed
 `releases/regression_v9` engine and changes nothing below.
+
+## SDP sanity experiments
+
+[`sdp/`](sdp/README.md) implements the SDP application of Algorithm 3 (doubly
+inexact proximal ADMM): conjugate gradients on the quadratic `f`-subproblem
+and an approximate projection onto the positive semidefinite cone by block
+Lanczos, whose positive Ritz pairs give the point of the cone and whose
+negative ones give the subgradient. It is self-contained and separate from
+the studies above. `sdp_v1/` is its first campaign, small synthetic instances
+that sanity check the method (`slurm/sdp_sanity.slurm`, results in
+`results/sdp_v1/`, figures from `plots.sdp`); it found that this two-sided
+pair needs the whole space. `sdp_v2/` tries the one-sided pair (positive Ritz
+pairs for the point of the cone, the rest of the matrix as the subgradient)
+with its safeguard, a guard estimate and a Cholesky certificate. `sdp_v1` ran
+the package as archived in `releases/sdp_r1`.
 
 ## Results layout
 

@@ -1,0 +1,127 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage{xcolor}
+\usepackage[normalem]{ulem}
+\newcommand{\TODO}[1]{{\color{purple}\textbf{TODO:} #1}}
+
+\usepackage{amssymb, amsfonts, amsmath, amsthm, mathtools}
+\usepackage[margin=1in, footskip=1cm, headheight = 1.5cm]{geometry}
+\makeatletter\def\blx@noerroretextools{}\makeatother % autonum loads etextools; demote biblatex's error to a warning
+\usepackage[style=ext-authoryear-comp, sorting=none, sortcites=true, maxcitenames=2, uniquename=false,
+            uniquelist=false, natbib=true, backend=biber]{biblatex}
+\DeclareOuterCiteDelims{parencite}{\bibopenbracket}{\bibclosebracket}
+\DeclareInnerCiteDelims{textcite}{\bibopenbracket}{\bibclosebracket}
+\addbibresource{bibliography.bib}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[hypertexnames=false]{hyperref}
+\usepackage{microtype,booktabs,enumitem,array,longtable}
+% Floats: keep figures on text pages near their paragraphs, build float pages
+% only when they are nearly full, and never let a figure drift past its section.
+\usepackage[section]{placeins}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=cyan,
+    pdftitle={Expected Inner Work of Inexact Proximal Point Methods},
+    pdfpagemode=UseOutlines,
+    }
+\usepackage[nameinlink,capitalize]{cleveref}
+\usepackage{autonum}
+
+\makeatletter
+\AtBeginDocument{\autonum@generatePatchedReferenceCSL{Cref}}
+\makeatother
+% --- autonum + subequations: number the whole block when the block's own label is referenced ---
+\makeatletter
+\newif\ifautonum@forceNumbers
+\newif\ifautonum@subeq@rollback
+\let\autonum@possiblyHideNumberOrig\autonum@possiblyHideNumber
+\def\autonum@possiblyHideNumber{\ifautonum@forceNumbers\else\autonum@possiblyHideNumberOrig\fi}
+\AtBeginDocument{%
+  \CsLetCsLtxMacro{autonum@subequationsOld}{subequations}%
+  \CsLetCsLtxMacro{autonum@endsubequationsOld}{endsubequations}%
+  \renewenvironment{subequations}{\autonum@subequationsOld}{%
+    \ifautonum@forceNumbers\else\ifnum\value{equation}=0 \autonum@subeq@rollbacktrue\fi\fi % nothing inside got a number
+    \autonum@endsubequationsOld
+    \ifautonum@subeq@rollback\addtocounter{equation}{-1}\fi % give the parent number back
+  }%
+  % A \label issued at the subequations level (right after \begin{subequations}) whose key is
+  % referenced switches on numbering for every line of the block.
+  \LetLtxMacro\autonum@subeq@origLabel\label
+  \def\label{\@ifnextchar[\autonum@subeq@label@opt\autonum@subeq@label@noopt}%
+}
+\def\autonum@subeq@label@noopt#1{\autonum@subeq@check{#1}\autonum@subeq@origLabel{#1}}
+\def\autonum@subeq@label@opt[#1]#2{\autonum@subeq@check{#2}\autonum@subeq@origLabel[#1]{#2}}
+\def\autonum@subeq@check#1{\ifdefstring{\@currenvir}{subequations}{\ifcsedef{autonum@#1Referenced}{\autonum@forceNumberstrue}{}}{}}
+\makeatother
+\input{definitions.tex}
+
+
+\title{Expected Inner Work of Inexact Proximal Point Methods}
+\author{Pranav Reddy}
+\date{\small \today \vspace{-5mm}}
+
+\begin{document}
+\maketitle
+\section{Introduction}
+I think the focus should be on how we have a very general framework for analyzing first-order methods which require a subproblem oracle.
+This framework is plug-and-play: someone can take their favorite first-order method, choose a particular inner solver, and substitute the convergence guarantees for that inner solver into our work to get heuristics for parameter selection.
+Theoretically, we improve previous total work bounds from $O(\delta^{-2}\log(1/\delta))$ to $O(\delta^{-2})$ by considering the effect of warm-starting, rather than a naive (worst inner) $\times$ (worst outer) bound.
+We can also emphasize that we allow randomized inner methods and show some high-probability guarantees for these.
+
+\subsection{Contribution}
+\subsection{Prior Work}
+
+\section{Overview of General Framework and Outer Convergence Guarantees}
+\begin{enumerate}
+    \item Introduce general algorithm and framework.
+    \begin{enumerate}
+        \item Some motivation for definitions + assumptions.
+    \end{enumerate}
+    \item Key lemmas for inner work guarantees.
+    \item The outer convergence guarantees are pretty standard, so this section could be brief.
+\end{enumerate}
+
+\section{Inner Work Guarantees}
+\begin{enumerate}
+    \item General expected + deterministic inner work bounds.
+    \item High-probability bound.
+    \item Parameter selection heuristics.
+\end{enumerate}
+
+\section{Applications and Examples}
+In no particular order, candidates for examples of applications of the framework:
+\begin{enumerate}
+    \item OSQP (or other similar algorithms) and selection of parameters + inner solver.
+    \item Doubly inexact ADMM for SDP.
+    \begin{enumerate}
+        \item This is also an interesting example because the cost of checking the relative error criterion is expensive: each check requires a projection onto the PSD cone.
+        Having a stride/check frequency parameter may be very useful here
+        \item How to measure steps of joint inner procedure?
+    \end{enumerate}
+    \item Davis-Yin splitting.
+    \item PHDG.
+\end{enumerate}
+
+\section{Numerical Experiments}
+\begin{enumerate}
+    \item QPs (synthetic + from benchmark sets: LibSVM, UCI)
+    \begin{enumerate}
+        \item Compare choices of inner solvers, stepsizes, inexactness, and stride
+        \item Evaluate how well heuristics perform
+    \end{enumerate}
+    \item SDPs
+    \item Scale should ideally be very large: $n\sim$ 100K
+\end{enumerate}
+
+
+\end{document}

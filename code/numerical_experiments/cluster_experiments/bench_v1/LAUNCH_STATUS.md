@@ -77,3 +77,38 @@ run into it, with that pending reason
 (https://researchcomputing.princeton.edu/faq/when-do-systems-undergo-s).
 2026-11-10 is that Tuesday. Both jobs stay queued, unchanged; they become
 eligible when the maintenance ends.
+
+## 2026-11-11: complete
+
+After the maintenance, job 17183540 (side 40, LASSO, side 64) completed in
+8:50:25 of 14:00 (1.9 GB reported, 99% CPU efficiency) and job 17183542
+(side 100) in 12:14:02 of 22:00 (7.0 GB, 99%), both on `della-h12n14`, one
+after the other. All 1,503 planned runs are in `results/bench_v1/` (side 40
+400, side 64 390, side 100 378, LASSO 335), no error was logged, and every
+run repeats `studies_v2`'s outer and inner iteration counts (1,503 of 1,503).
+The exact-ADMM probe varied by a factor of 1.17 over the instances at side
+64, 1.31 at side 100, 1.38 on the LASSO, and 1.86 at side 40, whose runs take
+about a second and so feel load the most.
+
+`bench.one_node summarize` wrote `results/bench_v1/summary.csv` and
+`report.txt`. Median cost per run (algorithm time plus the solver's own
+setup) of each solver's fastest configuration as timed here:
+
+| Problem | CG | GMRES | GD | AGD | Nystrom-PCG r32 | Nystrom-PCG r128 | exact ADMM |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| QP side 40 | 1.03 s | 1.53 s | 1.35 s | 1.42 s | 2.97 s | 12.1 s | 0.47 s |
+| QP side 64 | 4.53 s | 4.78 s | 5.72 s | 6.45 s | 11.9 s | 41.9 s | 1.89 s |
+| QP side 100 | 23.2 s | 26.8 s | 24.0 s | 32.7 s | 49.5 s | 183 s | 9.80 s |
+| LASSO | 4.81 s | 6.12 s | 5.98 s | 10.2 s | | 24.5 s | 26.4 s |
+
+Paired instance by instance against the fastest, at side 100 CG and GD are
+level (2.53 and 2.40 times exact ADMM), GMRES and AGD follow (2.74, 2.80),
+and Nystrom-PCG trails (rank 32 4.83, rank 128 18.3); on the LASSO GD and
+GMRES take 1.11 and 1.15 times CG's time, AGD 2.08, Nystrom-PCG 4.90, and
+exact ADMM 5.57. At the shared `sigma = 0.1`, `s = 1` the order is about the
+same: CG first among the inner solvers, level with GD at side 40 (2.12 and
+2.15 s). Near-exact over the
+fastest configuration of the same solver: 5.9-28.4. The ranking agrees with
+`studies_v2`'s `della-h12n14` rows; the benchmark's absolute times are
+somewhat higher, as the node carried other load, and GD's fastest
+configuration at side 100 now ties CG's.

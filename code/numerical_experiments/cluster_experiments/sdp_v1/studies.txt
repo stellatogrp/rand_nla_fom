@@ -1,0 +1,8 @@
+--name planted_n40 --family planted --n 40 --m 80 --rank 4 --seeds 0 1 2 --reference
+--name planted_n80 --family planted --n 80 --m 160 --rank 8 --seeds 0 1 2 --reference
+--name planted_n120 --family planted --n 120 --m 240 --rank 12 --seeds 0 1 2 --reference
+--name planted_n80_rho0.1 --family planted --n 80 --m 160 --rank 8 --rho 0.1 --seeds 0 1 2 --reference
+--name planted_n80_stride4 --family planted --n 80 --m 160 --rank 8 --stride 4 --seeds 0 1 2 --reference
+--name planted_n80_dual8 --family planted --n 80 --m 160 --rank 8 --dual-rank 8 --seeds 0 1 2 --reference
+--name maxcut_n40 --family maxcut --n 40 --c 0.01 --seeds 0 1 2 --reference
+--name maxcut_n80 --family maxcut --n 80 --c 0.01 --seeds 0 1 2 --reference

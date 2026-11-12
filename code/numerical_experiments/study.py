@@ -82,6 +82,8 @@ CHECK_THRESHOLD = 1e-3
 # Krylov dimension at which the costs of a GMRES step and of a check are
 # timed for ``b*`` (ADMM): about the inner iterations of one outer iteration.
 CALIBRATION_DEPTH = 10
+# Timings of each cost in the study-level calibration (``calibrate_study``).
+STUDY_CALIBRATION_REPETITIONS = 300
 RESULTS = "results.csv"
 HISTORIES = "histories.csv"
 PARAMETERS = "parameters.csv"
@@ -789,7 +791,9 @@ def calibrate_study(study: str, settings: dict) -> tuple[float, float, float]:
             settings["seed"], settings["n"], settings["m"], settings["threshold"]
         )
         projector = None
-    c_in, c_test = _calibrate(study, problem, projector, repetitions=300)
+    c_in, c_test = _calibrate(
+        study, problem, projector, repetitions=STUDY_CALIBRATION_REPETITIONS
+    )
     return c_in, c_test, time.perf_counter() - started
 
 

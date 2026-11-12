@@ -281,17 +281,28 @@ def _lane_manifests(
     )
 
 
-def verify(manifest: Path) -> dict:
-    """Check the campaign seal of ``manifest``; return the seal."""
+def verify(manifest: Path, release: str | None = None) -> dict:
+    """Check the campaign seal of ``manifest``; return the seal.
+
+    With ``release``, the sealed ``studies`` sources are checked against the
+    archived copy ``releases/<release>/studies/`` instead of the working
+    package: a finished campaign stays verifiable after the package changes.
+    """
     directory = Path(manifest).resolve().parent.parent
     seal_path = directory / "seal.json"
     if not seal_path.exists():
         raise SystemExit(f"{seal_path} is missing: prepare the campaign first")
     seal = json.loads(seal_path.read_text())
+
+    def located(name: str) -> Path:
+        if release is not None and name.startswith("studies/"):
+            return ROOT / "releases" / release / name
+        return ROOT / name
+
     changed = [
         name
         for name, digest in seal["sources"].items()
-        if not (ROOT / name).exists() or _sha256(ROOT / name) != digest
+        if not located(name).exists() or _sha256(located(name)) != digest
     ]
     if changed:
         raise SystemExit(

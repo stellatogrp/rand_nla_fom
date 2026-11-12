@@ -54,6 +54,8 @@ Figure labels use the paper's symbols: the stride ``s`` of the paper is the
 from __future__ import annotations
 
 import argparse
+import csv
+import json
 import math
 from collections import defaultdict
 from dataclasses import dataclass
@@ -974,12 +976,63 @@ def per_step(study: Study) -> list[Path]:
     return style.save(fig, study.directory / "per_step")
 
 
-def _recommended_row(row: dict) -> bool:
+def _charged_for_s_star(row: dict) -> bool:
+    """Whether a configuration is charged the cost of choosing its parameter.
+
+    Only ``s*`` (Lemma 4.2, Remark 4.4) costs anything to choose: it needs the
+    measured costs ``c_in`` and ``c_test``.  ``sigma*`` (Proposition 5.1) needs
+    only ``alpha`` and ``C_0``, a scalar root found in microseconds, so its row
+    is charged nothing, and in particular none of the cost of ``s*``.
+    """
     return bool(
-        row.get("sigma_is_optimal")
-        or row.get("b_optimal_fraction", 0.0) > 0.5
+        row.get("b_optimal_fraction", 0.0) > 0.5
         or row.get("b_exact_optimal_fraction", 0.0) > 0.5
     )
+
+
+def _calibration_repetitions(record: dict) -> int:
+    """The timings of each cost that a study's calibration took.
+
+    Recorded in ``calibration.json`` since the calibration was made cheaper;
+    before, read from the command that calibrated: a campaign task's manifest
+    row names the argument file that sets ``--calibration-repetitions``.
+    """
+    from studies.study import ROOT, build_parser
+
+    if record.get("repetitions"):
+        return int(record["repetitions"])
+    command = [str(word) for word in record.get("command", [])]
+    if "--manifest" in command and "--task-id" in command:
+        manifest = ROOT / command[command.index("--manifest") + 1]
+        task = command[command.index("--task-id") + 1]
+        with manifest.open(newline="") as stream:
+            for row in csv.DictReader(stream):
+                if row["task"] == task:
+                    parser = build_parser(row["module"])
+                    args = parser.parse_args([f"@{ROOT / row['args']}"])
+                    return int(args.calibration_repetitions)
+    raise ValueError(f"cannot tell how many timings the calibration {record} took")
+
+
+def _measurement_seconds(study: Study) -> float:
+    """Seconds of the timings behind ``s*``, charged to the rows that use it.
+
+    The calibration timed ``repetitions + 3`` inner iterations and as many
+    checks; the rest of its time went to the untimed GMRES steps that reach
+    the Krylov dimension at which it times (and, before the calibration ran on
+    the first instance's own setup, to building a problem for it), which a
+    user choosing ``s*`` does not need.  Recorded exactly in
+    ``calibration.json`` since then (``measurement_seconds``).
+    """
+    path = study.directory / "calibration.json"
+    if not path.exists():
+        return 0.0
+    record = json.loads(path.read_text())
+    measured = record.get("measurement_seconds")
+    if measured is not None and math.isfinite(float(measured)):
+        return float(measured)
+    samples = _calibration_repetitions(record) + 3
+    return samples * (float(record["c_in"]) + float(record["c_test"]))
 
 
 def _shifted_geometric_mean(values: np.ndarray, shift: float) -> float:
@@ -1039,14 +1092,15 @@ def _walltime_chart(
     truth_times = np.array([p["truth_seconds"] for p in study.parameters], dtype=float)
     names = [name for name, _ in rows]
     setup = np.array([statistic(times(r, "setup_seconds")) for _, r in rows])
-    params = np.array(
-        [
-            statistic(times(r, "parameter_seconds", "calibration_seconds"))
-            if _recommended_row(r)
-            else 0.0
-            for _, r in rows
-        ]
-    )
+
+    measurement = _measurement_seconds(study)
+
+    def parameter_time(row: dict) -> float:
+        if not _charged_for_s_star(row):
+            return 0.0
+        return statistic(times(row, "parameter_seconds") + measurement)
+
+    params = np.array([parameter_time(r) for _, r in rows])
     spreads = [truth_times] + [times(r, "runtime_seconds") for _, r in rows]
     centers = np.array([statistic(t) for t in spreads])
     truth, algorithm = centers[0], centers[1:]
@@ -1067,7 +1121,8 @@ def _walltime_chart(
         (
             params,
             style.SEGMENTS[1],
-            f"computing ${SIGMASTAR}$ / ${BSTAR}$ (incl. one-off calibration)",
+            f"computing ${BSTAR}$ (incl. timing "
+            r"$c_{\mathrm{in}}$ and $c_{\mathrm{test}}$)",
         ),
         (algorithm, style.SEGMENTS[2], "algorithm"),
     )

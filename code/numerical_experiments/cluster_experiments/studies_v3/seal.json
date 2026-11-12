@@ -1,0 +1,141 @@
+{
+ "campaign": "studies_v3",
+ "engine": "regression_v9",
+ "engine_archive_sha256": "aae007ec53f724ca5825cd483e464d252e600b4d3734c4b5a349626ccffc9d77",
+ "lanes": {
+  "kaczmarz": {
+   "calibrate": "studies_v3/inputs/kaczmarz.calibrate.csv",
+   "calibrate_time": "00:30:00",
+   "collect": "studies_v3/inputs/kaczmarz.collect.csv",
+   "flags": [
+    "--instances",
+    "3",
+    "--near-exact-time-limit",
+    "600"
+   ],
+   "mem": "4G",
+   "run_parts_chained": false,
+   "run_throttle": 8,
+   "runs": [
+    {
+     "manifest": "studies_v3/inputs/kaczmarz.run.part000.csv",
+     "tasks": 145
+    }
+   ],
+   "tasks": 145,
+   "throttle": 8,
+   "time": "04:00:00"
+  }
+ },
+ "results_dir": "results/studies_v3",
+ "sources": {
+  "slurm/studies_campaign.slurm": "529e115c93446dd2e7f1a88a687eff80ce7979465112fcac52e854beb04fd95a",
+  "studies/__init__.py": "41ac4c37ae1f0c2009ff858b1e12e0c9c22b64fb84af0db0874a1bfa5a6c76ba",
+  "studies/_io.py": "562a7b0ea99fbdb996fc7a44a239d070b7fdcc4c1f0270c02e114fd55d242b5c",
+  "studies/aggregate.py": "9fa6135ab87e33c782cafcb13515ee8bdc3dd9ba763aa6d2f13c0b05ccd2bf9a",
+  "studies/algorithms.py": "2a9d1b324b48638a73f305e7f4a296a1073dd789b563c3305cbf7ceddb956c55",
+  "studies/campaign.py": "0cc40162ef9e34741edce35f4494c96b222dad1d40bf9c97b8a93eec976bf7e3",
+  "studies/inner.py": "afb363a823fb33d1f89c57605bb9190f0520a5a49e79d9041bcb9e7a8a8d0403",
+  "studies/problems.py": "91d80b41a1d34c48386aa12409b1bc90a9b131cfea17ef3764036a2489e85f1c",
+  "studies/run_admm_lasso.py": "8bee739a58bd9f7ce39412e7b811f03216271bfef5db9a35513a268228608885",
+  "studies/run_admm_qp.py": "6cb0edf0ab43997726971f94c95f91584fbdccfe326263943fbc33b580475982",
+  "studies/run_ppm_logistic.py": "b0a98d4629980efa1fda883721c15fb49e7da413aa64fd2549d4c19ee0feb508",
+  "studies/study.py": "c09a66becec963ccbed0b0a9d4b864abdd350acf34576bf03ae333178382a2c9",
+  "studies_v3/campaign.json": "b97e1ef5c04c31cf0e8b760fd436c2d7361d53efe983e2bb53cbb6ae4cd1d5f2",
+  "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block1000.args": "7bd62eec9bcff8f95bfe708791f925741cae23e38552c101effd5053b27dbea1",
+  "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block125.args": "d8d65f427d4a4431a72facb059993135c7393c28919c2145e3a13b45e36aeff6",
+  "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block250.args": "e8ef9fd4b8e13b071e551b54c69d7ad61f7c04d5155e165bf20674a3f025492f",
+  "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block500.args": "c52c148e51aa7704d85884da09ba02a52bdd0aa92f058053a29a0ce89f42881a",
+  "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block64.args": "6090a9b1c8c956ca092b148ec26d312576352c1f7d3d28da22cf257274b319d1",
+  "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block1000.args": "ca3bb1bc18ac971aa410f21b477bb331a599bc6e22f80a095e2d8f86be61a66c",
+  "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block125.args": "0e0ab16356ff92c24e31fa21d9dedeec19d8e92a9cba21e1830ed835da5d4aa4",
+  "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block250.args": "3cb6aed20d6fa40ec0187e0f3a29d9fec16f44f676cd97dbdbb2bde1543a8edf",
+  "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block500.args": "0b83dfe4c8c2b6858ca37319f31efeaef649ba867187f56e8e8a6c875daa20ea",
+  "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block64.args": "928b93de18c7d9ae65dcee265dc3983d13bf4f679bc94ed8b4ad3d3fa9eb5b7d",
+  "studies_v3/inputs/kaczmarz.calibrate.csv": "b83587b2ff517c536b575f37a685b6e009618f7849a5c92a6a85efe7f2e14c08",
+  "studies_v3/inputs/kaczmarz.collect.csv": "dc59dc14afede2dfd120f0f2c06f2dc961e1a056fafedabbd8c0d72faf446af0",
+  "studies_v3/inputs/kaczmarz.run.part000.csv": "7401166872edd9f1a0bf17bfb35cab3917d1053f839eb5554a0284b7d45f08a2"
+ },
+ "studies": [
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block64.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block64",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block125.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block125",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block250.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block250",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block500.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block500",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_block_kaczmarz_block1000.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_block_kaczmarz_block1000",
+   "reserved": 16
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block64.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block64",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block125.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block125",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block250.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block250",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block500.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block500",
+   "reserved": 13
+  },
+  {
+   "args": "studies_v3/inputs/admm_qp_side40_cyclic_kaczmarz_block1000.args",
+   "instances": 3,
+   "lane": "kaczmarz",
+   "module": "admm_qp",
+   "name": "admm_qp_side40_cyclic_kaczmarz_block1000",
+   "reserved": 13
+  }
+ ]
+}

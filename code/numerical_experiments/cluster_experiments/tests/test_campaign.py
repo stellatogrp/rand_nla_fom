@@ -109,13 +109,23 @@ def test_the_seal_freezes_the_inputs_and_the_campaign(tmp_path):
         campaign.task(manifest, 0)
 
 
-@pytest.mark.parametrize("name", ["studies_v1", "studies_v2"])
+# The campaigns launched before the calibration changed, with the archived
+# copy of the ``studies`` package they ran (``releases/studies_r1``).
+ARCHIVED = {
+    "studies_v1": "studies_r1",
+    "studies_v2": "studies_r1",
+    "studies_v3": "studies_r1",
+}
+
+
+@pytest.mark.parametrize("name", sorted(ARCHIVED))
 def test_the_prepared_campaigns_are_sealed_and_consistent(name):
     seal_path = campaign.ROOT / name / "seal.json"
     if not seal_path.exists():
         pytest.skip(f"{name} is not prepared")
     seal = json.loads(seal_path.read_text())
-    assert campaign.verify(campaign.ROOT / seal["lanes"]["qp"]["calibrate"])
+    first = next(iter(seal["lanes"].values()))
+    assert campaign.verify(campaign.ROOT / first["calibrate"], release=ARCHIVED[name])
     for info in seal["lanes"].values():
         total = sum(part["tasks"] for part in info["runs"])
         assert total == info["tasks"]
@@ -150,3 +160,53 @@ def test_studies_v2_is_studies_v1_with_a_longer_time_limit():
         changed = {k for k in keys if before.get(k) != after.get(k)}
         assert changed == {"time_limit"}, name
         assert (before["time_limit"], after["time_limit"]) == (300.0, 1200.0)
+
+
+def test_studies_v3_runs_kaczmarz_at_block_sizes_around_sqrt_n():
+    """Both variants at 1/4 to 4 sqrt(n) rows, strides that are fractions of a pass."""
+    seal_path = campaign.ROOT / "studies_v3" / "seal.json"
+    if not seal_path.exists():
+        pytest.skip("studies_v3 is not prepared")
+    sizes = {}
+    for entry in json.loads(seal_path.read_text())["studies"]:
+        parser = study.build_parser(entry["module"])
+        args = parser.parse_args([f"@{campaign.ROOT / entry['args']}"])
+        settings = study.settings_from(args, entry["module"])
+        n = int(settings["side"]) ** 3
+        p = int(settings["block_size"])
+        assert n % p == 0 and 0.2 <= p / n**0.5 <= 4.0
+        assert settings["time_limit"] == 3600.0
+        assert settings["max_total_inner"] == 10_000_000
+        assert settings["near_exact_time_limit"] == 600.0
+        passes = [b * p / n for b in settings["bs"]]
+        assert passes[-1] == 1.0 and abs(passes[0] - 0.01) < 0.02
+        assert settings["sigma_sweep_b"] == round(0.1 * n / p)
+        sizes.setdefault(settings["inner"], set()).add(p)
+    assert sizes == {
+        "block_kaczmarz": {64, 125, 250, 500, 1000},
+        "cyclic_kaczmarz": {64, 125, 250, 500, 1000},
+    }
+
+
+def test_the_archived_release_is_the_code_the_earlier_campaigns_sealed():
+    release = campaign.ROOT / "releases" / "studies_r1"
+    if not (release / "SHA256SUMS").exists():
+        pytest.skip("studies_r1 is not archived")
+    sums = {}
+    for line in (release / "SHA256SUMS").read_text().splitlines():
+        digest, name = line.split()
+        sums[name] = digest
+        assert campaign._sha256(release / name) == digest
+    for name in ARCHIVED:
+        seal_path = campaign.ROOT / name / "seal.json"
+        if seal_path.exists():
+            sources = json.loads(seal_path.read_text())["sources"]
+            assert {
+                k: v for k, v in sources.items() if k.startswith("studies/")
+            } == sums
+    # The working package differs from it: the archive is what verifies them.
+    working = {
+        f"studies/{p.name}": campaign._sha256(p)
+        for p in (campaign.ROOT / "studies").glob("*.py")
+    }
+    assert working != sums

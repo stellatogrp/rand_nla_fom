@@ -864,12 +864,32 @@ def per_step(study: Study) -> list[Path]:
     return style.save(fig, study.directory / "per_step")
 
 
-def _recommended_row(row: dict) -> bool:
+def _charged_for_s_star(row: dict) -> bool:
+    """Whether a configuration is charged the cost of choosing its parameter.
+
+    Only ``s*`` (Lemma 4.2, Remark 4.4) costs anything to choose: it needs the
+    measured costs ``c_in`` and ``c_test``.  ``sigma*`` (Proposition 5.1) needs
+    only ``alpha`` and ``C_0``, a scalar root found in microseconds, so its row
+    is charged nothing, and in particular none of the cost of ``s*``.
+    """
     return bool(
-        row.get("sigma_is_optimal")
-        or row.get("b_optimal_fraction", 0.0) > 0.5
+        row.get("b_optimal_fraction", 0.0) > 0.5
         or row.get("b_exact_optimal_fraction", 0.0) > 0.5
     )
+
+
+def _measurement_seconds(study: Study) -> float:
+    """Seconds of the timings behind ``s*``, charged to the rows that use it.
+
+    The study-level calibration timed ``STUDY_CALIBRATION_REPETITIONS + 3``
+    inner iterations and as many checks; the rest of its time went to setting
+    up a problem and to the untimed GMRES steps that reach the Krylov
+    dimension at which it times, which a user choosing ``s*`` does not need.
+    """
+    from .study import STUDY_CALIBRATION_REPETITIONS
+
+    samples = STUDY_CALIBRATION_REPETITIONS + 3
+    return samples * (study.constant("c_in_seconds") + study.constant("c_test_seconds"))
 
 
 def _shifted_geometric_mean(values: np.ndarray, shift: float) -> float:
@@ -929,14 +949,15 @@ def _walltime_chart(
     truth_times = np.array([p["truth_seconds"] for p in study.parameters], dtype=float)
     names = [name for name, _ in rows]
     setup = np.array([statistic(times(r, "setup_seconds")) for _, r in rows])
-    params = np.array(
-        [
-            statistic(times(r, "parameter_seconds", "calibration_seconds"))
-            if _recommended_row(r)
-            else 0.0
-            for _, r in rows
-        ]
-    )
+
+    measurement = _measurement_seconds(study)
+
+    def parameter_time(row: dict) -> float:
+        if not _charged_for_s_star(row):
+            return 0.0
+        return statistic(times(row, "parameter_seconds") + measurement)
+
+    params = np.array([parameter_time(r) for _, r in rows])
     spreads = [truth_times] + [times(r, "runtime_seconds") for _, r in rows]
     centers = np.array([statistic(t) for t in spreads])
     truth, algorithm = centers[0], centers[1:]
@@ -957,7 +978,8 @@ def _walltime_chart(
         (
             params,
             style.SEGMENTS[1],
-            f"computing ${SIGMASTAR}$ / ${BSTAR}$ (incl. one-off calibration)",
+            f"computing ${BSTAR}$ (incl. timing "
+            r"$c_{\mathrm{in}}$ and $c_{\mathrm{test}}$)",
         ),
         (algorithm, style.SEGMENTS[2], "algorithm"),
     )

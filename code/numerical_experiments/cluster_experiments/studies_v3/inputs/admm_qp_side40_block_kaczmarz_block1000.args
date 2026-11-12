@@ -1,0 +1,13 @@
+# admm_qp_side40_block_kaczmarz_block1000: admm_qp, lane kaczmarz
+--calibration-repetitions 100
+--time-limit 3600
+--max-total-inner 10000000
+--instances 3
+--near-exact-time-limit 600
+--side 40
+--inner block_kaczmarz
+--block-size 1000
+--bs 1 3 6 32 64
+--sigma-sweep-b 6
+--results-dir results/studies_v3
+--name admm_qp_side40_block_kaczmarz_block1000

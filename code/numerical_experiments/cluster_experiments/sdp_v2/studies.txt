@@ -1,0 +1,12 @@
+--name planted_n40 --family planted --n 40 --m 80 --rank 4 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified
+--name planted_n80 --family planted --n 80 --m 160 --rank 8 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified
+--name planted_n120 --family planted --n 120 --m 240 --rank 12 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified
+--name planted_n80_dual8 --family planted --n 80 --m 160 --rank 8 --dual-rank 8 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified
+--name maxcut_n40 --family maxcut --n 40 --c 0.01 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified --reference
+--name maxcut_n80 --family maxcut --n 80 --c 0.01 --seeds 0 1 2 --block-sizes 4 8 --groups exact inexact one_sided certified --reference
+--name planted_n80_kappa1 --family planted --n 80 --m 160 --rank 8 --seeds 0 1 2 --block-sizes 4 8 --guard-factor 1 --groups exact one_sided certified
+--name maxcut_n80_kappa1 --family maxcut --n 80 --c 0.01 --seeds 0 1 2 --block-sizes 4 8 --guard-factor 1 --groups exact one_sided certified
+--name planted_n200 --family planted --n 200 --m 300 --rank 10 --c 0.3 --seeds 0 1 2 --sigmas 0.5 0.9 --block-sizes 4 8 --groups exact one_sided certified --time-limit 3600
+--name maxcut_n200 --family maxcut --n 200 --c 0.003 --seeds 0 1 2 --sigmas 0.5 0.9 --block-sizes 4 8 --groups exact one_sided certified --time-limit 3600
+--name maxcut_n400 --family maxcut --n 400 --c 0.003 --seeds 0 1 2 --sigmas 0.5 0.9 --block-sizes 4 --groups exact one_sided certified --time-limit 7200
+--name maxcut_n800 --family maxcut --n 800 --c 0.003 --seeds 0 --sigmas 0.5 --block-sizes 4 --groups exact one_sided certified --time-limit 14400

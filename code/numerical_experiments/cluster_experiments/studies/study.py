@@ -22,10 +22,11 @@ Stages (``--stage``):
     instances on a local process pool, collect, and aggregate.  For a
     workstation (``--allow-local``) or a single Slurm allocation.
 ``calibrate``
-    Time one inner iteration and one check on the first instance
-    (``calibration.json``), as the original's parent process does for every
-    instance, fix the study's configuration list (``configurations.csv``),
-    and set up every instance (``parts/<seed>/setup/``).
+    Set up the first instance and time one inner iteration and one check on
+    its own inner solver (``calibration.json``), as the original's parent
+    process does once per study, fix the study's configuration list
+    (``configurations.csv``), and set up every other instance
+    (``parts/<seed>/setup/``).
 ``run``
     One configuration (``--configuration``) of every instance, or of one
     (``--task-index``, seed ``--seed`` plus the index): a Slurm array task, so
@@ -84,6 +85,7 @@ from .algorithms import (
     inexact_ppm,
 )
 from .inner import (
+    CALIBRATION_REPETITIONS,
     RESTART,
     InnerFactory,
     calibrate,
@@ -384,8 +386,8 @@ def build_parser(study: str) -> argparse.ArgumentParser:
     parser.add_argument(
         "--calibration-repetitions",
         type=int,
-        default=300,
-        help="repetitions of the study-level timing of c_in and c_test",
+        default=CALIBRATION_REPETITIONS,
+        help="timings of each of c_in and c_test in the study-level calibration",
     )
     # Stages.
     parser.add_argument("--stage", choices=STAGES, default="all")
@@ -630,6 +632,9 @@ class Setup:
     diagnostics: Diagnostics
     initialization: Initialization
     configurations: list
+    # The calibration made on this instance (``calibrate``'s costs, its seconds,
+    # and the seconds of its timed measurements), or None.
+    calibration: dict | None = None
 
 
 def _signature(config: dict) -> tuple:
@@ -718,6 +723,7 @@ def prepare_instance(
     generation_seconds = time.perf_counter() - started
 
     stored = _load_setup(part) if part is not None else None
+    calibrated = None
     if stored is not None:
         parameters, truth = stored
         smoothness = float(parameters["smoothness"])
@@ -760,14 +766,31 @@ def prepare_instance(
         # The paper's parameter recommendations, timed as a practical user
         # would pay for them: sigma* needs only alpha and C_0; b* needs the
         # ratio of the check cost to the inner-iteration cost, which is
-        # measured.
-        started = time.perf_counter()
+        # measured.  Without the study's calibration in ``settings`` (the
+        # first instance, when the study calibrates), the costs are measured
+        # here, on this instance's own inner solver: nothing is built for it.
         if settings.get("c_in") is None:
-            c_in, c_test = calibrate(instance, c, gamma, factory)
-            calibration_seconds = nan
+            repetitions = settings.get("calibration_repetitions")
+            started = time.perf_counter()
+            c_in, c_test, measured = calibrate(
+                instance,
+                c,
+                gamma,
+                factory,
+                repetitions=int(repetitions or CALIBRATION_REPETITIONS),
+            )
+            calibration_seconds = time.perf_counter() - started
+            calibrated = dict(
+                c_in=c_in,
+                c_test=c_test,
+                calibration_seconds=calibration_seconds,
+                measurement_seconds=measured,
+                repetitions=int(repetitions or CALIBRATION_REPETITIONS),
+            )
         else:
             c_in, c_test = float(settings["c_in"]), float(settings["c_test"])
             calibration_seconds = float(settings["calibration_seconds"])
+        started = time.perf_counter()
         recommended = recommendations(alpha, c0, kind, settings, c_in, c_test)
         parameter_seconds = time.perf_counter() - started
         by_b = sigma_star_by_b(alpha, c0, kind, settings["bs"])
@@ -891,6 +914,7 @@ def prepare_instance(
         diagnostics=diagnostics,
         initialization=Initialization(settings, seed),
         configurations=configurations,
+        calibration=calibrated,
     )
 
 
@@ -1292,43 +1316,41 @@ def _reduce(algorithm: str, trace: Trace, identity: dict, parameters: dict):
 # The study.
 
 
-def calibrate_study(study: str, settings: dict) -> tuple[float, float, float]:
-    """Time one inner iteration and one check on a representative instance.
-
-    Done once, before the instances run (in the parent process, or as its own
-    Slurm job), so that the cost ratio behind ``b*`` is the same for every
-    instance; returns the two costs and the seconds the calibration took.
-    The penalty and stepsize come from the engine's certified smoothness
-    bound: only the costs matter here, and they do not depend on it.
-    """
-    started = time.perf_counter()
-    instance = Instance(FAMILY[study], settings["seed"], settings)
-    ratio = float(settings["ratio"])
-    smoothness = instance.smoothness_certified
-    if instance.algorithm == "admm":
-        c, gamma = smoothness / ratio, 1.0
-        factory = InnerFactory(instance, c, settings)
-    else:
-        c, gamma, factory = nan, ratio / smoothness, None
-    repetitions = int(settings["calibration_repetitions"])
-    c_in, c_test = calibrate(instance, c, gamma, factory, repetitions=repetitions)
-    return c_in, c_test, time.perf_counter() - started
-
-
 def _calibration(directory: Path) -> dict | None:
     path = directory / CALIBRATION
     return json.loads(path.read_text()) if path.exists() else None
 
 
 def _store_calibration(directory: Path, study: str, settings: dict) -> dict:
-    c_in, c_test, seconds = calibrate_study(study, settings)
-    record = dict(
-        c_in=c_in,
-        c_test=c_test,
-        calibration_seconds=seconds,
-        seed=settings["seed"],
-        **_provenance(None),
-    )
+    """Calibrate the study on its first instance's own setup and record it.
+
+    The first instance is set up (and stored in ``parts/<seed>/setup``) with
+    the costs measured on its instance and inner solver, as built for its
+    runs, so nothing is built twice; the other instances read the record,
+    so that the cost ratio behind ``b*`` is the same for every instance.
+    ``calibration_seconds`` is the time of the calibration alone and
+    ``measurement_seconds`` that of its timed operations.
+    """
+    seed = int(settings["seed"])
+    own = {
+        k: v
+        for k, v in settings.items()
+        if k not in ("c_in", "c_test", "calibration_seconds")
+    }
+    setup = prepare_instance(study, seed, own, directory / PARTS / str(seed))
+    values = setup.calibration
+    if values is None:
+        # The first instance was set up before (a calibration cut short after
+        # storing it): its parameters hold the costs it was set up with.
+        parameters = setup.parameters
+        values = dict(
+            c_in=float(parameters["c_in_seconds"]),
+            c_test=float(parameters["c_test_seconds"]),
+            calibration_seconds=float(parameters["calibration_seconds"]),
+            measurement_seconds=nan,
+            repetitions=None,
+        )
+    record = dict(**values, seed=seed, **_provenance(None))
     _write_json(directory / CALIBRATION, record)
     return record
 

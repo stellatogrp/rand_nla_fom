@@ -95,7 +95,8 @@ In fact, sufficiently inexact iterations outperform running the same gradient de
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{../results/numerical_experiments/ppm_huber/walltime_sgm.pdf}
-    \caption{Wall-clock time per configuration on the Huber instances \Cref{eq:huber-loss-problem} with $n = 2000$ and $m = 3000$: the shifted geometric mean over the 100 instances of the setup time, of the time to compute $\sigma^\star$ or $s^\star$ where one is used (including a one-off calibration), and of the algorithm time, stacked.
+    \caption{Wall-clock time per configuration on the Huber instances \Cref{eq:huber-loss-problem} with $n = 2000$ and $m = 3000$: the shifted geometric mean over the 100 instances of the setup time, of the time to compute $s^\star$ where it is used (including the timing of $c_{\mathrm{in}}$ and $c_{\mathrm{test}}$), and of the algorithm time, stacked.
+    Computing $\sigma^\star$ needs only $\alpha$ and $C_0$ and takes under a millisecond, so its bar has no such segment.
     Whiskers span the 10th to the 90th percentile of the algorithm time, and the top bar is the CVXPY (Clarabel) solve time for scale.
     The configurations are gradient descent on \Cref{eq:huber-loss-problem}, the near-exact method, the $\sigma$ sweep at $s = 1$ (including $\sigma^\star$), and the $s$ sweep at $\sigma = 0.1$ (including $s^\star$).
     Sufficiently inexact runs are faster than both the near-exact method and gradient descent.}\label{fig:ppm-huber-wall-clock-times}
@@ -222,7 +223,8 @@ We do not consider this to be a limitation, since in many applications such a cl
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/walltime_sgm.pdf}
-    \caption{Wall-clock time per configuration on the quadratic programs \Cref{eq:admm-qp} with $n = 2000$ and $m = 600$: the shifted geometric mean over the 100 instances of the setup time, of the time to compute $\sigma^\star$ or $s^\star$ where one is used (including a one-off calibration), and of the algorithm time, stacked.
+    \caption{Wall-clock time per configuration on the quadratic programs \Cref{eq:admm-qp} with $n = 2000$ and $m = 600$: the shifted geometric mean over the 100 instances of the setup time, of the time to compute $s^\star$ where it is used (including the timing of $c_{\mathrm{in}}$ and $c_{\mathrm{test}}$), and of the algorithm time, stacked.
+    Computing $\sigma^\star$ needs only $\alpha$ and $C_0$ and takes under a millisecond, so its bar has no such segment.
     Whiskers span the 10th to the 90th percentile of the algorithm time, and the top bar is the CVXPY (Clarabel) solve time for scale.
     The configurations are exact ADMM with a Cholesky factorization of $Q + cI$, the near-exact method, the $\sigma$ sweep at $s = 1$ (including $\sigma^\star$), and the $s$ sweep at $\sigma = 0.1$ (including $s^\star$).
     Every configuration that uses GMRES is slower than the factorization, and the inexact ones are faster than the near-exact method.}\label{fig:admm-qp-wall-clock-times}
@@ -244,7 +246,8 @@ The inexact configurations outperform the theory, which is generally conservativ
 
 As in the previous section, we compare the modeled cost of different choices of $s$ to the actual measured cost.
 Numerically solving for a more precise $s^\star$ yields a better result, both theoretically and empirically, as seen in \Cref{fig:admm-qp-optimal-b-star-model}.
-The setup costs of computing $s^\star$ or $\sigma^\star$ are included as the middle segment of each bar, but they are negligible compared to the overall cost of the algorithm and are not visible.
+The cost of computing $s^\star$, including the timing of $c_{\mathrm{in}}$ and $c_{\mathrm{test}}$, forms the middle segment of the bars that use it, but it is negligible compared to the overall cost of the algorithm and is not visible.
+Computing $\sigma^\star$ needs only $\alpha$ and $C_0$, so its bar has no such segment.
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{../results/numerical_experiments/admm_qp/bstar_model.pdf}
